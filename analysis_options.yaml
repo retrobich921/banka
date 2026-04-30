@@ -31,10 +31,8 @@ linter:
 
     # Errors
     avoid_print: true
-    avoid_returning_null_for_future: true
     cancel_subscriptions: true
     close_sinks: true
 
     # Design
-    avoid_classes_with_only_static_members: true
     one_member_abstracts: false

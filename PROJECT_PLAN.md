@@ -109,17 +109,17 @@ reports/{reportId}                        // модерация
 
 > Чек-боксы обновляются по мере выполнения. После каждого спринта PR должен быть смержен в `main`, и только тогда галочки спринта закрываются.
 
-### Sprint 0 — Foundation & DevOps
+### Sprint 0 — Foundation & DevOps ✅
 
-- [ ] Ветки `main` (защищённая) и `chore/sprint-0-foundation`.
-- [ ] `PROJECT_PLAN.md` с чек-боксами (этот файл).
-- [ ] `README.md` с описанием проекта и инструкцией запуска.
-- [ ] `CONTRIBUTING.md` с правилами Git/Conventional Commits.
-- [ ] `.gitignore` под Flutter + Dart + IDE + Firebase.
-- [ ] `analysis_options.yaml` с `flutter_lints` (или `very_good_analysis`).
-- [ ] `.github/workflows/ci.yaml` — `dart format --set-exit-if-changed` + `flutter analyze` + `flutter test` (с guard на наличие `pubspec.yaml`).
-- [ ] `.github/pull_request_template.md`.
-- [ ] PR Sprint 0 → ревью → мерж.
+- [x] Ветки `main` (защищённая) и `chore/sprint-0-foundation`.
+- [x] `PROJECT_PLAN.md` с чек-боксами (этот файл).
+- [x] `README.md` с описанием проекта и инструкцией запуска.
+- [x] `CONTRIBUTING.md` с правилами Git/Conventional Commits.
+- [x] `.gitignore` под Flutter + Dart + IDE + Firebase.
+- [x] `analysis_options.yaml` с `flutter_lints` (или `very_good_analysis`).
+- [x] `.github/workflows/ci.yaml` — `dart format --set-exit-if-changed` + `flutter analyze` + `flutter test` (с guard на наличие `pubspec.yaml`).
+- [x] `.github/pull_request_template.md`.
+- [x] PR Sprint 0 → ревью → мерж (PR #1).
 
 ### Sprint 1 — Project Init
 

@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: Flutter analyze & test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect Flutter project
+        id: flutter_check
+        run: |
+          if [ -f pubspec.yaml ]; then
+            echo "has_flutter=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_flutter=false" >> $GITHUB_OUTPUT
+            echo "::notice::pubspec.yaml not found — Flutter steps will be skipped (Sprint 0 is bootstrap-only)."
+          fi
+
+      - name: Setup Flutter
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: flutter --version
+
+      - name: Install deps
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: flutter pub get
+
+      - name: Generate code (build_runner)
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: |
+          if grep -q "build_runner" pubspec.yaml; then
+            dart run build_runner build --delete-conflicting-outputs
+          else
+            echo "build_runner not configured yet — skipping codegen."
+          fi
+
+      - name: Format check
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: dart format --set-exit-if-changed .
+
+      - name: Analyze
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: |
+          if [ -d test ] && [ -n "$(ls -A test 2>/dev/null)" ]; then
+            flutter test --reporter expanded
+          else
+            echo "No tests yet — skipping."
+          fi
+
+  build-apk:
+    name: Build debug APK (main only)
+    runs-on: ubuntu-latest
+    needs: flutter
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect Flutter project
+        id: flutter_check
+        run: |
+          if [ -f pubspec.yaml ]; then
+            echo "has_flutter=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_flutter=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Java
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Setup Flutter
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install deps
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: flutter pub get
+
+      - name: Generate code
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: |
+          if grep -q "build_runner" pubspec.yaml; then
+            dart run build_runner build --delete-conflicting-outputs
+          fi
+
+      - name: Build debug APK
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        run: flutter build apk --debug
+
+      - name: Upload artifact
+        if: steps.flutter_check.outputs.has_flutter == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// Базовые правила Sprint 2: всё закрыто за auth, конкретные правила на
+// per-collection уровне будут добавлены в соответствующих спринтах
+// (users — Sprint 3, groups — Sprint 5, posts — Sprint 7 и т. д.).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Запрет анонимного доступа к чему бы то ни было.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

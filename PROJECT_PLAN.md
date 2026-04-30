@@ -142,16 +142,22 @@ reports/{reportId}                        // модерация
 
 ### Sprint 2 — Auth (Google Sign-In)
 
-- [ ] `flutterfire configure --project=<id>` — генерирует `lib/firebase_options.dart` и кладёт `google-services.json` / `GoogleService-Info.plist`.
-- [ ] Добавить deps: `firebase_core`, `firebase_auth`, `google_sign_in`, `cloud_firestore`, `firebase_storage`, `firebase_messaging`.
-- [ ] `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` в `main.dart` (раскомментировать TODO).
-- [ ] Сборка debug-APK на подключённом телефоне (проверка, что Firebase инициализируется без ошибок).
-- [ ] Data: `AuthRemoteDataSource` (FirebaseAuth + GoogleSignIn), `AuthRepositoryImpl`.
-- [ ] Domain: `User entity`, usecases (`SignInWithGoogle`, `SignOut`, `WatchAuthState`).
-- [ ] Presentation: `AuthBloc`, экраны Splash + SignIn (минимализм: лого, одна кнопка «Войти через Google»).
-- [ ] Auth-aware redirect в `AppRouter` на основе `WatchAuthState`.
-- [ ] Защита Firestore Rules: `request.auth != null`.
+- [x] `flutterfire configure --project=banka-collectors-app` — сгенерированы `lib/firebase_options.dart` и `android/app/google-services.json`.
+- [x] Добавлены deps: `firebase_core`, `firebase_auth`, `google_sign_in` (7.x), `cloud_firestore`, `firebase_storage`, `firebase_messaging`.
+- [x] `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` в `main.dart`.
+- [ ] Сборка debug-APK на подключённом телефоне (проверка, что Firebase инициализируется без ошибок) — после мержа PR Sprint 2.
+- [x] Data: `AuthRemoteDataSource` (FirebaseAuth + GoogleSignIn 7.x), `AuthRepositoryImpl` с маппингом `Failure`.
+- [x] Domain: `AuthUser` entity, usecases (`SignInWithGoogle`, `SignOut`, `WatchAuthState`).
+- [x] Presentation: `AuthBloc` (events: `AuthStarted`, `AuthGoogleSignInRequested`, `AuthSignOutRequested`), экраны Splash + SignIn (минимализм: лого, одна кнопка «Войти через Google»).
+- [x] Auth-aware redirect в `AppRouter` на основе `AuthBloc.state`.
+- [x] Защита Firestore/Storage Rules: `request.auth != null` (`firestore.rules`, `storage.rules`, `firebase.json`).
+- [x] Тесты: `AuthBloc` (bloc_test + mocktail) + smoke widget tests SignIn/Home.
 - [ ] PR Sprint 2 → CI → ревью → мерж.
+
+> **Что должен сделать owner один раз перед запуском на устройстве:**
+> 1. Открыть https://console.firebase.google.com/project/banka-collectors-app/authentication/providers и включить **Google** провайдер (Identity Platform требует billing, поэтому по REST API не включается). После этого Firebase сам создаст web-OAuth-клиент.
+> 2. Прислать debug SHA-1 от своего keystore (`./gradlew signingReport` из `android/`) — добавлю в Firebase-app через `firebase apps:android:sha:create`. Без SHA-1 Google Sign-In вернёт `DEVELOPER_ERROR` на устройстве.
+> 3. После шагов 1–2 — `flutterfire configure --project=banka-collectors-app` (обновит `google-services.json` с oauth_client'ом) и пересборка APK.
 
 ### Sprint 3 — User profile (data + domain)
 

@@ -1,30 +1,78 @@
-import 'package:banka/app/app.dart';
-import 'package:banka/core/di/injector.dart';
-import 'package:banka/core/router/app_router.dart';
+import 'package:banka/core/theme/app_theme.dart';
+import 'package:banka/features/auth/domain/entities/auth_user.dart';
+import 'package:banka/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:banka/features/auth/presentation/pages/sign_in_page.dart';
+import 'package:banka/features/home/presentation/pages/home_page.dart';
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockAuthBloc extends MockBloc<AuthEvent, AuthState>
+    implements AuthBloc {}
 
 void main() {
-  setUp(() async {
-    await sl.reset();
-    sl.registerLazySingleton<AppRouter>(AppRouter.new);
+  setUpAll(() {
+    registerFallbackValue(const AuthStarted());
+    registerFallbackValue(const AuthState.initial());
   });
 
-  testWidgets('BankaApp boots and shows the splash screen', (tester) async {
-    await tester.pumpWidget(const BankaApp());
+  Widget makeApp(AuthBloc bloc, Widget page) {
+    return MaterialApp(
+      theme: AppTheme.dark,
+      home: BlocProvider<AuthBloc>.value(value: bloc, child: page),
+    );
+  }
+
+  testWidgets('SignInPage renders Google button and brand title', (
+    tester,
+  ) async {
+    final bloc = _MockAuthBloc();
+    whenListen(
+      bloc,
+      const Stream<AuthState>.empty(),
+      initialState: const AuthState.unauthenticated(),
+    );
+
+    await tester.pumpWidget(makeApp(bloc, const SignInPage()));
     await tester.pump();
 
-    expect(find.byType(MaterialApp), findsOneWidget);
     expect(find.text('banka'), findsOneWidget);
+    expect(find.text('Войти через Google'), findsOneWidget);
   });
 
-  testWidgets('Splash auto-navigates to SignIn after delay', (tester) async {
-    await tester.pumpWidget(const BankaApp());
+  testWidgets('SignInPage shows loading state when signing in', (tester) async {
+    final bloc = _MockAuthBloc();
+    whenListen(
+      bloc,
+      const Stream<AuthState>.empty(),
+      initialState: const AuthState.signingIn(),
+    );
+
+    await tester.pumpWidget(makeApp(bloc, const SignInPage()));
     await tester.pump();
 
-    await tester.pump(const Duration(milliseconds: 1500));
-    await tester.pumpAndSettle();
+    expect(find.text('Входим…'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
 
-    expect(find.text('Войти через Google'), findsOneWidget);
+  testWidgets('HomePage shows user displayName and sign-out button', (
+    tester,
+  ) async {
+    const user = AuthUser(id: 'uid-1', email: 'a@b.com', displayName: 'Alice');
+    final bloc = _MockAuthBloc();
+    whenListen(
+      bloc,
+      const Stream<AuthState>.empty(),
+      initialState: const AuthState.authenticated(user),
+    );
+
+    await tester.pumpWidget(makeApp(bloc, const HomePage()));
+    await tester.pump();
+
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('a@b.com'), findsOneWidget);
+    expect(find.byIcon(Icons.logout), findsOneWidget);
   });
 }

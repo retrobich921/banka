@@ -1,38 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Стартовый экран. На Sprint 1 — статика с лого и таймером перехода на SignIn.
-/// В Sprint 2 здесь будет ожидание первого emit из `AuthBloc`.
-class SplashPage extends StatefulWidget {
+/// Splash — лого + спиннер. Редирект делает `AppRouter`, как только `AuthBloc`
+/// получает первое значение из `authStateChanges`.
+class SplashPage extends StatelessWidget {
   const SplashPage({super.key});
-
-  @override
-  State<SplashPage> createState() => _SplashPageState();
-}
-
-class _SplashPageState extends State<SplashPage> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer(const Duration(milliseconds: 1200), () {
-      if (mounted) {
-        context.goNamed(AppRoutes.signInName);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +13,7 @@ class _SplashPageState extends State<SplashPage> {
       backgroundColor: AppColors.background,
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.local_drink_outlined,
@@ -56,6 +29,12 @@ class _SplashPageState extends State<SplashPage> {
                 color: AppColors.onBackground,
                 letterSpacing: 2,
               ),
+            ),
+            SizedBox(height: 32),
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ],
         ),

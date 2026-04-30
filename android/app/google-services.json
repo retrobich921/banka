@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "118303358012",
+    "project_id": "banka-collectors-app",
+    "storage_bucket": "banka-collectors-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:118303358012:android:27c6471f5ad50089581739",
+        "android_client_info": {
+          "package_name": "com.retrobich921.banka"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7AKhhckdkULVZBf2C1MVrkHoF4Py7db8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

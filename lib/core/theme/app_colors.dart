@@ -15,6 +15,7 @@ abstract final class AppColors {
   static const Color onBackground = Color(0xFFFFFFFF);
   static const Color onSurface = Color(0xFFFFFFFF);
   static const Color onSurfaceMuted = Color(0xFFA0A0A0);
+  static const Color onSurfaceFaint = Color(0xFF707070);
 
   // Accent
   static const Color primary = Color(0xFFFFB300);

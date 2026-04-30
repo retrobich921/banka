@@ -1,0 +1,52 @@
+name: banka
+description: Социальное приложение и каталог для коллекционеров энергетических напитков.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_bloc: ^9.1.0
+  bloc: ^9.0.0
+
+  # Dependency injection
+  get_it: ^8.0.3
+  injectable: ^2.5.0
+
+  # Routing
+  go_router: ^16.2.4
+
+  # Functional / model utils
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+
+  # Internationalization
+  intl: ^0.20.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # Codegen
+  build_runner: ^2.5.4
+  freezed: ^3.0.6
+  injectable_generator: ^2.7.0
+  json_serializable: ^6.10.0
+
+  # Testing
+  bloc_test: ^10.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true

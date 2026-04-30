@@ -123,23 +123,33 @@ reports/{reportId}                        // модерация
 
 ### Sprint 1 — Project Init
 
-- [ ] `flutter create banka` (org `com.retrobich921.banka`).
-- [ ] Структура Clean Architecture: `lib/core/{di,error,router,theme,utils,network}` и `lib/features/<feature>/{data,domain,presentation}`.
-- [ ] Зависимости: `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`, `firebase_messaging`, `google_sign_in`, `flutter_bloc`, `get_it`, `injectable`, `go_router`, `freezed`, `json_serializable`, `equatable`, `dartz`, `image`, `image_picker`, `cached_network_image`, `intl`.
-- [ ] Dev: `build_runner`, `freezed`, `injectable_generator`, `json_serializable`, `flutter_lints` или `very_good_analysis`.
-- [ ] `flutterfire configure` (Android + iOS).
-- [ ] `core/theme` — тёмная тема (`#000000`, акценты, типографика, `ThemeExtension` для кастомных цветов).
-- [ ] `core/di` — get_it + injectable + сгенерированные регистрации.
-- [ ] `core/router` — go_router скелет (Splash → Auth → Home).
-- [ ] `core/error` — `Failure`, `AppException`.
-- [ ] Сборка debug-APK на подключённом телефоне (проверка, что Firebase инициализируется).
-- [ ] PR Sprint 1 → CI → ревью → мерж.
+- [x] `flutter create banka` (org `com.retrobich921.banka`).
+- [x] Структура Clean Architecture: `lib/core/{di,error,router,theme,utils}` (network/data/domain слои фич появятся, когда понадобятся, чтобы не плодить пустые директории).
+- [x] Не-Firebase зависимости: `flutter_bloc`, `bloc`, `get_it`, `injectable`, `go_router`, `equatable`, `dartz`, `freezed_annotation`, `json_annotation`, `intl`.
+- [x] Dev: `build_runner`, `freezed`, `injectable_generator`, `json_serializable`, `flutter_lints`, `bloc_test`, `mocktail`.
+- [x] `core/theme` — тёмная тема (`#000000`, акцент `#FFB300`, типографика, Material 3 component themes).
+- [x] `core/di` — get_it + injectable + сгенерированные регистрации (`AppRouter`).
+- [x] `core/router` — go_router скелет (Splash → SignIn → Home).
+- [x] `core/error` — `Failure`, `AppException`, `ResultFuture<T>`.
+- [x] Smoke-тест: `BankaApp` грузится, splash → sign-in.
+- [x] PR Sprint 1 → CI → ревью → мерж.
+
+> Перенесено в Sprint 2 (требует google-services.json, без него Android Gradle падает):
+> - `flutterfire configure` (Android + iOS).
+> - Firebase-зависимости: `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`, `firebase_messaging`, `google_sign_in`.
+> - Image-зависимости (`image`, `image_picker`, `cached_network_image`, `mobile_scanner`) — переедут в свои спринты (7, 14).
+> - Сборка debug-APK на телефоне (вместе с Firebase init).
 
 ### Sprint 2 — Auth (Google Sign-In)
 
+- [ ] `flutterfire configure --project=<id>` — генерирует `lib/firebase_options.dart` и кладёт `google-services.json` / `GoogleService-Info.plist`.
+- [ ] Добавить deps: `firebase_core`, `firebase_auth`, `google_sign_in`, `cloud_firestore`, `firebase_storage`, `firebase_messaging`.
+- [ ] `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` в `main.dart` (раскомментировать TODO).
+- [ ] Сборка debug-APK на подключённом телефоне (проверка, что Firebase инициализируется без ошибок).
 - [ ] Data: `AuthRemoteDataSource` (FirebaseAuth + GoogleSignIn), `AuthRepositoryImpl`.
 - [ ] Domain: `User entity`, usecases (`SignInWithGoogle`, `SignOut`, `WatchAuthState`).
 - [ ] Presentation: `AuthBloc`, экраны Splash + SignIn (минимализм: лого, одна кнопка «Войти через Google»).
+- [ ] Auth-aware redirect в `AppRouter` на основе `WatchAuthState`.
 - [ ] Защита Firestore Rules: `request.auth != null`.
 - [ ] PR Sprint 2 → CI → ревью → мерж.
 

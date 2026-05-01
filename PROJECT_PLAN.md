@@ -182,7 +182,11 @@ reports/{reportId}                        // модерация
 
 ### Sprint 5 — Groups (data + domain)
 
-- [ ] `GroupModel`, `GroupRepository` (CRUD + members), usecases.
+- [x] Domain: `Group`, `GroupMember`, `GroupRole` (freezed, immutable), `GroupRepository` контракт, 10 usecases (`Create/Get/Watch/Update/Delete`, `Join/Leave`, `WatchMy/WatchPublic/WatchGroupMembers`).
+- [x] Data: `GroupDto`, `GroupMemberDto`, `FirestoreGroupRemoteDataSource` (атомарные `WriteBatch` для create/join/leave с денорм-массивом `membersUids`), `GroupRepositoryImpl` (Either-маппинг).
+- [x] Security Rules: `users` + `groups/{id}` + `groups/{id}/members/{uid}` (создатель = owner, leave = self, update = owner).
+- [x] Composite indexes для `membersUids+updatedAt` и `isPublic+postsCount`.
+- [x] Тесты DTO round-trip + repository (мок-источник). Всего 45 passed.
 - [ ] PR Sprint 5 → CI → ревью → мерж.
 
 ### Sprint 6 — Groups (presentation)

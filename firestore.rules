@@ -82,6 +82,27 @@ service cloud.firestore {
       // (likes / comments) сделает Cloud Function в Sprint 10/11.
       allow delete: if isSignedIn()
         && resource.data.authorId == request.auth.uid;
+
+      // ---- likes/{userId} (Sprint 10) ---------------------------------------
+      // Лайк живёт под постом, id документа = uid лайкнувшего. Поставить /
+      // снять лайк может только сам пользователь, читать — любой авторизованный
+      // (нужно для экрана «Кто лайкнул» и `watchHasLiked`). Поле `likesCount`
+      // у родительского поста инкрементирует Cloud Function `onLikeCreated/Deleted`.
+      match /likes/{userId} {
+        allow read: if isSignedIn();
+        allow create, delete: if isSelf(userId);
+        allow update: if false;
+      }
+    }
+
+    // ---- users/{uid}/likedPosts/{postId} (Sprint 10) -----------------------
+    // «Обратный» документ — нужен для быстрой ленты «мои лайки» в профиле
+    // (Sprint 16). Записывает / удаляет только сам пользователь, читает только
+    // он (приватный список).
+    match /users/{userId}/likedPosts/{postId} {
+      allow read: if isSelf(userId);
+      allow create, delete: if isSelf(userId);
+      allow update: if false;
     }
 
     // ---- Fallback: по умолчанию всё, что не описано выше — закрыто.

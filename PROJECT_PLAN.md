@@ -161,7 +161,12 @@ reports/{reportId}                        // модерация
 
 ### Sprint 3 — User profile (data + domain)
 
-- [ ] `UserModel` (freezed), `UserRepository`, usecases `GetUser`, `UpdateUser`, `WatchUserStats`.
+- [x] `UserProfile` + `UserStats` entities (freezed).
+- [x] `UserRepository` контракт (getUser, watchUser, watchUserStats, ensureUserDocument, updateProfile).
+- [x] Usecases: `GetUser`, `WatchUser`, `WatchUserStats`, `EnsureUserDocument`, `UpdateProfile`.
+- [x] Data: `UserProfileDto` (Firestore ↔ entity), `UserRemoteDataSource` + `FirestoreUserRemoteDataSource`, `UserRepositoryImpl` с `Either<Failure, T>`.
+- [x] DI: всё подхватывается `injectable` через существующий `FirebaseFirestore` из `FirebaseModule`.
+- [x] Тесты: DTO round-trip + repository (25 passed).
 - [ ] PR Sprint 3 → CI → ревью → мерж.
 
 ### Sprint 4 — User profile (presentation)

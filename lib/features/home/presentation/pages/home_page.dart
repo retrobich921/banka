@@ -2,12 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../post/presentation/bloc/posts_feed_bloc.dart';
+import '../../../post/presentation/widgets/posts_feed_view.dart';
 
+/// Главный экран — глобальная лента «Все банки».
+///
+/// Отдельный таб «Подписки» появится в Sprint 16 (когда будет логика
+/// подписок); таб «Группа» доступен через `GroupDetailPage`.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<PostsFeedBloc>(
+      create: (_) =>
+          sl<PostsFeedBloc>()
+            ..add(const PostsFeedSubscribeRequested(PostsFeedScope.global())),
+      child: const HomeView(),
+    );
+  }
+}
+
+/// View-слой главного экрана. Вынесен публично, чтобы виджет-тест
+/// мог обернуть его собственным `BlocProvider<PostsFeedBloc>` без
+/// инициализации DI-контейнера.
+@visibleForTesting
+class HomeView extends StatelessWidget {
+  const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -39,58 +64,9 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      body: BlocBuilder<AuthBloc, AuthState>(
-        buildWhen: (prev, curr) => prev.user != curr.user,
-        builder: (context, state) {
-          final user = state.user;
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (user?.photoUrl != null)
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundImage: NetworkImage(user!.photoUrl!),
-                    )
-                  else
-                    const Icon(
-                      Icons.account_circle_outlined,
-                      size: 72,
-                      color: AppColors.onSurfaceMuted,
-                    ),
-                  const SizedBox(height: 16),
-                  Text(
-                    user?.displayName ?? user?.email ?? 'Гость',
-                    style: Theme.of(context).textTheme.titleLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  const Icon(
-                    Icons.construction_outlined,
-                    size: 40,
-                    color: AppColors.onSurfaceFaint,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Лента появится в Sprint 9',
-                    style: Theme.of(context).textTheme.titleMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'AppBar: 👥 группы · 👤 профиль · ⎋ выход.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.onSurfaceMuted,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+      body: const PostsFeedView(
+        emptyText:
+            'Пока никто не запостил банку.\nБудь первым — нажми «Запостить банку».',
       ),
     );
   }

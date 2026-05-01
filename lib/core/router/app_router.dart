@@ -14,6 +14,7 @@ import '../../features/group/presentation/pages/group_detail_page.dart';
 import '../../features/group/presentation/pages/groups_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/post/presentation/pages/create_post_page.dart';
+import '../../features/post/presentation/pages/post_detail_page.dart';
 import '../../features/user/presentation/bloc/profile_bloc.dart';
 import '../../features/user/presentation/pages/edit_profile_page.dart';
 import '../../features/user/presentation/pages/profile_page.dart';
@@ -69,6 +70,12 @@ final class AppRouter {
           }
           return const CreatePostPage();
         },
+      ),
+      GoRoute(
+        path: AppRoutes.postDetail,
+        name: AppRoutes.postDetailName,
+        builder: (_, state) =>
+            PostDetailPage(postId: state.pathParameters['id']!),
       ),
       ShellRoute(
         builder: (context, state, child) => BlocProvider<ProfileBloc>(

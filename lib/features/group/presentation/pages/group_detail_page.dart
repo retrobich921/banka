@@ -6,6 +6,8 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../post/presentation/bloc/posts_feed_bloc.dart';
+import '../../../post/presentation/widgets/post_card.dart';
 import '../../domain/entities/group.dart';
 import '../bloc/group_detail_bloc.dart';
 
@@ -20,8 +22,14 @@ class GroupDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<GroupDetailBloc>(
-      create: (_) => sl<GroupDetailBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<GroupDetailBloc>(create: (_) => sl<GroupDetailBloc>()),
+        BlocProvider<PostsFeedBloc>(
+          create: (_) => sl<PostsFeedBloc>()
+            ..add(PostsFeedSubscribeRequested(PostsFeedScope.group(groupId))),
+        ),
+      ],
       child: _GroupDetailView(groupId: groupId),
     );
   }
@@ -206,6 +214,11 @@ class _GroupBody extends StatelessWidget {
               subtitle: Text(_roleLabel(m.role)),
             ),
           ),
+          const SizedBox(height: 32),
+          Text('Банки группы', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          const _GroupPostsSection(),
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -216,6 +229,55 @@ class _GroupBody extends StatelessWidget {
     GroupRole.admin => 'админ',
     GroupRole.member => 'участник',
   };
+}
+
+class _GroupPostsSection extends StatelessWidget {
+  const _GroupPostsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<PostsFeedBloc, PostsFeedState>(
+      builder: (context, state) {
+        if (state.status == PostsFeedStatus.error &&
+            state.errorMessage != null) {
+          return Text(
+            state.errorMessage!,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceMuted),
+          );
+        }
+        if (state.isLoading && state.posts.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (state.posts.isEmpty) {
+          return Text(
+            'В этой группе ещё нет постов.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceMuted),
+          );
+        }
+        return Column(
+          children: [
+            for (final post in state.posts) ...[
+              PostCard(
+                post: post,
+                onTap: () => context.pushNamed(
+                  AppRoutes.postDetailName,
+                  pathParameters: {'id': post.id},
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _MembershipButton extends StatelessWidget {

@@ -225,7 +225,15 @@ reports/{reportId}                        // модерация
 
 ### Sprint 9 — Posts: лента + детальный экран
 
-- [ ] Главная лента (Все/Подписки/Группа), карусель фото, Hero-анимация, экран поста.
+- [x] `PostsFeedBloc` — стрим ленты по скоупу `global` или `group(id)` с переоткрытием подписки при смене скоупа и обработкой `Failure`.
+- [x] `PostDetailBloc` — стрим конкретного поста, состояния `loading / ready / notFound / error`.
+- [x] Глобальная лента на `HomePage` (вынесен `HomeView` для тестов; AppBar с переходами в группы / профиль / sign-out, FAB «Запостить банку»).
+- [x] Лента группы на `GroupDetailPage` (`PostsFeedBloc` с `PostsFeedScope.group(id)` параллельно с `GroupDetailBloc`).
+- [x] Карточка `PostCard` — шапка автора, swipeable-карусель фото, индикаторы, бейдж редкости, чипы бренда/группы, теги, `Hero(tag: 'post-photo-{id}')` на первом кадре.
+- [x] `PostDetailPage` — полноэкранная карусель с Hero, метаданные (автор, дата, бренд, группа, теги, описание), плейсхолдер счётчиков лайков/комментов под Sprint 10/11.
+- [x] Маршрут `/posts/:id` в `app_router.dart` + переход с карточки `pushNamed(postDetailName)`.
+- [x] Зависимость `cached_network_image: ^3.4.1` в `pubspec.yaml`.
+- [x] Юнит-тесты `PostsFeedBloc` (5) + `PostDetailBloc` (4) + актуализирован `widget_test.dart` под новый `HomeView`. Всего **99 passed**, `flutter analyze` чисто, `dart format` чисто.
 - [ ] PR Sprint 9 → CI → ревью → мерж.
 
 ### Sprint 10 — Likes

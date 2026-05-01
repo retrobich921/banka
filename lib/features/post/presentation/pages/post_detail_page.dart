@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../comment/presentation/widgets/comments_section.dart';
 import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/post_detail_bloc.dart';
@@ -82,9 +83,12 @@ class _PostDetailViewState extends State<_PostDetailView> {
                     onPageChanged: (i) => setState(() => _currentPage = i),
                   ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
                   child: _PostBody(post: post),
                 ),
+                const Divider(color: AppColors.outline, height: 1),
+                CommentsSection(postId: post.id),
+                const SizedBox(height: 24),
               ],
             ),
           );
@@ -277,13 +281,6 @@ class _PostBody extends StatelessWidget {
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Комментарии — Sprint 11.',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.onSurfaceFaint,
-          ),
         ),
       ],
     );

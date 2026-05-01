@@ -93,6 +93,23 @@ service cloud.firestore {
         allow create, delete: if isSelf(userId);
         allow update: if false;
       }
+
+      // ---- comments/{commentId} (Sprint 11) --------------------------------
+      // Комментарий принадлежит автору. Создавать может любой авторизованный
+      // (с обязательным authorId == auth.uid и непустым text), удалять —
+      // только автор. Редактирование пока запрещено (правка текста — polish).
+      // `commentsCount` инкрементирует Cloud Function `onCommentCreated/Deleted`.
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000;
+        allow delete: if isSignedIn()
+          && resource.data.authorId == request.auth.uid;
+        allow update: if false;
+      }
     }
 
     // ---- users/{uid}/likedPosts/{postId} (Sprint 10) -----------------------

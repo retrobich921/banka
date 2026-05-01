@@ -120,3 +120,37 @@ exports.onLikeDeleted = onDocumentDeleted(
     }
   },
 );
+
+// Sprint 11: счётчик `commentsCount` обновляется только сервером.
+// Клиент пишет / удаляет `posts/{postId}/comments/{commentId}`,
+// функции реагируют атомарным `FieldValue.increment(±1)`.
+
+exports.onCommentCreated = onDocumentCreated(
+  { document: 'posts/{postId}/comments/{commentId}', region: 'europe-west3' },
+  async (event) => {
+    const { postId } = event.params;
+    try {
+      await getFirestore()
+        .collection('posts')
+        .doc(postId)
+        .update({ commentsCount: FieldValue.increment(1) });
+    } catch (err) {
+      logger.error('onCommentCreated failed', { postId, err });
+    }
+  },
+);
+
+exports.onCommentDeleted = onDocumentDeleted(
+  { document: 'posts/{postId}/comments/{commentId}', region: 'europe-west3' },
+  async (event) => {
+    const { postId } = event.params;
+    try {
+      await getFirestore()
+        .collection('posts')
+        .doc(postId)
+        .update({ commentsCount: FieldValue.increment(-1) });
+    } catch (err) {
+      logger.error('onCommentDeleted failed', { postId, err });
+    }
+  },
+);

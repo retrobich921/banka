@@ -97,10 +97,7 @@ void main() {
       },
       seed: () =>
           const ProfileState(status: ProfileStatus.ready, profile: profile),
-      act: (bloc) {
-        // Set userId so bloc knows which user to update.
-        bloc..add(const ProfileEditSubmitted(displayName: 'Bob'));
-      },
+      act: (bloc) => bloc.add(const ProfileEditSubmitted(displayName: 'Bob')),
       expect: () => [
         const ProfileState(
           status: ProfileStatus.error,

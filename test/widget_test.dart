@@ -72,7 +72,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Alice'), findsOneWidget);
-    expect(find.text('a@b.com'), findsOneWidget);
     expect(find.byIcon(Icons.logout), findsOneWidget);
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
   });
 }

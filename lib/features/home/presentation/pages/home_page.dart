@@ -47,6 +47,11 @@ class HomeView extends StatelessWidget {
         title: const Text('banka'),
         actions: [
           IconButton(
+            tooltip: 'Поиск',
+            icon: const Icon(Icons.search),
+            onPressed: () => context.pushNamed(AppRoutes.searchName),
+          ),
+          IconButton(
             tooltip: 'Группы',
             icon: const Icon(Icons.groups_outlined),
             onPressed: () => context.pushNamed(AppRoutes.groupsName),

@@ -260,11 +260,16 @@ reports/{reportId}                        // модерация
 - [x] Виджеты `CommentTile` (аватар + имя + относительное время + меню «Удалить» только для своих), `CommentInput` (TextField + кнопка отправки), `CommentsSection` (комбо: список + инпут), интегрированы в `PostDetailPage`.
 - [x] Удаление через диалог-подтверждение, прямой вызов `DeleteComment` usecase.
 - [x] Юнит-тесты `CommentRepositoryImpl` (5) + `CommentsBloc` (4) + `AddCommentCubit` (9) — всего **134 passed**, `flutter analyze` чисто, `dart format` чисто.
-- [ ] PR Sprint 11 → CI → ревью → мерж.
+- [x] PR Sprint 11 → CI → ревью → мерж (PR #12).
 
 ### Sprint 12 — Search
 
-- [ ] `searchKeywords` токены, `SearchBloc`, экран поиска (по названию, бренду, тегу), фильтры (rarity range, brand, group).
+- [x] `searchKeywords` токены уже пишутся в `posts/{id}` при создании / обновлении (Sprint 7) — Sprint 12 поднимает над этим поисковый слой.
+- [x] Data: `PostRemoteDataSource.searchPosts` — Firestore `where(searchKeywords arrayContains)` + `orderBy(createdAt desc)`, дополнительные фильтры (rarity / brandId / groupId) применяются на клиенте, чтобы не плодить composite-индексы. `PostRepository.searchPosts` извлекает первый «значимый» (≥ 2 символов) lowercase-токен из user-input.
+- [x] Domain: `SearchFilters` value-object + `SearchPosts` usecase.
+- [x] Presentation: `SearchBloc` с дебаунсом 300 ms через `stream_transform.debounce + switchMap`, `SearchPage` (поисковое поле в AppBar + bottom-sheet `FiltersSheet` с RangeSlider 1–9 и текстовыми ID brand/group), переход на детальный экран `/posts/:id` через `PostCard`.
+- [x] Маршрут `/search` + кнопка-поиска на `HomePage` AppBar.
+- [x] Юнит-тесты `PostRepositoryImpl.searchPosts` (4) + `SearchPosts` usecase (1) + `SearchBloc` (6) — всего **145 passed**, `flutter analyze` чисто, `dart format` чисто.
 - [ ] PR Sprint 12 → CI → ревью → мерж.
 
 ### Sprint 13 — Brands & Tags

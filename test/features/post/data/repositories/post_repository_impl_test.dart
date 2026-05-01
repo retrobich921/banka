@@ -235,4 +235,106 @@ void main() {
       expect(result.isLeft(), isTrue);
     });
   });
+
+  group('searchPosts', () {
+    test('passes the first ≥2-char token in lowercase to remote', () async {
+      when(
+        () => remote.searchPosts(
+          token: any(named: 'token'),
+          rarityMin: any(named: 'rarityMin'),
+          rarityMax: any(named: 'rarityMax'),
+          brandId: any(named: 'brandId'),
+          groupId: any(named: 'groupId'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => [fixturePost]);
+
+      final result = await repository.searchPosts(query: 'A Monster Energy');
+
+      expect(result.isRight(), isTrue);
+      verify(
+        () => remote.searchPosts(
+          token: 'monster',
+          rarityMin: null,
+          rarityMax: null,
+          brandId: null,
+          groupId: null,
+          limit: 50,
+        ),
+      ).called(1);
+    });
+
+    test('null query → null token (browse + filter mode)', () async {
+      when(
+        () => remote.searchPosts(
+          token: any(named: 'token'),
+          rarityMin: any(named: 'rarityMin'),
+          rarityMax: any(named: 'rarityMax'),
+          brandId: any(named: 'brandId'),
+          groupId: any(named: 'groupId'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => [fixturePost]);
+
+      await repository.searchPosts(rarityMin: 5, rarityMax: 9);
+
+      verify(
+        () => remote.searchPosts(
+          token: null,
+          rarityMin: 5,
+          rarityMax: 9,
+          brandId: null,
+          groupId: null,
+          limit: 50,
+        ),
+      ).called(1);
+    });
+
+    test('1-char query is not treated as a token', () async {
+      when(
+        () => remote.searchPosts(
+          token: any(named: 'token'),
+          rarityMin: any(named: 'rarityMin'),
+          rarityMax: any(named: 'rarityMax'),
+          brandId: any(named: 'brandId'),
+          groupId: any(named: 'groupId'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => const <Post>[]);
+
+      await repository.searchPosts(query: 'a');
+
+      verify(
+        () => remote.searchPosts(
+          token: null,
+          rarityMin: null,
+          rarityMax: null,
+          brandId: null,
+          groupId: null,
+          limit: 50,
+        ),
+      ).called(1);
+    });
+
+    test('maps ServerException to Left(ServerFailure)', () async {
+      when(
+        () => remote.searchPosts(
+          token: any(named: 'token'),
+          rarityMin: any(named: 'rarityMin'),
+          rarityMax: any(named: 'rarityMax'),
+          brandId: any(named: 'brandId'),
+          groupId: any(named: 'groupId'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenThrow(const ServerException(message: 'denied'));
+
+      final result = await repository.searchPosts(query: 'monster');
+
+      expect(result.isLeft(), isTrue);
+      result.fold(
+        (f) => expect(f, isA<ServerFailure>()),
+        (_) => fail('expected Left'),
+      );
+    });
+  });
 }

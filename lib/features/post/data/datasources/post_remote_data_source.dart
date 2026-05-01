@@ -54,6 +54,20 @@ abstract interface class PostRemoteDataSource {
   });
 
   Future<void> deletePost(String postId);
+
+  /// Sprint 12 — поиск постов по `searchKeywords`-токену + опциональные
+  /// фильтры (rarity range / brandId / groupId). Серверная часть = один
+  /// `arrayContains`-запрос (если есть токен) или базовый список по
+  /// `createdAt desc`; остальные фильтры применяются на клиенте, чтобы
+  /// не плодить composite-индексы.
+  Future<List<Post>> searchPosts({
+    String? token,
+    int? rarityMin,
+    int? rarityMax,
+    String? brandId,
+    String? groupId,
+    int limit,
+  });
 }
 
 @LazySingleton(as: PostRemoteDataSource)
@@ -248,6 +262,45 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
   Future<void> deletePost(String postId) async {
     try {
       await _postsCol.doc(postId).delete();
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
+  Future<List<Post>> searchPosts({
+    String? token,
+    int? rarityMin,
+    int? rarityMax,
+    String? brandId,
+    String? groupId,
+    int limit = 50,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query = _postsCol;
+      if (token != null && token.isNotEmpty) {
+        query = query.where(
+          PostDto.fSearchKeywords,
+          arrayContains: token.toLowerCase(),
+        );
+      }
+      query = query.orderBy(PostDto.fCreatedAt, descending: true).limit(limit);
+
+      final snap = await query.get();
+      final posts = _postListFromSnapshot(snap);
+
+      // Дополнительные фильтры применяем на клиенте — Firestore не
+      // позволяет дёшево комбинировать `arrayContains` + range +
+      // несколько equality на разных полях без отдельных индексов.
+      return posts
+          .where((p) {
+            if (brandId != null && p.brandId != brandId) return false;
+            if (groupId != null && p.groupId != groupId) return false;
+            if (rarityMin != null && p.rarity < rarityMin) return false;
+            if (rarityMax != null && p.rarity > rarityMax) return false;
+            return true;
+          })
+          .toList(growable: false);
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }

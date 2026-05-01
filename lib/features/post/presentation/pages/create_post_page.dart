@@ -11,6 +11,9 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../brand/domain/entities/brand.dart';
+import '../../../brand/domain/usecases/ensure_brand.dart';
+import '../../../brand/presentation/widgets/brand_picker_sheet.dart';
 import '../../../group/domain/entities/group.dart';
 import '../../../group/domain/usecases/watch_my_groups.dart';
 import '../bloc/create_post_bloc.dart';
@@ -48,7 +51,6 @@ class _CreatePostView extends StatefulWidget {
 class _CreatePostViewState extends State<_CreatePostView> {
   final _formKey = GlobalKey<FormState>();
   final _drinkNameController = TextEditingController();
-  final _brandController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _tagsController = TextEditingController();
 
@@ -74,10 +76,33 @@ class _CreatePostViewState extends State<_CreatePostView> {
   @override
   void dispose() {
     _drinkNameController.dispose();
-    _brandController.dispose();
     _descriptionController.dispose();
     _tagsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickBrand() async {
+    final picked = await BrandPickerSheet.show(context);
+    if (!mounted || picked == null) return;
+    Brand brand = picked;
+    if (brand.id.isEmpty) {
+      // Новый бренд — создаём документ через EnsureBrand.
+      final ensured = await sl<EnsureBrand>().call(
+        EnsureBrandParams(name: brand.name),
+      );
+      if (!mounted) return;
+      final result = ensured.fold((_) => null, (b) => b);
+      if (result == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось создать бренд')),
+        );
+        return;
+      }
+      brand = result;
+    }
+    context.read<CreatePostBloc>().add(
+      CreatePostBrandSelected(brandId: brand.id, brandName: brand.name),
+    );
   }
 
   Future<void> _pickPhotos() async {
@@ -176,15 +201,12 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _brandController,
+                    _BrandField(
+                      brandName: state.brandName,
                       enabled: !isBusy,
-                      decoration: const InputDecoration(
-                        labelText: 'Бренд (опционально)',
-                        hintText: 'Например, Monster',
-                      ),
-                      onChanged: (v) => context.read<CreatePostBloc>().add(
-                        CreatePostBrandNameChanged(v),
+                      onTap: _pickBrand,
+                      onClear: () => context.read<CreatePostBloc>().add(
+                        const CreatePostBrandCleared(),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -362,6 +384,59 @@ class _PhotoTile extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _BrandField extends StatelessWidget {
+  const _BrandField({
+    required this.brandName,
+    required this.enabled,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  final String brandName;
+  final bool enabled;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEmpty = brandName.isEmpty;
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Бренд (опционально)',
+          suffixIcon: isEmpty
+              ? const Icon(Icons.expand_more, color: AppColors.onSurfaceMuted)
+              : IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: enabled ? onClear : null,
+                ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.local_drink_outlined,
+              size: 18,
+              color: AppColors.onSurfaceMuted,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                isEmpty ? 'Выбрать бренд' : brandName,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: isEmpty ? AppColors.onSurfaceMuted : null,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

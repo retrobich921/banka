@@ -19,6 +19,7 @@ final class CreatePostState extends Equatable {
     this.author,
     this.pickedFiles = const <File>[],
     this.drinkName = '',
+    this.brandId,
     this.brandName = '',
     this.description = '',
     this.foundDate,
@@ -38,6 +39,7 @@ final class CreatePostState extends Equatable {
   final CreatePostAuthor? author;
   final List<File> pickedFiles;
   final String drinkName;
+  final String? brandId;
   final String brandName;
   final String description;
   final DateTime? foundDate;
@@ -61,7 +63,9 @@ final class CreatePostState extends Equatable {
     CreatePostAuthor? author,
     List<File>? pickedFiles,
     String? drinkName,
+    String? brandId,
     String? brandName,
+    bool clearBrand = false,
     String? description,
     DateTime? foundDate,
     int? rarity,
@@ -81,7 +85,8 @@ final class CreatePostState extends Equatable {
       author: author ?? this.author,
       pickedFiles: pickedFiles ?? this.pickedFiles,
       drinkName: drinkName ?? this.drinkName,
-      brandName: brandName ?? this.brandName,
+      brandId: clearBrand ? null : (brandId ?? this.brandId),
+      brandName: clearBrand ? '' : (brandName ?? this.brandName),
       description: description ?? this.description,
       foundDate: foundDate ?? this.foundDate,
       rarity: rarity ?? this.rarity,
@@ -103,6 +108,7 @@ final class CreatePostState extends Equatable {
     author,
     pickedFiles.map((f) => f.path).toList(),
     drinkName,
+    brandId,
     brandName,
     description,
     foundDate,

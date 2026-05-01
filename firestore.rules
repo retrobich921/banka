@@ -112,6 +112,30 @@ service cloud.firestore {
       }
     }
 
+    // ---- brands/{brandId} (Sprint 13) --------------------------------------
+    // Справочник брендов. Читать может любой авторизованный, создавать —
+    // тоже любой (через `EnsureBrand`), при этом стартовый `postsCount`
+    // обязан быть 0 — счётчик инкрементирует Cloud Function
+    // `onPostCreatedUpdateBrandStats`. Поля `name`/`slug` обязательны.
+    // Редактирование metadata (logoUrl, country) разрешено любому
+    // авторизованному (база коллективная, как `barcodes`); `postsCount`
+    // на клиенте трогать нельзя — он не входит в allowedFields. Удаление
+    // запрещено (бренд переживает посты).
+    match /brands/{brandId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.slug is string
+        && request.resource.data.slug.size() > 0
+        && request.resource.data.postsCount == 0;
+      allow update: if isSignedIn()
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['name', 'logoUrl', 'country', 'updatedAt']);
+      allow delete: if false;
+    }
+
     // ---- users/{uid}/likedPosts/{postId} (Sprint 10) -----------------------
     // «Обратный» документ — нужен для быстрой ленты «мои лайки» в профиле
     // (Sprint 16). Записывает / удаляет только сам пользователь, читает только

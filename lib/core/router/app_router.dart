@@ -8,6 +8,8 @@ import 'package:injectable/injectable.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
+import '../../features/brand/presentation/pages/brand_detail_page.dart';
+import '../../features/brand/presentation/pages/brands_page.dart';
 import '../../features/group/presentation/bloc/groups_list_bloc.dart';
 import '../../features/group/presentation/pages/create_group_page.dart';
 import '../../features/group/presentation/pages/group_detail_page.dart';
@@ -89,6 +91,19 @@ final class AppRouter {
         path: AppRoutes.search,
         name: AppRoutes.searchName,
         builder: (_, _) => const SearchPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.brands,
+        name: AppRoutes.brandsName,
+        builder: (_, _) => const BrandsPage(),
+        routes: [
+          GoRoute(
+            path: ':id',
+            name: AppRoutes.brandDetailName,
+            builder: (_, state) =>
+                BrandDetailPage(brandId: state.pathParameters['id']!),
+          ),
+        ],
       ),
       ShellRoute(
         builder: (context, state, child) => BlocProvider<ProfileBloc>(

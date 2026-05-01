@@ -270,11 +270,21 @@ reports/{reportId}                        // модерация
 - [x] Presentation: `SearchBloc` с дебаунсом 300 ms через `stream_transform.debounce + switchMap`, `SearchPage` (поисковое поле в AppBar + bottom-sheet `FiltersSheet` с RangeSlider 1–9 и текстовыми ID brand/group), переход на детальный экран `/posts/:id` через `PostCard`.
 - [x] Маршрут `/search` + кнопка-поиска на `HomePage` AppBar.
 - [x] Юнит-тесты `PostRepositoryImpl.searchPosts` (4) + `SearchPosts` usecase (1) + `SearchBloc` (6) — всего **145 passed**, `flutter analyze` чисто, `dart format` чисто.
-- [ ] PR Sprint 12 → CI → ревью → мерж.
+- [x] PR Sprint 12 → CI → ревью → мерж (PR #13).
 
 ### Sprint 13 — Brands & Tags
 
-- [ ] Коллекция `brands`, экран бренда (его банки), фасеты по тегам.
+- [x] Коллекция `brands` (нормализованный справочник, поле `slug` для идемпотентного поиска / создания).
+- [x] Domain: `Brand` (freezed), `BrandRepository`, usecases `WatchBrands` / `WatchBrand` / `EnsureBrand` (по `slug` или create).
+- [x] Data: `BrandDto` (slugify + Firestore-mapping), `FirestoreBrandRemoteDataSource`, `BrandRepositoryImpl` (Either/Failure).
+- [x] Post-слой: `watchBrandFeed(brandId)` — `where(brandId == X).orderBy(rarity desc)` (composite-индекс `posts: brandId ASC + rarity DESC`).
+- [x] `PostsFeedScope` расширен: `global / group(id) / brand(id)`; `PostsFeedBloc` маршрутизирует к нужному usecase.
+- [x] Presentation: `BrandsBloc`, `BrandsPage` (`postsCount desc, name asc`), `BrandDetailPage` (SliverAppBar header + лента бренда), `BrandTile`, `BrandPickerSheet` (search + новый бренд).
+- [x] Интеграция: кнопка «Бренды» в `HomePage` AppBar; `CreatePostPage` — выбор бренда через `BrandPickerSheet` (новый бренд проходит `EnsureBrand`); `FiltersSheet` — `brandId` через `BrandPickerSheet` вместо текстового поля.
+- [x] Маршруты `/brands` и `/brands/:id` в `app_router.dart`.
+- [x] Cloud Functions: `onPostCreatedUpdateBrandStats` / `onPostDeletedUpdateBrandStats` — атомарные `FieldValue.increment(±1)` на `brands/{brandId}.postsCount`.
+- [x] Firestore Security Rules: `brands/{brandId}` — read for signed-in, create требует `name`/`slug`/`postsCount==0`, update — только `name/logoUrl/country/updatedAt`, delete запрещён.
+- [x] Юнит-тесты: `BrandRepositoryImpl` (5), `BrandsBloc` (4), `BrandDto.slugify` (6) — всего **161 passed**, `flutter analyze` чисто, `dart format` чисто.
 - [ ] PR Sprint 13 → CI → ревью → мерж.
 
 ### Sprint 14 — Barcode Scanner

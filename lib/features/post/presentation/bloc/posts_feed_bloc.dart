@@ -7,6 +7,7 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/usecases/watch_brand_feed.dart';
 import '../../domain/usecases/watch_feed.dart';
 import '../../domain/usecases/watch_group_feed.dart';
 
@@ -25,7 +26,7 @@ part 'posts_feed_state.dart';
 ///   достижении конца вернёмся в Sprint 12 / polish.
 @injectable
 class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
-  PostsFeedBloc(this._watchFeed, this._watchGroupFeed)
+  PostsFeedBloc(this._watchFeed, this._watchGroupFeed, this._watchBrandFeed)
     : super(const PostsFeedState.initial()) {
     on<PostsFeedSubscribeRequested>(_onSubscribe);
     on<_PostsFeedReceived>(_onReceived);
@@ -34,6 +35,7 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
 
   final WatchFeed _watchFeed;
   final WatchGroupFeed _watchGroupFeed;
+  final WatchBrandFeed _watchBrandFeed;
 
   StreamSubscription<Either<Failure, List<Post>>>? _sub;
   PostsFeedScope? _currentScope;
@@ -54,9 +56,15 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
     );
 
     await _sub?.cancel();
-    final stream = event.scope.groupId == null
-        ? _watchFeed(const WatchFeedParams())
-        : _watchGroupFeed(WatchGroupFeedParams(groupId: event.scope.groupId!));
+    final scope = event.scope;
+    final Stream<Either<Failure, List<Post>>> stream;
+    if (scope.brandId != null) {
+      stream = _watchBrandFeed(WatchBrandFeedParams(brandId: scope.brandId!));
+    } else if (scope.groupId != null) {
+      stream = _watchGroupFeed(WatchGroupFeedParams(groupId: scope.groupId!));
+    } else {
+      stream = _watchFeed(const WatchFeedParams());
+    }
     _sub = stream.listen((r) => add(_PostsFeedReceived(r)));
   }
 

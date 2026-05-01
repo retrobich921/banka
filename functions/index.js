@@ -154,3 +154,41 @@ exports.onCommentDeleted = onDocumentDeleted(
     }
   },
 );
+
+// Sprint 13: счётчик `brands/{brandId}.postsCount` обновляется только сервером.
+// Клиент пишет / удаляет `posts/{postId}` с заполненным полем `brandId`,
+// функции реагируют атомарным `FieldValue.increment(±1)`.
+
+exports.onPostCreatedUpdateBrandStats = onDocumentCreated(
+  { document: 'posts/{postId}', region: 'europe-west3' },
+  async (event) => {
+    const data = event.data?.data();
+    const brandId = data?.brandId;
+    if (!brandId) return;
+    try {
+      await getFirestore()
+        .collection('brands')
+        .doc(brandId)
+        .update({ postsCount: FieldValue.increment(1) });
+    } catch (err) {
+      logger.error('onPostCreatedUpdateBrandStats failed', { brandId, err });
+    }
+  },
+);
+
+exports.onPostDeletedUpdateBrandStats = onDocumentDeleted(
+  { document: 'posts/{postId}', region: 'europe-west3' },
+  async (event) => {
+    const data = event.data?.data();
+    const brandId = data?.brandId;
+    if (!brandId) return;
+    try {
+      await getFirestore()
+        .collection('brands')
+        .doc(brandId)
+        .update({ postsCount: FieldValue.increment(-1) });
+    } catch (err) {
+      logger.error('onPostDeletedUpdateBrandStats failed', { brandId, err });
+    }
+  },
+);

@@ -58,12 +58,24 @@ final class CreatePostDrinkNameChanged extends CreatePostEvent {
   List<Object?> get props => [value];
 }
 
-final class CreatePostBrandNameChanged extends CreatePostEvent {
-  const CreatePostBrandNameChanged(this.value);
-  final String value;
+/// Бренд выбран в `BrandPickerSheet`. Передаём оба поля сразу
+/// (`brandId` обязателен — `EnsureBrand` гарантирует, что документ
+/// бренда уже существует).
+final class CreatePostBrandSelected extends CreatePostEvent {
+  const CreatePostBrandSelected({
+    required this.brandId,
+    required this.brandName,
+  });
+  final String brandId;
+  final String brandName;
 
   @override
-  List<Object?> get props => [value];
+  List<Object?> get props => [brandId, brandName];
+}
+
+/// Сбросить выбранный бренд (кнопка-крестик у поля «Бренд»).
+final class CreatePostBrandCleared extends CreatePostEvent {
+  const CreatePostBrandCleared();
 }
 
 final class CreatePostFoundDateChanged extends CreatePostEvent {

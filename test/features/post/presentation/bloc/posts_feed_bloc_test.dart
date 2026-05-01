@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:banka/core/error/failures.dart';
 import 'package:banka/features/post/domain/entities/post.dart';
+import 'package:banka/features/post/domain/usecases/watch_brand_feed.dart';
 import 'package:banka/features/post/domain/usecases/watch_feed.dart';
 import 'package:banka/features/post/domain/usecases/watch_group_feed.dart';
 import 'package:banka/features/post/presentation/bloc/posts_feed_bloc.dart';
@@ -14,21 +15,27 @@ class _MockWatchFeed extends Mock implements WatchFeed {}
 
 class _MockWatchGroupFeed extends Mock implements WatchGroupFeed {}
 
+class _MockWatchBrandFeed extends Mock implements WatchBrandFeed {}
+
 void main() {
   late _MockWatchFeed watchFeed;
   late _MockWatchGroupFeed watchGroupFeed;
+  late _MockWatchBrandFeed watchBrandFeed;
 
   setUpAll(() {
     registerFallbackValue(const WatchFeedParams());
     registerFallbackValue(const WatchGroupFeedParams(groupId: 'g'));
+    registerFallbackValue(const WatchBrandFeedParams(brandId: 'b'));
   });
 
   setUp(() {
     watchFeed = _MockWatchFeed();
     watchGroupFeed = _MockWatchGroupFeed();
+    watchBrandFeed = _MockWatchBrandFeed();
   });
 
-  PostsFeedBloc buildBloc() => PostsFeedBloc(watchFeed, watchGroupFeed);
+  PostsFeedBloc buildBloc() =>
+      PostsFeedBloc(watchFeed, watchGroupFeed, watchBrandFeed);
 
   Post makePost(String id) => Post(id: id, authorId: 'a', drinkName: 'd-$id');
 

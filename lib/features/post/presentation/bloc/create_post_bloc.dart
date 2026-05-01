@@ -37,7 +37,8 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     on<CreatePostPhotosPicked>(_onPhotosPicked);
     on<CreatePostPhotoRemoved>(_onPhotoRemoved);
     on<CreatePostDrinkNameChanged>(_onDrinkNameChanged);
-    on<CreatePostBrandNameChanged>(_onBrandNameChanged);
+    on<CreatePostBrandSelected>(_onBrandSelected);
+    on<CreatePostBrandCleared>(_onBrandCleared);
     on<CreatePostFoundDateChanged>(_onFoundDateChanged);
     on<CreatePostRarityChanged>(_onRarityChanged);
     on<CreatePostTagsChanged>(_onTagsChanged);
@@ -95,10 +96,15 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     Emitter<CreatePostState> emit,
   ) => emit(state.copyWith(drinkName: event.value, clearError: true));
 
-  void _onBrandNameChanged(
-    CreatePostBrandNameChanged event,
+  void _onBrandSelected(
+    CreatePostBrandSelected event,
     Emitter<CreatePostState> emit,
-  ) => emit(state.copyWith(brandName: event.value));
+  ) => emit(state.copyWith(brandId: event.brandId, brandName: event.brandName));
+
+  void _onBrandCleared(
+    CreatePostBrandCleared event,
+    Emitter<CreatePostState> emit,
+  ) => emit(state.copyWith(clearBrand: true));
 
   void _onFoundDateChanged(
     CreatePostFoundDateChanged event,
@@ -215,6 +221,7 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
         drinkName: drinkName,
         groupId: state.groupId,
         groupName: state.groupName,
+        brandId: state.brandId,
         brandName: state.brandName.trim().isEmpty
             ? null
             : state.brandName.trim(),

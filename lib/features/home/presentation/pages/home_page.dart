@@ -52,6 +52,11 @@ class HomeView extends StatelessWidget {
             onPressed: () => context.pushNamed(AppRoutes.searchName),
           ),
           IconButton(
+            tooltip: 'Бренды',
+            icon: const Icon(Icons.local_drink_outlined),
+            onPressed: () => context.pushNamed(AppRoutes.brandsName),
+          ),
+          IconButton(
             tooltip: 'Группы',
             icon: const Icon(Icons.groups_outlined),
             onPressed: () => context.pushNamed(AppRoutes.groupsName),

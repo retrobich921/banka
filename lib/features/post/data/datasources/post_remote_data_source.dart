@@ -42,6 +42,15 @@ abstract interface class PostRemoteDataSource {
     String? startAfterId,
   });
 
+  /// Sprint 13 — лента бренда. Использует индекс `brandId ASC +
+  /// rarity DESC` — карточки сортируются по редкости (сначала
+  /// «лимитки»), что даёт приятный story-витриный эффект.
+  Stream<List<Post>> watchBrandFeed({
+    required String brandId,
+    int limit,
+    String? startAfterId,
+  });
+
   Future<void> updatePost({
     required String postId,
     String? drinkName,
@@ -207,6 +216,25 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     Query<Map<String, dynamic>> query = _postsCol
         .where(PostDto.fAuthorId, isEqualTo: authorId)
         .orderBy(PostDto.fCreatedAt, descending: true)
+        .limit(limit);
+
+    if (startAfterId != null) {
+      final cursor = await _postsCol.doc(startAfterId).get();
+      if (cursor.exists) query = query.startAfterDocument(cursor);
+    }
+
+    yield* query.snapshots().map(_postListFromSnapshot);
+  }
+
+  @override
+  Stream<List<Post>> watchBrandFeed({
+    required String brandId,
+    int limit = 20,
+    String? startAfterId,
+  }) async* {
+    Query<Map<String, dynamic>> query = _postsCol
+        .where(PostDto.fBrandId, isEqualTo: brandId)
+        .orderBy(PostDto.fRarity, descending: true)
         .limit(limit);
 
     if (startAfterId != null) {

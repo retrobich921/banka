@@ -2,17 +2,21 @@ part of 'posts_feed_bloc.dart';
 
 enum PostsFeedStatus { initial, loading, ready, error }
 
-/// Скоуп ленты: либо глобальная, либо посты конкретной группы.
+/// Скоуп ленты: глобальная, посты группы или посты бренда.
 final class PostsFeedScope extends Equatable {
-  const PostsFeedScope.global() : groupId = null;
-  const PostsFeedScope.group(String this.groupId);
+  const PostsFeedScope.global() : groupId = null, brandId = null;
+  const PostsFeedScope.group(String this.groupId) : brandId = null;
+  const PostsFeedScope.brand(String this.brandId) : groupId = null;
 
   final String? groupId;
+  final String? brandId;
 
-  bool get isGlobal => groupId == null;
+  bool get isGlobal => groupId == null && brandId == null;
+  bool get isGroup => groupId != null;
+  bool get isBrand => brandId != null;
 
   @override
-  List<Object?> get props => [groupId];
+  List<Object?> get props => [groupId, brandId];
 }
 
 final class PostsFeedState extends Equatable {

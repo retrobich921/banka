@@ -44,6 +44,15 @@ abstract interface class PostRepository {
     String? startAfterId,
   });
 
+  /// Sprint 13 — лента бренда. `where(brandId) + orderBy(rarity desc)` —
+  /// карточки идут от самых редких к обычным, чтобы экран бренда
+  /// смотрелся как витрина «лучших экспонатов».
+  ResultStream<List<Post>> watchBrandFeed({
+    required String brandId,
+    int limit = 20,
+    String? startAfterId,
+  });
+
   ResultFuture<void> updatePost({
     required String postId,
     String? drinkName,

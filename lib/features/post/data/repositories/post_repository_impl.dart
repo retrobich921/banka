@@ -115,6 +115,19 @@ final class PostRepositoryImpl implements PostRepository {
   );
 
   @override
+  ResultStream<List<Post>> watchBrandFeed({
+    required String brandId,
+    int limit = 20,
+    String? startAfterId,
+  }) => _wrapListStream(
+    _remote.watchBrandFeed(
+      brandId: brandId,
+      limit: limit,
+      startAfterId: startAfterId,
+    ),
+  );
+
+  @override
   ResultFuture<void> updatePost({
     required String postId,
     String? drinkName,

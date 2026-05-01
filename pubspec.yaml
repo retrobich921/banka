@@ -50,6 +50,9 @@ dependencies:
   # Sprint 12 — debounce поискового ввода через event-transformer
   stream_transform: ^2.1.0
 
+  # Sprint 14 — сканер штрих-кодов (EAN-13/UPC) для автозаполнения банок
+  mobile_scanner: ^7.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -8,6 +8,8 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Banka</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Доступ к камере нужен, чтобы сканировать штрих-код банки и автозаполнить данные напитка.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

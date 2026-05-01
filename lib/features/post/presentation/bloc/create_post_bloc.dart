@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../barcode/domain/usecases/save_barcode.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/create_post.dart';
 import '../../domain/usecases/upload_post_image.dart';
@@ -31,7 +32,7 @@ part 'create_post_state.dart';
 /// равно их найдёт по списку `posts.{postId}.photos[].url`.
 @injectable
 class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
-  CreatePostBloc(this._createPost, this._uploadPostImage)
+  CreatePostBloc(this._createPost, this._uploadPostImage, this._saveBarcode)
     : super(const CreatePostState.initial()) {
     on<CreatePostInitialized>(_onInitialized);
     on<CreatePostPhotosPicked>(_onPhotosPicked);
@@ -39,6 +40,9 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     on<CreatePostDrinkNameChanged>(_onDrinkNameChanged);
     on<CreatePostBrandSelected>(_onBrandSelected);
     on<CreatePostBrandCleared>(_onBrandCleared);
+    on<CreatePostBarcodeMatched>(_onBarcodeMatched);
+    on<CreatePostBarcodeUnknown>(_onBarcodeUnknown);
+    on<CreatePostBarcodeCleared>(_onBarcodeCleared);
     on<CreatePostFoundDateChanged>(_onFoundDateChanged);
     on<CreatePostRarityChanged>(_onRarityChanged);
     on<CreatePostTagsChanged>(_onTagsChanged);
@@ -51,6 +55,7 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
 
   final CreatePost _createPost;
   final UploadPostImage _uploadPostImage;
+  final SaveBarcode _saveBarcode;
 
   void _onInitialized(
     CreatePostInitialized event,
@@ -105,6 +110,40 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     CreatePostBrandCleared event,
     Emitter<CreatePostState> emit,
   ) => emit(state.copyWith(clearBrand: true));
+
+  void _onBarcodeMatched(
+    CreatePostBarcodeMatched event,
+    Emitter<CreatePostState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        barcode: event.code,
+        barcodeContribute: false,
+        drinkName: event.drinkName,
+        brandId: event.brandId,
+        brandName: event.brandName ?? '',
+        clearError: true,
+      ),
+    );
+  }
+
+  void _onBarcodeUnknown(
+    CreatePostBarcodeUnknown event,
+    Emitter<CreatePostState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        barcode: event.code,
+        barcodeContribute: true,
+        clearError: true,
+      ),
+    );
+  }
+
+  void _onBarcodeCleared(
+    CreatePostBarcodeCleared event,
+    Emitter<CreatePostState> emit,
+  ) => emit(state.copyWith(clearBarcode: true));
 
   void _onFoundDateChanged(
     CreatePostFoundDateChanged event,
@@ -233,19 +272,41 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
       ),
     );
 
-    created.fold(
-      (failure) => emit(
-        state.copyWith(
-          status: CreatePostStatus.error,
-          errorMessage: failure.message ?? 'Не удалось создать пост',
+    final post = created.fold((_) => null, (p) => p);
+    if (post == null) {
+      created.fold(
+        (failure) => emit(
+          state.copyWith(
+            status: CreatePostStatus.error,
+            errorMessage: failure.message ?? 'Не удалось создать пост',
+          ),
         ),
-      ),
-      (post) => emit(
-        state.copyWith(
-          status: CreatePostStatus.created,
-          createdPostId: post.id,
+        (_) {},
+      );
+      return;
+    }
+
+    // Sprint 14: contribute-back в коллективную базу штрих-кодов.
+    // Делаем только если пользователь отсканировал новый код
+    // (`barcodeContribute=true`). Ошибка здесь не ломает успех
+    // создания поста — логируем и идём дальше.
+    if (state.barcode != null && state.barcodeContribute) {
+      await _saveBarcode(
+        SaveBarcodeParams(
+          code: state.barcode!,
+          drinkName: drinkName,
+          contributedBy: author.id,
+          brandId: state.brandId,
+          brandName: state.brandName.trim().isEmpty
+              ? null
+              : state.brandName.trim(),
+          suggestedPhotoUrl: uploaded.firstOrNull?.url,
         ),
-      ),
+      );
+    }
+
+    emit(
+      state.copyWith(status: CreatePostStatus.created, createdPostId: post.id),
     );
   }
 

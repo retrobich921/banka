@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:banka/core/error/failures.dart';
+import 'package:banka/features/barcode/domain/entities/barcode.dart';
+import 'package:banka/features/barcode/domain/usecases/save_barcode.dart';
 import 'package:banka/features/post/domain/entities/post.dart';
 import 'package:banka/features/post/domain/usecases/create_post.dart';
 import 'package:banka/features/post/domain/usecases/upload_post_image.dart';
@@ -15,9 +17,12 @@ class _MockCreatePost extends Mock implements CreatePost {}
 
 class _MockUploadPostImage extends Mock implements UploadPostImage {}
 
+class _MockSaveBarcode extends Mock implements SaveBarcode {}
+
 void main() {
   late _MockCreatePost createPost;
   late _MockUploadPostImage uploadPostImage;
+  late _MockSaveBarcode saveBarcode;
   late Directory tmpDir;
 
   const authorId = 'uid-1';
@@ -37,11 +42,15 @@ void main() {
     registerFallbackValue(
       UploadPostImageParams(postId: '', index: 0, file: File('/tmp/x')),
     );
+    registerFallbackValue(
+      const SaveBarcodeParams(code: '0', drinkName: '', contributedBy: ''),
+    );
   });
 
   setUp(() {
     createPost = _MockCreatePost();
     uploadPostImage = _MockUploadPostImage();
+    saveBarcode = _MockSaveBarcode();
     tmpDir = Directory.systemTemp.createTempSync('banka-create-post-');
   });
 
@@ -53,7 +62,8 @@ void main() {
   // нужно. Генерим только пути.
   File fakeFile(String name) => File(p.join(tmpDir.path, name));
 
-  CreatePostBloc buildBloc() => CreatePostBloc(createPost, uploadPostImage);
+  CreatePostBloc buildBloc() =>
+      CreatePostBloc(createPost, uploadPostImage, saveBarcode);
 
   group('field reducers', () {
     blocTest<CreatePostBloc, CreatePostState>(
@@ -113,6 +123,53 @@ void main() {
         isA<CreatePostState>()
             .having((s) => s.groupId, 'groupId', isNull)
             .having((s) => s.groupName, 'groupName', isNull),
+      ],
+    );
+  });
+
+  group('Sprint 14 — barcode reducers', () {
+    blocTest<CreatePostBloc, CreatePostState>(
+      'CreatePostBarcodeMatched autofills drinkName/brand and skips contribute',
+      build: buildBloc,
+      act: (b) => b.add(
+        const CreatePostBarcodeMatched(
+          code: '5449000000996',
+          drinkName: 'Coca-Cola Classic',
+          brandId: 'brand-coca',
+          brandName: 'Coca-Cola',
+        ),
+      ),
+      expect: () => [
+        isA<CreatePostState>()
+            .having((s) => s.barcode, 'barcode', '5449000000996')
+            .having((s) => s.barcodeContribute, 'barcodeContribute', isFalse)
+            .having((s) => s.drinkName, 'drinkName', 'Coca-Cola Classic')
+            .having((s) => s.brandId, 'brandId', 'brand-coca')
+            .having((s) => s.brandName, 'brandName', 'Coca-Cola'),
+      ],
+    );
+
+    blocTest<CreatePostBloc, CreatePostState>(
+      'CreatePostBarcodeUnknown stores code and flags contribute',
+      build: buildBloc,
+      act: (b) => b.add(const CreatePostBarcodeUnknown(code: '4607081320169')),
+      expect: () => [
+        isA<CreatePostState>()
+            .having((s) => s.barcode, 'barcode', '4607081320169')
+            .having((s) => s.barcodeContribute, 'barcodeContribute', isTrue),
+      ],
+    );
+
+    blocTest<CreatePostBloc, CreatePostState>(
+      'CreatePostBarcodeCleared resets barcode and contribute flag',
+      build: buildBloc,
+      seed: () =>
+          const CreatePostState(barcode: '12345', barcodeContribute: true),
+      act: (b) => b.add(const CreatePostBarcodeCleared()),
+      expect: () => [
+        isA<CreatePostState>()
+            .having((s) => s.barcode, 'barcode', isNull)
+            .having((s) => s.barcodeContribute, 'barcodeContribute', isFalse),
       ],
     );
   });
@@ -224,6 +281,94 @@ void main() {
         expect(b.state.status, CreatePostStatus.error);
         expect(b.state.errorMessage, contains('Не удалось загрузить'));
         verifyNever(() => createPost(any()));
+      },
+    );
+
+    blocTest<CreatePostBloc, CreatePostState>(
+      'contributes new barcode after successful create when '
+      'barcodeContribute=true',
+      build: () {
+        when(() => uploadPostImage(any())).thenAnswer(
+          (_) async => const Right(
+            PostPhoto(url: 'https://cdn/u.jpg', thumbUrl: 'https://cdn/u.jpg'),
+          ),
+        );
+        when(() => createPost(any())).thenAnswer(
+          (_) async => Right(
+            Post(
+              id: 'p-new',
+              authorId: authorId,
+              authorName: 'Albert',
+              drinkName: 'Monster',
+              foundDate: foundDate,
+              rarity: 7,
+              createdAt: foundDate,
+            ),
+          ),
+        );
+        when(() => saveBarcode(any())).thenAnswer(
+          (_) async => Right(
+            Barcode(
+              id: '5449000000996',
+              drinkName: 'Monster Energy',
+              contributedBy: authorId,
+              createdAt: foundDate,
+            ),
+          ),
+        );
+        return buildBloc();
+      },
+      seed: () => CreatePostState(
+        author: const CreatePostAuthor(id: authorId, name: 'Albert'),
+        pickedFiles: [fakeFile('a.jpg')],
+        drinkName: 'Monster Energy',
+        foundDate: foundDate,
+        barcode: '5449000000996',
+        barcodeContribute: true,
+      ),
+      act: (b) => b.add(const CreatePostSubmitted()),
+      verify: (b) {
+        expect(b.state.status, CreatePostStatus.created);
+        verify(() => createPost(any())).called(1);
+        verify(() => saveBarcode(any())).called(1);
+      },
+    );
+
+    blocTest<CreatePostBloc, CreatePostState>(
+      'does not contribute barcode when matched (already known)',
+      build: () {
+        when(() => uploadPostImage(any())).thenAnswer(
+          (_) async => const Right(
+            PostPhoto(url: 'https://cdn/u.jpg', thumbUrl: 'https://cdn/u.jpg'),
+          ),
+        );
+        when(() => createPost(any())).thenAnswer(
+          (_) async => Right(
+            Post(
+              id: 'p-new',
+              authorId: authorId,
+              authorName: 'Albert',
+              drinkName: 'Monster',
+              foundDate: foundDate,
+              rarity: 7,
+              createdAt: foundDate,
+            ),
+          ),
+        );
+        return buildBloc();
+      },
+      seed: () => CreatePostState(
+        author: const CreatePostAuthor(id: authorId, name: 'Albert'),
+        pickedFiles: [fakeFile('a.jpg')],
+        drinkName: 'Monster',
+        foundDate: foundDate,
+        barcode: '5449000000996',
+        // barcodeContribute=false по дефолту — банка из коллективной базы.
+      ),
+      act: (b) => b.add(const CreatePostSubmitted()),
+      verify: (b) {
+        expect(b.state.status, CreatePostStatus.created);
+        verifyNever(() => saveBarcode(any()));
       },
     );
 

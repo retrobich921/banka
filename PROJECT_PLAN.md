@@ -213,11 +213,14 @@ reports/{reportId}                        // модерация
 - [x] Composite indexes для `groupId+createdAt`, `authorId+createdAt`, `brandId+rarity`, `searchKeywords+createdAt`.
 - [x] `functions/index.js` с `onPostImageUploaded` (sharp 400×400 thumbnail) + `firebase.json` подхватывает functions.
 - [x] Тесты: `PostDto` (5), `PostRepositoryImpl` (10), `ImageCompressor` (4). Всего 77 passed.
-- [ ] PR Sprint 7 → CI → ревью → мерж.
+- [x] PR Sprint 7 → CI → ревью → мерж.
 
 ### Sprint 8 — Posts: создание поста (presentation)
 
-- [ ] `CreatePostBloc`, форма: multi-picker фото, drinkName, brand-picker, foundDate (default = today), rarity-slider 1–9, tags chips, description.
+- [x] `CreatePostBloc` (events / state / handlers, последовательная загрузка фото, прогресс, ошибки, валидация).
+- [x] `CreatePostPage`: multi-picker фото (до 6), drinkName, brand, foundDate (default = today), rarity-slider 1–9, tags chips, description, group-selector (опционально).
+- [x] Маршрут `/posts/new` + кнопки «Запостить банку» на `HomePage` и `GroupDetailPage` (с прокидыванием `groupId/groupName` через `extra`).
+- [x] Тесты `CreatePostBloc` (12 кейсов: init, photo cap, rarity clamp, валидации, upload-flow, ошибки, ack/reset). Всего 89 passed.
 - [ ] PR Sprint 8 → CI → ревью → мерж.
 
 ### Sprint 9 — Posts: лента + детальный экран

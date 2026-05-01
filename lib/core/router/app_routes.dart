@@ -12,6 +12,7 @@ abstract final class AppRoutes {
   static const String groups = '/groups';
   static const String groupCreate = '/groups/new';
   static const String groupDetail = '/groups/:id';
+  static const String postCreate = '/posts/new';
 
   // Names (используем при навигации `goNamed` / `pushNamed`).
   static const String splashName = 'splash';
@@ -22,4 +23,5 @@ abstract final class AppRoutes {
   static const String groupsName = 'groups';
   static const String groupCreateName = 'groupCreate';
   static const String groupDetailName = 'groupDetail';
+  static const String postCreateName = 'postCreate';
 }

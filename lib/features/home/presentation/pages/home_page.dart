@@ -13,6 +13,11 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.pushNamed(AppRoutes.postCreateName),
+        icon: const Icon(Icons.add_a_photo_outlined),
+        label: const Text('Запостить банку'),
+      ),
       appBar: AppBar(
         title: const Text('banka'),
         actions: [

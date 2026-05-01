@@ -199,7 +199,6 @@ reports/{reportId}                        // модерация
 - [x] Кнопка «Группы» на главном экране.
 - [x] Тесты `GroupsListBloc` (4 кейса) + `GroupDetailBloc` (5 кейсов). Всего 55 passed.
 - [ ] PR Sprint 6 → CI → ревью → мерж.
-- [ ] PR Sprint 6 → CI → ревью → мерж.
 
 ### Sprint 7 — Posts/Cans (data + domain) ⭐ ядро
 

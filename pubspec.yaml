@@ -40,6 +40,11 @@ dependencies:
   # Internationalization
   intl: ^0.20.0
 
+  # Media (used by post creation pipeline)
+  image: ^4.5.4
+  path: ^1.9.1
+  path_provider: ^2.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

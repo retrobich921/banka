@@ -202,9 +202,17 @@ reports/{reportId}                        // модерация
 
 ### Sprint 7 — Posts/Cans (data + domain) ⭐ ядро
 
-- [ ] `PostModel`, `PostRepository` (создание, лента постранично, по группе/автору).
-- [ ] `ImageCompressor` сервис, `StorageRepository` (загрузка нескольких фото с прогрессом).
-- [ ] Cloud Function `onPostImageUploaded` → thumbnail.
+- [x] `Post`/`PostPhoto` entities (freezed) + `PostRepository` контракт (createPost, watchFeed, watchGroupFeed, watchAuthorFeed, getPost, watchPost, updatePost, deletePost).
+- [x] 8 use-cases в `lib/features/post/domain/usecases/` + `UploadPostImage`.
+- [x] `PostDto` + `PostPhotoDto` ↔ Firestore (round-trip, `searchKeywords` builder lowercase + dedup ≥ 2 chars).
+- [x] `FirestorePostRemoteDataSource` (атомарный create через `WriteBatch`: `posts/` + denorm-инкремент `groups.postsCount` + `users.stats.cansCount`).
+- [x] `PostRepositoryImpl` с маппингом исключений → `Failure`.
+- [x] `ImageCompressor` (`image` пакет, JPEG q=85, длинная сторона ≤ 1600 px) + `FirebaseStoragePostImageDataSource` + `PostStorageRepositoryImpl`.
+- [x] Storage prefix `posts/{postId}/{n}_{filename}`, контракт под Cloud Function.
+- [x] `firestore.rules` для `posts/` (owner-only mutate, `likesCount`/`commentsCount`/`rarity` валидируются на create) + `storage.rules` (image-only, < 8 MB).
+- [x] Composite indexes для `groupId+createdAt`, `authorId+createdAt`, `brandId+rarity`, `searchKeywords+createdAt`.
+- [x] `functions/index.js` с `onPostImageUploaded` (sharp 400×400 thumbnail) + `firebase.json` подхватывает functions.
+- [x] Тесты: `PostDto` (5), `PostRepositoryImpl` (10), `ImageCompressor` (4). Всего 77 passed.
 - [ ] PR Sprint 7 → CI → ревью → мерж.
 
 ### Sprint 8 — Posts: создание поста (presentation)

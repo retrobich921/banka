@@ -56,6 +56,34 @@ service cloud.firestore {
       }
     }
 
+    // ---- posts/{postId} (Sprint 7) -----------------------------------------
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+
+      // Создавать пост может только сам автор. Денорм-счётчики
+      // likesCount / commentsCount должны стартовать с нуля — реальное
+      // их инкрементирование делает Cloud Functions / транзакции в
+      // последующих спринтах (Sprint 10/11).
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.likesCount == 0
+        && request.resource.data.commentsCount == 0
+        && request.resource.data.rarity is int
+        && request.resource.data.rarity >= 1
+        && request.resource.data.rarity <= 9;
+
+      // Редактирование текстовых полей — только автор. Счётчики и
+      // searchKeywords меняются Cloud Functions либо самим автором при
+      // апдейте (мы пересчитываем токены на клиенте).
+      allow update: if isSignedIn()
+        && resource.data.authorId == request.auth.uid;
+
+      // Удалять — только автор. Каскадное удаление подколлекций
+      // (likes / comments) сделает Cloud Function в Sprint 10/11.
+      allow delete: if isSignedIn()
+        && resource.data.authorId == request.auth.uid;
+    }
+
     // ---- Fallback: по умолчанию всё, что не описано выше — закрыто.
     match /{document=**} {
       allow read, write: if false;

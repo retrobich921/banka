@@ -1,10 +1,41 @@
 rules_version = '2';
 
-// Sprint 2 baseline — всё под auth. Загрузки фото банок настраиваются в Sprint 7.
+// Sprint 7 — структурируем правила: фотографии постов и обложки групп.
 service firebase.storage {
   match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isImage() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.size < 8 * 1024 * 1024; // 8 MB
+    }
+
+    // posts/{postId}/{filename} — фотографии банок.
+    // Любой авторизованный читает; писать может только владелец префикса
+    // (мы кладём postId после `posts/`, чтобы один пост = один префикс,
+    // а Cloud Function `onPostImageUploaded` потом запишет thumb).
+    match /posts/{postId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImage();
+    }
+
+    // groups/{groupId}/cover.* — обложка группы.
+    match /groups/{groupId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImage();
+    }
+
+    // users/{uid}/avatar.* — аватарка пользователя.
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId && isImage();
+    }
+
+    // Всё остальное — закрыто.
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

@@ -13,6 +13,7 @@ import '../../features/group/presentation/pages/create_group_page.dart';
 import '../../features/group/presentation/pages/group_detail_page.dart';
 import '../../features/group/presentation/pages/groups_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/like/presentation/pages/who_liked_page.dart';
 import '../../features/post/presentation/pages/create_post_page.dart';
 import '../../features/post/presentation/pages/post_detail_page.dart';
 import '../../features/user/presentation/bloc/profile_bloc.dart';
@@ -76,6 +77,12 @@ final class AppRouter {
         name: AppRoutes.postDetailName,
         builder: (_, state) =>
             PostDetailPage(postId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: AppRoutes.whoLiked,
+        name: AppRoutes.whoLikedName,
+        builder: (_, state) =>
+            WhoLikedPage(postId: state.pathParameters['id']!),
       ),
       ShellRoute(
         builder: (context, state, child) => BlocProvider<ProfileBloc>(

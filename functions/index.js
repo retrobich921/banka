@@ -17,6 +17,11 @@ const { initializeApp } = require('firebase-admin/app');
 const { getStorage } = require('firebase-admin/storage');
 const { getFirestore } = require('firebase-admin/firestore');
 const { onObjectFinalized } = require('firebase-functions/v2/storage');
+const {
+  onDocumentCreated,
+  onDocumentDeleted,
+} = require('firebase-functions/v2/firestore');
+const { FieldValue } = require('firebase-admin/firestore');
 const { logger } = require('firebase-functions');
 const sharp = require('sharp');
 
@@ -78,6 +83,40 @@ exports.onPostImageUploaded = onObjectFinalized(
     } finally {
       if (fs.existsSync(tmpOriginal)) fs.unlinkSync(tmpOriginal);
       if (fs.existsSync(tmpThumb)) fs.unlinkSync(tmpThumb);
+    }
+  },
+);
+
+// Sprint 10: счётчик `likesCount` обновляется только сервером.
+// Клиент пишет / удаляет `posts/{postId}/likes/{userId}`,
+// функции реагируют атомарным `FieldValue.increment(±1)`.
+
+exports.onLikeCreated = onDocumentCreated(
+  { document: 'posts/{postId}/likes/{userId}', region: 'europe-west3' },
+  async (event) => {
+    const { postId } = event.params;
+    try {
+      await getFirestore()
+        .collection('posts')
+        .doc(postId)
+        .update({ likesCount: FieldValue.increment(1) });
+    } catch (err) {
+      logger.error('onLikeCreated failed', { postId, err });
+    }
+  },
+);
+
+exports.onLikeDeleted = onDocumentDeleted(
+  { document: 'posts/{postId}/likes/{userId}', region: 'europe-west3' },
+  async (event) => {
+    const { postId } = event.params;
+    try {
+      await getFirestore()
+        .collection('posts')
+        .doc(postId)
+        .update({ likesCount: FieldValue.increment(-1) });
+    } catch (err) {
+      logger.error('onLikeDeleted failed', { postId, err });
     }
   },
 );

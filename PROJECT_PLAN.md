@@ -234,11 +234,19 @@ reports/{reportId}                        // модерация
 - [x] Маршрут `/posts/:id` в `app_router.dart` + переход с карточки `pushNamed(postDetailName)`.
 - [x] Зависимость `cached_network_image: ^3.4.1` в `pubspec.yaml`.
 - [x] Юнит-тесты `PostsFeedBloc` (5) + `PostDetailBloc` (4) + актуализирован `widget_test.dart` под новый `HomeView`. Всего **99 passed**, `flutter analyze` чисто, `dart format` чисто.
-- [ ] PR Sprint 9 → CI → ревью → мерж.
+- [x] PR Sprint 9 → CI → ревью → мерж (PR #10).
 
 ### Sprint 10 — Likes
 
-- [ ] Транзакционный лайк, оптимистичный UI, `WhoLikedScreen`.
+- [x] Like domain: `Like` entity (freezed), `LikeRepository`, 4 usecases (`LikePost`, `UnlikePost`, `WatchHasLiked`, `WatchLikers`).
+- [x] Like data: `LikeDto`, `FirestoreLikeRemoteDataSource` с batched-write `posts/{id}/likes/{uid}` + `users/{uid}/likedPosts/{id}` в одной транзакции, `LikeRepositoryImpl` с маппингом `ServerException`→`ServerFailure`.
+- [x] Cloud Functions `onLikeCreated` / `onLikeDeleted` инкрементируют/декрементируют `posts.likesCount` (клиент `likesCount` не трогает).
+- [x] Firestore rules: `/posts/{id}/likes/{userId}` и `/users/{uid}/likedPosts/{postId}` — read под аутентификацией, create/delete только владелец, update запрещён.
+- [x] `LikeButtonCubit` с оптимистичным UI: локальный `optimisticHasLiked`/`optimisticDelta`, откат при ошибке, реконсиляция со стрима.
+- [x] `WhoLikedBloc` со стримом лайкеров, defended duplicate subscribe.
+- [x] Виджет `LikeButton` (compact + full режимы) встроен в `PostCard` и `PostDetailPage`, переход «Кто лайкнул» → `WhoLikedPage`.
+- [x] Маршрут `/posts/:id/likes` (`AppRoutes.whoLiked`) в `app_router.dart`.
+- [x] Юнит-тесты `LikeRepositoryImpl` (4) + `LikeButtonCubit` (8) + `WhoLikedBloc` (3) + интеграция в общий прогон. Всего **116 passed**, `flutter analyze` чисто, `dart format` чисто.
 - [ ] PR Sprint 10 → CI → ревью → мерж.
 
 ### Sprint 11 — Comments

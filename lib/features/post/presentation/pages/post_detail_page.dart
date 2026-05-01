@@ -1,10 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/post_detail_bloc.dart';
 import '../widgets/rarity_badge.dart';
@@ -249,22 +252,18 @@ class _PostBody extends StatelessWidget {
         ],
         const SizedBox(height: 24),
         const Divider(color: AppColors.outline, height: 1),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(
-              Icons.favorite_border,
-              size: 18,
-              color: AppColors.onSurfaceMuted,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '${post.likesCount}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.onSurfaceMuted,
+            LikeButton(postId: post.id, likesCount: post.likesCount),
+            TextButton(
+              onPressed: () => context.pushNamed(
+                AppRoutes.whoLikedName,
+                pathParameters: {'id': post.id},
               ),
+              child: const Text('Кто лайкнул'),
             ),
-            const SizedBox(width: 16),
+            const Spacer(),
             const Icon(
               Icons.mode_comment_outlined,
               size: 18,
@@ -281,7 +280,7 @@ class _PostBody extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Лайки и комментарии — Sprint 10/11.',
+          'Комментарии — Sprint 11.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: AppColors.onSurfaceFaint,
           ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/post.dart';
 import 'rarity_badge.dart';
 
@@ -140,6 +141,31 @@ class _PostCardState extends State<PostCard> {
                     ],
                   ),
                 ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(6, 4, 12, 0),
+                child: Row(
+                  children: [
+                    LikeButton(
+                      postId: post.id,
+                      likesCount: post.likesCount,
+                      compact: true,
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.mode_comment_outlined,
+                      size: 18,
+                      color: AppColors.onSurfaceMuted,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${post.commentsCount}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.onSurfaceMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

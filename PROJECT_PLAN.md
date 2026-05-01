@@ -247,11 +247,19 @@ reports/{reportId}                        // модерация
 - [x] Виджет `LikeButton` (compact + full режимы) встроен в `PostCard` и `PostDetailPage`, переход «Кто лайкнул» → `WhoLikedPage`.
 - [x] Маршрут `/posts/:id/likes` (`AppRoutes.whoLiked`) в `app_router.dart`.
 - [x] Юнит-тесты `LikeRepositoryImpl` (4) + `LikeButtonCubit` (8) + `WhoLikedBloc` (3) + интеграция в общий прогон. Всего **116 passed**, `flutter analyze` чисто, `dart format` чисто.
-- [ ] PR Sprint 10 → CI → ревью → мерж.
+- [x] PR Sprint 10 → CI → ревью → мерж (PR #11).
 
 ### Sprint 11 — Comments
 
-- [ ] Подколлекция, real-time stream, BLoC, экран комментариев.
+- [x] Comment domain: `Comment` entity (freezed), `CommentRepository`, 3 usecases (`AddComment`, `DeleteComment`, `WatchComments`).
+- [x] Comment data: `CommentDto`, `FirestoreCommentRemoteDataSource` (`add`/`delete`/`watch` через подколлекцию `posts/{id}/comments/{cid}`), `CommentRepositoryImpl` с маппингом `ServerException`→`ServerFailure`.
+- [x] Cloud Functions `onCommentCreated` / `onCommentDeleted` инкрементируют/декрементируют `posts.commentsCount` через `FieldValue.increment(±1)`.
+- [x] Firestore rules: `/posts/{id}/comments/{cid}` — read под аутентификацией, create только при `authorId == auth.uid` и `text.size() in (0, 2000]`, delete только автору, update запрещён.
+- [x] `CommentsBloc` со стримом комментариев (loading/ready/error/initial), дедуп subscribe, reset.
+- [x] `AddCommentCubit` для формы: text-state, clamp по `maxLength`, idle/submitting/success/error, ack-сброс.
+- [x] Виджеты `CommentTile` (аватар + имя + относительное время + меню «Удалить» только для своих), `CommentInput` (TextField + кнопка отправки), `CommentsSection` (комбо: список + инпут), интегрированы в `PostDetailPage`.
+- [x] Удаление через диалог-подтверждение, прямой вызов `DeleteComment` usecase.
+- [x] Юнит-тесты `CommentRepositoryImpl` (5) + `CommentsBloc` (4) + `AddCommentCubit` (9) — всего **134 passed**, `flutter analyze` чисто, `dart format` чисто.
 - [ ] PR Sprint 11 → CI → ревью → мерж.
 
 ### Sprint 12 — Search

@@ -47,6 +47,9 @@ dependencies:
   path_provider: ^2.1.5
   cached_network_image: ^3.4.1
 
+  # Sprint 12 — debounce поискового ввода через event-transformer
+  stream_transform: ^2.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

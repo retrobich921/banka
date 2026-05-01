@@ -16,6 +16,7 @@ import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/like/presentation/pages/who_liked_page.dart';
 import '../../features/post/presentation/pages/create_post_page.dart';
 import '../../features/post/presentation/pages/post_detail_page.dart';
+import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/user/presentation/bloc/profile_bloc.dart';
 import '../../features/user/presentation/pages/edit_profile_page.dart';
 import '../../features/user/presentation/pages/profile_page.dart';
@@ -83,6 +84,11 @@ final class AppRouter {
         name: AppRoutes.whoLikedName,
         builder: (_, state) =>
             WhoLikedPage(postId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: AppRoutes.search,
+        name: AppRoutes.searchName,
+        builder: (_, _) => const SearchPage(),
       ),
       ShellRoute(
         builder: (context, state, child) => BlocProvider<ProfileBloc>(

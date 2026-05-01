@@ -15,6 +15,7 @@ abstract final class AppRoutes {
   static const String postCreate = '/posts/new';
   static const String postDetail = '/posts/:id';
   static const String whoLiked = '/posts/:id/likes';
+  static const String search = '/search';
 
   // Names (используем при навигации `goNamed` / `pushNamed`).
   static const String splashName = 'splash';
@@ -28,4 +29,5 @@ abstract final class AppRoutes {
   static const String postCreateName = 'postCreate';
   static const String postDetailName = 'postDetail';
   static const String whoLikedName = 'whoLiked';
+  static const String searchName = 'search';
 }

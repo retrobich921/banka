@@ -156,6 +156,45 @@ final class PostRepositoryImpl implements PostRepository {
     }
   }
 
+  @override
+  ResultFuture<List<Post>> searchPosts({
+    String? query,
+    int? rarityMin,
+    int? rarityMax,
+    String? brandId,
+    String? groupId,
+    int limit = 50,
+  }) async {
+    try {
+      final token = _firstToken(query);
+      final posts = await _remote.searchPosts(
+        token: token,
+        rarityMin: rarityMin,
+        rarityMax: rarityMax,
+        brandId: brandId,
+        groupId: groupId,
+        limit: limit,
+      );
+      return Right(posts);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  /// Берём первый «значимый» (≥ 2 символов) токен запроса. Так
+  /// `searchKeywords arrayContains` будет надёжно совпадать с тем, что
+  /// мы пишем в `PostDto.buildSearchKeywords` при создании поста.
+  static String? _firstToken(String? raw) {
+    if (raw == null) return null;
+    for (final word in raw.toLowerCase().split(RegExp(r'\s+'))) {
+      final cleaned = word.replaceAll(RegExp(r'[^a-zа-я0-9]'), '');
+      if (cleaned.length >= 2) return cleaned;
+    }
+    return null;
+  }
+
   Stream<Either<Failure, List<Post>>> _wrapListStream(
     Stream<List<Post>> source,
   ) async* {

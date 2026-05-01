@@ -56,4 +56,17 @@ abstract interface class PostRepository {
   });
 
   ResultFuture<void> deletePost(String postId);
+
+  /// Sprint 12 — поиск постов: `arrayContains`-запрос по `searchKeywords`
+  /// с опциональными фильтрами (rarity range / brandId / groupId).
+  /// Возвращает «снэпшот» (Future, без real-time) — поиск интерактивен,
+  /// каждый ввод порождает новый запрос.
+  ResultFuture<List<Post>> searchPosts({
+    String? query,
+    int? rarityMin,
+    int? rarityMax,
+    String? brandId,
+    String? groupId,
+    int limit = 50,
+  });
 }

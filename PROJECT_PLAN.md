@@ -285,11 +285,17 @@ reports/{reportId}                        // модерация
 - [x] Cloud Functions: `onPostCreatedUpdateBrandStats` / `onPostDeletedUpdateBrandStats` — атомарные `FieldValue.increment(±1)` на `brands/{brandId}.postsCount`.
 - [x] Firestore Security Rules: `brands/{brandId}` — read for signed-in, create требует `name`/`slug`/`postsCount==0`, update — только `name/logoUrl/country/updatedAt`, delete запрещён.
 - [x] Юнит-тесты: `BrandRepositoryImpl` (5), `BrandsBloc` (4), `BrandDto.slugify` (6) — всего **161 passed**, `flutter analyze` чисто, `dart format` чисто.
-- [ ] PR Sprint 13 → CI → ревью → мерж.
+- [x] PR Sprint 13 → CI → ревью → мерж (PR #14).
 
 ### Sprint 14 — Barcode Scanner
 
-- [ ] `mobile_scanner`, lookup в `barcodes`, авто-заполнение формы создания поста, contribute-back.
+- [x] Подключён `mobile_scanner` (camera permissions Android `CAMERA` + iOS `NSCameraUsageDescription`).
+- [x] Domain: `Barcode` (freezed), `BarcodeRepository`, usecases `LookupBarcode` / `SaveBarcode`.
+- [x] Data: `BarcodeDto` (slug-нет, документ id = сам EAN-13/UPC; `normalize()` чистит входной код от пробелов/дефисов), `FirestoreBarcodeRemoteDataSource` (lookup точечным `get`, save через идемпотентный `set(merge:true)` с `serverTimestamp()`), `BarcodeRepositoryImpl` (Either/Failure).
+- [x] Presentation: `BarcodeScannerPage` (полноэкранный `MobileScanner` с overlay-рамкой и тогглом фонарика). Открывается из `CreatePostPage` через `Navigator.push`, возвращает нормализованный код.
+- [x] Интеграция: `CreatePostPage` — поле «Штрих-код» с кнопкой-сканом. После скана — `LookupBarcode`. Если найдено — autofill `drinkName` + `brand`. Если нет — `state.barcode` сохраняется с флагом `barcodeContribute`, и после успешного `createPost` BLoC выполняет `SaveBarcode` (contribute-back). Расширены `CreatePostState` (`barcode`, `barcodeContribute`) и `CreatePostBloc` (события `CreatePostBarcodeMatched` / `CreatePostBarcodeUnknown` / `CreatePostBarcodeCleared`, инжектирован `SaveBarcode` usecase).
+- [x] Firestore Security Rules: `barcodes/{ean}` — read for signed-in, create требует `drinkName` и `contributedBy == auth.uid`, update — только метаданные (`drinkName`, `brandId`, `brandName`, `suggestedPhotoUrl`, `contributedBy`, `createdAt`), delete запрещён.
+- [x] Юнит-тесты: `BarcodeDto.normalize` (4), `BarcodeRepositoryImpl` (6), `CreatePostBloc` — barcode-редьюсеры (3) + happy-path с contribute (1) + happy-path с matched-skip (1) — всего **176 passed** (161 baseline + 15 новых), `flutter analyze` чисто, `dart format` чисто.
 - [ ] PR Sprint 14 → CI → ревью → мерж.
 
 ### Sprint 15 — Profile stats & Achievements

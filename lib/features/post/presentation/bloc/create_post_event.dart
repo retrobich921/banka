@@ -119,6 +119,44 @@ final class CreatePostGroupChanged extends CreatePostEvent {
   List<Object?> get props => [groupId, groupName];
 }
 
+/// Sprint 14: пользователь отсканировал штрих-код, и в коллективной
+/// базе уже есть запись. Подставляем поля автозаполнения.
+/// `contributedBy=null`/`isKnown=true` означает, что contribute-back
+/// при submit'е делать не нужно — запись уже есть.
+final class CreatePostBarcodeMatched extends CreatePostEvent {
+  const CreatePostBarcodeMatched({
+    required this.code,
+    required this.drinkName,
+    this.brandId,
+    this.brandName,
+  });
+
+  final String code;
+  final String drinkName;
+  final String? brandId;
+  final String? brandName;
+
+  @override
+  List<Object?> get props => [code, drinkName, brandId, brandName];
+}
+
+/// Sprint 14: пользователь отсканировал штрих-код, но в базе записи
+/// нет. Сохраняем код в стейте и помечаем `barcodeContribute=true`,
+/// чтобы после успешного создания поста BLoC выполнил `SaveBarcode`.
+final class CreatePostBarcodeUnknown extends CreatePostEvent {
+  const CreatePostBarcodeUnknown({required this.code});
+  final String code;
+
+  @override
+  List<Object?> get props => [code];
+}
+
+/// Sprint 14: сбросить отсканированный штрих-код (если пользователь
+/// передумал автозаполнять).
+final class CreatePostBarcodeCleared extends CreatePostEvent {
+  const CreatePostBarcodeCleared();
+}
+
 final class CreatePostSubmitted extends CreatePostEvent {
   const CreatePostSubmitted();
 }

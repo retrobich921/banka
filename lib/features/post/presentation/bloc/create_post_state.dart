@@ -31,6 +31,8 @@ final class CreatePostState extends Equatable {
     this.totalCount = 0,
     this.errorMessage,
     this.createdPostId,
+    this.barcode,
+    this.barcodeContribute = false,
   });
 
   const CreatePostState.initial() : this();
@@ -51,6 +53,15 @@ final class CreatePostState extends Equatable {
   final int totalCount;
   final String? errorMessage;
   final String? createdPostId;
+
+  /// Sprint 14: отсканированный штрих-код (EAN-13/UPC) текущей банки.
+  /// `null`, если пользователь не сканировал.
+  final String? barcode;
+
+  /// Sprint 14: `true`, если код был отсканирован, но в коллективной
+  /// базе записи нет — после успешного создания поста BLoC сделает
+  /// `SaveBarcode` (contribute-back).
+  final bool barcodeContribute;
 
   bool get isUploading => status == CreatePostStatus.uploading;
   bool get isCreating => status == CreatePostStatus.creating;
@@ -76,9 +87,12 @@ final class CreatePostState extends Equatable {
     int? totalCount,
     String? errorMessage,
     String? createdPostId,
+    String? barcode,
+    bool? barcodeContribute,
     bool clearError = false,
     bool clearCreatedId = false,
     bool clearGroup = false,
+    bool clearBarcode = false,
   }) {
     return CreatePostState(
       status: status ?? this.status,
@@ -99,6 +113,10 @@ final class CreatePostState extends Equatable {
       createdPostId: clearCreatedId
           ? null
           : (createdPostId ?? this.createdPostId),
+      barcode: clearBarcode ? null : (barcode ?? this.barcode),
+      barcodeContribute: clearBarcode
+          ? false
+          : (barcodeContribute ?? this.barcodeContribute),
     );
   }
 
@@ -120,5 +138,7 @@ final class CreatePostState extends Equatable {
     totalCount,
     errorMessage,
     createdPostId,
+    barcode,
+    barcodeContribute,
   ];
 }

@@ -11,6 +11,10 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../barcode/data/models/barcode_dto.dart';
+import '../../../barcode/domain/entities/barcode.dart' as barcode_entity;
+import '../../../barcode/domain/usecases/lookup_barcode.dart';
+import '../../../barcode/presentation/pages/barcode_scanner_page.dart';
 import '../../../brand/domain/entities/brand.dart';
 import '../../../brand/domain/usecases/ensure_brand.dart';
 import '../../../brand/presentation/widgets/brand_picker_sheet.dart';
@@ -105,6 +109,49 @@ class _CreatePostViewState extends State<_CreatePostView> {
     );
   }
 
+  Future<void> _scanBarcode() async {
+    final code = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const BarcodeScannerPage()),
+    );
+    if (!mounted || code == null || code.isEmpty) return;
+    final normalized = BarcodeDto.normalize(code);
+    if (normalized.isEmpty) return;
+
+    final lookup = await sl<LookupBarcode>().call(normalized);
+    if (!mounted) return;
+    final barcode_entity.Barcode? matched = lookup.fold((_) => null, (b) => b);
+
+    if (matched != null) {
+      _drinkNameController.text = matched.drinkName;
+      context.read<CreatePostBloc>().add(
+        CreatePostBarcodeMatched(
+          code: normalized,
+          drinkName: matched.drinkName,
+          brandId: matched.brandId,
+          brandName: matched.brandName,
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Узнал банку: ${matched.drinkName}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      context.read<CreatePostBloc>().add(
+        CreatePostBarcodeUnknown(code: normalized),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Новый штрих-код. Заполни данные и опубликуй — запомним.',
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Future<void> _pickPhotos() async {
     final picker = ImagePicker();
     final picked = await picker.pickMultiImage(imageQuality: 100);
@@ -182,7 +229,17 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       ),
                       busy: isBusy,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
+                    _BarcodeField(
+                      barcode: state.barcode,
+                      contributePending: state.barcodeContribute,
+                      enabled: !isBusy,
+                      onScan: _scanBarcode,
+                      onClear: () => context.read<CreatePostBloc>().add(
+                        const CreatePostBarcodeCleared(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _drinkNameController,
                       enabled: !isBusy,
@@ -384,6 +441,72 @@ class _PhotoTile extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _BarcodeField extends StatelessWidget {
+  const _BarcodeField({
+    required this.barcode,
+    required this.contributePending,
+    required this.enabled,
+    required this.onScan,
+    required this.onClear,
+  });
+
+  final String? barcode;
+  final bool contributePending;
+  final bool enabled;
+  final VoidCallback onScan;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasCode = barcode != null && barcode!.isNotEmpty;
+    return InkWell(
+      onTap: enabled ? onScan : null,
+      borderRadius: BorderRadius.circular(8),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Штрих-код (опционально)',
+          helperText: hasCode
+              ? (contributePending
+                    ? 'Новый штрих-код — сохраним в общую базу при публикации'
+                    : 'Узнали банку — поля заполнены автоматически')
+              : 'Сканируй EAN-13 / UPC и автозаполняй название и бренд',
+          suffixIcon: hasCode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: enabled ? onClear : null,
+                )
+              : const Icon(
+                  Icons.qr_code_scanner,
+                  color: AppColors.onSurfaceMuted,
+                ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              hasCode
+                  ? Icons.check_circle_outline
+                  : Icons.qr_code_scanner_outlined,
+              size: 18,
+              color: hasCode ? AppColors.primary : AppColors.onSurfaceMuted,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                hasCode ? barcode! : 'Сканировать штрих-код',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: hasCode ? null : AppColors.onSurfaceMuted,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

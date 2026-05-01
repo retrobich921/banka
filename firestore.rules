@@ -136,6 +136,35 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- barcodes/{ean} (Sprint 14) ----------------------------------------
+    // Коллективная база штрих-кодов. Читать может любой авторизованный
+    // (lookup перед созданием поста). Записывать тоже любой — но при
+    // create обязательны `drinkName`/`contributedBy == auth.uid`. На
+    // апдейте позволяем менять только метаданные (`drinkName`, `brandId`,
+    // `brandName`, `suggestedPhotoUrl`, `createdAt` обновляется
+    // serverTimestamp при merge — поэтому он в allowed). Поле
+    // `contributedBy` нельзя менять чужим пользователям. Удаление
+    // запрещено (база накапливается).
+    match /barcodes/{ean} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.drinkName is string
+        && request.resource.data.drinkName.size() > 0
+        && request.resource.data.contributedBy == request.auth.uid;
+      allow update: if isSignedIn()
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              'drinkName',
+              'brandId',
+              'brandName',
+              'suggestedPhotoUrl',
+              'contributedBy',
+              'createdAt',
+            ]);
+      allow delete: if false;
+    }
+
     // ---- users/{uid}/likedPosts/{postId} (Sprint 10) -----------------------
     // «Обратный» документ — нужен для быстрой ленты «мои лайки» в профиле
     // (Sprint 16). Записывает / удаляет только сам пользователь, читает только

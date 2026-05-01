@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/group.dart';
@@ -80,6 +81,19 @@ class _GroupDetailViewState extends State<_GroupDetailView> {
 
         return Scaffold(
           backgroundColor: AppColors.background,
+          floatingActionButton: state.isMember && group != null
+              ? FloatingActionButton.extended(
+                  onPressed: () => context.pushNamed(
+                    AppRoutes.postCreateName,
+                    extra: <String, String?>{
+                      'groupId': group.id,
+                      'groupName': group.name,
+                    },
+                  ),
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  label: const Text('Запостить банку'),
+                )
+              : null,
           appBar: AppBar(
             title: Text(group?.name ?? 'Группа'),
             actions: [

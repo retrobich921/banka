@@ -13,6 +13,7 @@ import '../../features/group/presentation/pages/create_group_page.dart';
 import '../../features/group/presentation/pages/group_detail_page.dart';
 import '../../features/group/presentation/pages/groups_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/post/presentation/pages/create_post_page.dart';
 import '../../features/user/presentation/bloc/profile_bloc.dart';
 import '../../features/user/presentation/pages/edit_profile_page.dart';
 import '../../features/user/presentation/pages/profile_page.dart';
@@ -54,6 +55,20 @@ final class AppRouter {
         path: AppRoutes.home,
         name: AppRoutes.homeName,
         builder: (_, _) => const HomePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.postCreate,
+        name: AppRoutes.postCreateName,
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Map) {
+            return CreatePostPage(
+              groupId: extra['groupId'] as String?,
+              groupName: extra['groupName'] as String?,
+            );
+          }
+          return const CreatePostPage();
+        },
       ),
       ShellRoute(
         builder: (context, state, child) => BlocProvider<ProfileBloc>(

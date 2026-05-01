@@ -191,7 +191,13 @@ reports/{reportId}                        // модерация
 
 ### Sprint 6 — Groups (presentation)
 
-- [ ] Список групп, создание, экран группы, join/leave.
+- [x] `GroupsListBloc` — две real-time подписки (мои + публичные) + creation flow.
+- [x] `GroupDetailBloc` — подписка на группу + members, команды join / leave / delete.
+- [x] Экран `/groups` с табами «Мои» / «Открытые», FAB на создание, переход на новый `/groups/:id` после создания.
+- [x] Экран `/groups/new` — форма (название, описание, switch публичности) с валидацией.
+- [x] Экран `/groups/:id` — обложка, счётчики, кнопка вступить/выйти, кнопка удаления для владельца, список участников.
+- [x] Кнопка «Группы» на главном экране.
+- [x] Тесты `GroupsListBloc` (4 кейса) + `GroupDetailBloc` (5 кейсов). Всего 55 passed.
 - [ ] PR Sprint 6 → CI → ревью → мерж.
 
 ### Sprint 7 — Posts/Cans (data + domain) ⭐ ядро

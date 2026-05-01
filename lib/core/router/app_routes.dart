@@ -9,6 +9,9 @@ abstract final class AppRoutes {
   static const String home = '/home';
   static const String profile = '/profile';
   static const String profileEdit = '/profile/edit';
+  static const String groups = '/groups';
+  static const String groupCreate = '/groups/new';
+  static const String groupDetail = '/groups/:id';
 
   // Names (используем при навигации `goNamed` / `pushNamed`).
   static const String splashName = 'splash';
@@ -16,4 +19,7 @@ abstract final class AppRoutes {
   static const String homeName = 'home';
   static const String profileName = 'profile';
   static const String profileEditName = 'profileEdit';
+  static const String groupsName = 'groups';
+  static const String groupCreateName = 'groupCreate';
+  static const String groupDetailName = 'groupDetail';
 }

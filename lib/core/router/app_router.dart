@@ -8,6 +8,10 @@ import 'package:injectable/injectable.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
+import '../../features/group/presentation/bloc/groups_list_bloc.dart';
+import '../../features/group/presentation/pages/create_group_page.dart';
+import '../../features/group/presentation/pages/group_detail_page.dart';
+import '../../features/group/presentation/pages/groups_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/user/presentation/bloc/profile_bloc.dart';
 import '../../features/user/presentation/pages/edit_profile_page.dart';
@@ -66,6 +70,32 @@ final class AppRouter {
             path: AppRoutes.profileEdit,
             name: AppRoutes.profileEditName,
             builder: (_, _) => const EditProfilePage(),
+          ),
+        ],
+      ),
+      ShellRoute(
+        builder: (context, state, child) => BlocProvider<GroupsListBloc>(
+          create: (_) => sl<GroupsListBloc>(),
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: AppRoutes.groups,
+            name: AppRoutes.groupsName,
+            builder: (_, _) => const GroupsPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: AppRoutes.groupCreateName,
+                builder: (_, _) => const CreateGroupPage(),
+              ),
+              GoRoute(
+                path: ':id',
+                name: AppRoutes.groupDetailName,
+                builder: (_, state) =>
+                    GroupDetailPage(groupId: state.pathParameters['id']!),
+              ),
+            ],
           ),
         ],
       ),

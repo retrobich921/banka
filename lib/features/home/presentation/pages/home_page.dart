@@ -17,6 +17,11 @@ class HomePage extends StatelessWidget {
         title: const Text('banka'),
         actions: [
           IconButton(
+            tooltip: 'Группы',
+            icon: const Icon(Icons.groups_outlined),
+            onPressed: () => context.pushNamed(AppRoutes.groupsName),
+          ),
+          IconButton(
             tooltip: 'Мой профиль',
             icon: const Icon(Icons.person_outline),
             onPressed: () => context.pushNamed(AppRoutes.profileName),
@@ -70,7 +75,7 @@ class HomePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Нажми 👤 в AppBar, чтобы перейти в профиль.',
+                    'AppBar: 👥 группы · 👤 профиль · ⎋ выход.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.onSurfaceMuted,
                     ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:injectable/injectable.dart';
 
@@ -8,6 +9,10 @@ import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/user/presentation/bloc/profile_bloc.dart';
+import '../../features/user/presentation/pages/edit_profile_page.dart';
+import '../../features/user/presentation/pages/profile_page.dart';
+import '../di/injector.dart';
 import 'app_routes.dart';
 
 /// Конфигурация навигации с auth-aware редиректом.
@@ -45,6 +50,24 @@ final class AppRouter {
         path: AppRoutes.home,
         name: AppRoutes.homeName,
         builder: (_, _) => const HomePage(),
+      ),
+      ShellRoute(
+        builder: (context, state, child) => BlocProvider<ProfileBloc>(
+          create: (_) => sl<ProfileBloc>(),
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: AppRoutes.profile,
+            name: AppRoutes.profileName,
+            builder: (_, _) => const ProfilePage(),
+          ),
+          GoRoute(
+            path: AppRoutes.profileEdit,
+            name: AppRoutes.profileEditName,
+            builder: (_, _) => const EditProfilePage(),
+          ),
+        ],
       ),
     ],
   );

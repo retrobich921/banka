@@ -171,8 +171,13 @@ reports/{reportId}                        // модерация
 
 ### Sprint 4 — User profile (presentation)
 
-- [ ] `ProfileBloc`, экран профиля: аватар, ник, био, статистика-сетка, табы «Мои банки» / «Группы».
-- [ ] Edit profile.
+- [x] `ProfileBloc`: `ProfileSubscribeRequested` (ensure doc + watch стрим), `ProfileEditSubmitted`, `ProfileResetRequested`.
+- [x] Экран профиля: аватар, имя, email, био, сетка статистики (банок / лайков / групп / средняя редкость).
+- [x] Экран редактирования: форма displayName + bio, валидация, snackbar при ошибке, авто-выход после сохранения.
+- [x] Роуты `/profile`, `/profile/edit` под общим `ShellRoute` с `ProfileBloc`.
+- [x] HomePage: иконка-кнопка перехода в профиль.
+- [x] Тесты `ProfileBloc` (4 кейса) + обновлён `widget_test.dart`. Всего 29 passed.
+- [ ] Табы «Мои банки» / «Группы» — отложены до Sprint 9 (как только появятся посты/группы).
 - [ ] PR Sprint 4 → CI → ревью → мерж.
 
 ### Sprint 5 — Groups (data + domain)

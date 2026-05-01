@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
@@ -14,6 +16,11 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('banka'),
         actions: [
+          IconButton(
+            tooltip: 'Мой профиль',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.pushNamed(AppRoutes.profileName),
+          ),
           IconButton(
             tooltip: 'Выйти',
             icon: const Icon(Icons.logout),
@@ -31,7 +38,6 @@ class HomePage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (user?.photoUrl != null)
                     CircleAvatar(
@@ -50,16 +56,6 @@ class HomePage extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                     textAlign: TextAlign.center,
                   ),
-                  if (user?.email != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      user!.email,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.onSurfaceMuted,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
                   const SizedBox(height: 32),
                   const Icon(
                     Icons.construction_outlined,
@@ -74,7 +70,7 @@ class HomePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Sprint 2 — Auth готов: вход через Google и выход.',
+                    'Нажми 👤 в AppBar, чтобы перейти в профиль.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.onSurfaceMuted,
                     ),

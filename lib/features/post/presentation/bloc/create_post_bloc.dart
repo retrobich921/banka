@@ -8,6 +8,7 @@ import 'package:injectable/injectable.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../barcode/domain/usecases/save_barcode.dart';
 import '../../../group/domain/usecases/watch_my_groups.dart';
+import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/capture_photo_with_crop.dart';
@@ -63,7 +64,8 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     on<CreatePostBarcodeCleared>(_onBarcodeCleared);
     on<CreatePostFoundDateChanged>(_onFoundDateChanged);
     on<CreatePostRarityChanged>(_onRarityChanged);
-    on<CreatePostTasteRatingChanged>(_onTasteRatingChanged);
+    on<CreatePostRatingEnabled>(_onRatingEnabled);
+    on<CreatePostRatingChanged>(_onRatingChanged);
     on<CreatePostDrinkTypeChanged>(_onDrinkTypeChanged);
     on<CreatePostTagsChanged>(_onTagsChanged);
     on<CreatePostDescriptionChanged>(_onDescriptionChanged);
@@ -287,13 +289,15 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     emit(state.copyWith(rarity: clamped));
   }
 
-  void _onTasteRatingChanged(
-    CreatePostTasteRatingChanged event,
+  void _onRatingEnabled(
+    CreatePostRatingEnabled event,
     Emitter<CreatePostState> emit,
-  ) {
-    final clamped = event.value.clamp(0, 5);
-    emit(state.copyWith(tasteRating: clamped));
-  }
+  ) => emit(state.copyWith(isRated: event.enabled));
+
+  void _onRatingChanged(
+    CreatePostRatingChanged event,
+    Emitter<CreatePostState> emit,
+  ) => emit(state.copyWith(ratingDraft: event.rating, isRated: true));
 
   void _onDrinkTypeChanged(
     CreatePostDrinkTypeChanged event,
@@ -414,7 +418,7 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
         photos: uploaded,
         foundDate: state.foundDate ?? DateTime.now(),
         rarity: state.rarity,
-        tasteRating: state.tasteRating,
+        rating: state.isRated ? state.ratingDraft : null,
         drinkType: state.drinkType,
         description: state.description.trim(),
         tags: state.tags,

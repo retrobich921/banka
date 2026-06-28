@@ -24,7 +24,7 @@ import '../../../group/domain/entities/group.dart';
 import '../../../group/domain/usecases/watch_my_groups.dart';
 import '../../domain/entities/drink_type.dart';
 import '../bloc/create_post_bloc.dart';
-import '../widgets/taste_rating.dart';
+import '../widgets/rating_widgets.dart';
 import 'square_camera_page.dart';
 
 /// Экран создания поста-«банки».
@@ -347,10 +347,14 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TasteRatingSelector(
-                      value: state.tasteRating,
-                      onChanged: (v) => context.read<CreatePostBloc>().add(
-                        CreatePostTasteRatingChanged(v),
+                    RatingEditor(
+                      enabled: state.isRated,
+                      rating: state.ratingDraft,
+                      onEnabledChanged: (v) => context
+                          .read<CreatePostBloc>()
+                          .add(CreatePostRatingEnabled(v)),
+                      onChanged: (r) => context.read<CreatePostBloc>().add(
+                        CreatePostRatingChanged(r),
                       ),
                     ),
                     const SizedBox(height: 20),

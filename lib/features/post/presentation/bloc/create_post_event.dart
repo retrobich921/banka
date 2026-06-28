@@ -126,13 +126,22 @@ final class CreatePostTagsChanged extends CreatePostEvent {
   List<Object?> get props => [value];
 }
 
-/// Оценка вкуса 1–5 (0 = снять оценку).
-final class CreatePostTasteRatingChanged extends CreatePostEvent {
-  const CreatePostTasteRatingChanged(this.value);
-  final int value;
+/// Включить/выключить выставление оценки (тумблер «Оценить»).
+final class CreatePostRatingEnabled extends CreatePostEvent {
+  const CreatePostRatingEnabled(this.enabled);
+  final bool enabled;
 
   @override
-  List<Object?> get props => [value];
+  List<Object?> get props => [enabled];
+}
+
+/// Изменение составной оценки (любой из критериев / вайба).
+final class CreatePostRatingChanged extends CreatePostEvent {
+  const CreatePostRatingChanged(this.rating);
+  final DrinkRating rating;
+
+  @override
+  List<Object?> get props => [rating];
 }
 
 /// Категория напитка.

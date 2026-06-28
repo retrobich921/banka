@@ -9,10 +9,11 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../comment/presentation/widgets/comments_section.dart';
 import '../../../like/presentation/widgets/like_button.dart';
+import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/post_detail_bloc.dart';
 import '../widgets/rarity_badge.dart';
-import '../widgets/taste_rating.dart';
+import '../widgets/rating_widgets.dart';
 
 /// Детальный экран поста-«банки».
 ///
@@ -233,20 +234,17 @@ class _PostBody extends StatelessWidget {
             ],
           ],
         ),
-        if (post.tasteRating > 0) ...[
-          const SizedBox(height: 12),
+        if (post.rating != null) ...[
+          const SizedBox(height: 16),
           Row(
             children: [
-              Text(
-                'Вкус',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.onSurfaceMuted,
-                ),
-              ),
+              Text('Оценка', style: theme.textTheme.titleSmall),
               const SizedBox(width: 8),
-              TasteStars(rating: post.tasteRating, size: 22),
+              RatingScoreBadge(score: post.rating!.score),
             ],
           ),
+          const SizedBox(height: 8),
+          _RatingBreakdown(rating: post.rating!),
         ],
         const SizedBox(height: 12),
         Wrap(
@@ -318,6 +316,45 @@ class _PostBody extends StatelessWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+class _RatingBreakdown extends StatelessWidget {
+  const _RatingBreakdown({required this.rating});
+
+  final DrinkRating rating;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(String, int)>[
+      ('Вкус', rating.taste),
+      ('Баланс', rating.balance),
+      ('Текстура', rating.texture),
+      ('Послевкусие', rating.aftertaste),
+      ('Дизайн', rating.design),
+      ('Вайб', rating.vibe),
+    ];
+    final theme = Theme.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        for (final (label, value) in items)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              '$label · $value',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
+            ),
+          ),
       ],
     );
   }

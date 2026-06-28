@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'drink_rating.dart';
 import 'drink_type.dart';
 
 part 'post.freezed.dart';
@@ -29,8 +30,8 @@ sealed class Post with _$Post {
     @Default(<PostPhoto>[]) List<PostPhoto> photos,
     DateTime? foundDate,
     @Default(1) int rarity,
-    /// Оценка вкуса 1–5 (звёзды). 0 — пользователь не оценивал.
-    @Default(0) int tasteRating,
+    /// Составная оценка (РЗТ-стиль). `null` — пользователь не оценивал.
+    DrinkRating? rating,
     /// Категория напитка (энергетик / газировка / сок / …).
     @Default(DrinkType.energy) DrinkType drinkType,
     @Default('') String description,

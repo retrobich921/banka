@@ -6,7 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/post.dart';
 import 'rarity_badge.dart';
-import 'taste_rating.dart';
+import 'rating_widgets.dart';
 
 /// Карточка-«банка» в ленте.
 ///
@@ -124,10 +124,10 @@ class _PostCardState extends State<PostCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (post.tasteRating > 0)
+              if (post.rating != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                  child: TasteStars(rating: post.tasteRating, size: 18),
+                  child: RatingScoreBadge(score: post.rating!.score, compact: true),
                 ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),

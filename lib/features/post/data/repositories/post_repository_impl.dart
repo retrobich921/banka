@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/typedefs.dart';
+import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/post_repository.dart';
@@ -30,7 +31,7 @@ final class PostRepositoryImpl implements PostRepository {
     required List<PostPhoto> photos,
     required DateTime foundDate,
     required int rarity,
-    int tasteRating = 0,
+    DrinkRating? rating,
     DrinkType drinkType = DrinkType.energy,
     String description = '',
     List<String> tags = const <String>[],
@@ -50,7 +51,7 @@ final class PostRepositoryImpl implements PostRepository {
         photos: photos,
         foundDate: foundDate,
         rarity: rarity,
-        tasteRating: tasteRating,
+        rating: rating,
         drinkType: drinkType,
         description: description,
         tags: tags,

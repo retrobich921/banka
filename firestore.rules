@@ -114,10 +114,10 @@ service cloud.firestore {
         && request.resource.data.rarity is int
         && request.resource.data.rarity >= 1
         && request.resource.data.rarity <= 9
-        && request.resource.data.tasteRating is int
-        && request.resource.data.tasteRating >= 0
-        && request.resource.data.tasteRating <= 5
-        && request.resource.data.drinkType is string;
+        && request.resource.data.drinkType is string
+        // Оценка необязательна; если есть — это map с числовым ratingScore.
+        && (!('rating' in request.resource.data)
+            || request.resource.data.rating is map);
 
       // Редактирование текстовых полей — только автор.
       // Счётчики (likesCount, commentsCount) могут обновляться любым авторизованным

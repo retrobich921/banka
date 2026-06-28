@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../../../core/error/exceptions.dart';
+import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import '../models/post_dto.dart';
@@ -23,7 +24,7 @@ abstract interface class PostRemoteDataSource {
     required List<PostPhoto> photos,
     required DateTime foundDate,
     required int rarity,
-    int tasteRating,
+    DrinkRating? rating,
     DrinkType drinkType,
     required String description,
     required List<String> tags,
@@ -124,7 +125,7 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     required List<PostPhoto> photos,
     required DateTime foundDate,
     required int rarity,
-    int tasteRating = 0,
+    DrinkRating? rating,
     DrinkType drinkType = DrinkType.energy,
     required String description,
     required List<String> tags,
@@ -147,7 +148,7 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
         photos: photos,
         foundDate: foundDate,
         rarity: rarity,
-        tasteRating: tasteRating,
+        rating: rating,
         drinkType: drinkType,
         description: description,
         tags: tags,

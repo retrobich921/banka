@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import 'post_photo_dto.dart';
@@ -22,7 +23,8 @@ abstract final class PostDto {
   static const String fPhotos = 'photos';
   static const String fFoundDate = 'foundDate';
   static const String fRarity = 'rarity';
-  static const String fTasteRating = 'tasteRating';
+  static const String fRating = 'rating';
+  static const String fRatingScore = 'ratingScore';
   static const String fDrinkType = 'drinkType';
   static const String fDescription = 'description';
   static const String fTags = 'tags';
@@ -54,7 +56,7 @@ abstract final class PostDto {
       photos: _photoList(data[fPhotos]),
       foundDate: _timestampToDate(data[fFoundDate]),
       rarity: (data[fRarity] as num?)?.toInt() ?? 1,
-      tasteRating: (data[fTasteRating] as num?)?.toInt() ?? 0,
+      rating: _ratingFromMap(data[fRating]),
       drinkType: DrinkType.fromKey(data[fDrinkType] as String?),
       description: (data[fDescription] as String?) ?? '',
       tags: _stringList(data[fTags]),
@@ -83,7 +85,8 @@ abstract final class PostDto {
       if (post.foundDate != null)
         fFoundDate: Timestamp.fromDate(post.foundDate!),
       fRarity: post.rarity,
-      fTasteRating: post.tasteRating,
+      if (post.rating != null) fRating: _ratingToMap(post.rating!),
+      if (post.rating != null) fRatingScore: post.rating!.score,
       fDrinkType: post.drinkType.storageKey,
       fDescription: post.description,
       fTags: post.tags,
@@ -114,6 +117,29 @@ abstract final class PostDto {
     }
     return tokens.toList(growable: false);
   }
+
+  static DrinkRating? _ratingFromMap(Object? raw) {
+    if (raw is! Map) return null;
+    final map = Map<String, dynamic>.from(raw);
+    int v(String k) => (map[k] as num?)?.toInt().clamp(1, 10) ?? 5;
+    return DrinkRating(
+      taste: v('taste'),
+      balance: v('balance'),
+      texture: v('texture'),
+      aftertaste: v('aftertaste'),
+      design: v('design'),
+      vibe: v('vibe'),
+    );
+  }
+
+  static Map<String, dynamic> _ratingToMap(DrinkRating r) => <String, dynamic>{
+    'taste': r.taste,
+    'balance': r.balance,
+    'texture': r.texture,
+    'aftertaste': r.aftertaste,
+    'design': r.design,
+    'vibe': r.vibe,
+  };
 
   static List<PostPhoto> _photoList(Object? raw) {
     if (raw is! List) return const <PostPhoto>[];

@@ -26,7 +26,8 @@ final class CreatePostState extends Equatable {
     this.description = '',
     this.foundDate,
     this.rarity = 5,
-    this.tasteRating = 0,
+    this.ratingDraft = const DrinkRating(),
+    this.isRated = false,
     this.drinkType = DrinkType.energy,
     this.tags = const <String>[],
     this.groupId,
@@ -53,7 +54,8 @@ final class CreatePostState extends Equatable {
   final String description;
   final DateTime? foundDate;
   final int rarity;
-  final int tasteRating;
+  final DrinkRating ratingDraft;
+  final bool isRated;
   final DrinkType drinkType;
   final List<String> tags;
   final String? groupId;
@@ -93,7 +95,8 @@ final class CreatePostState extends Equatable {
     String? description,
     DateTime? foundDate,
     int? rarity,
-    int? tasteRating,
+    DrinkRating? ratingDraft,
+    bool? isRated,
     DrinkType? drinkType,
     List<String>? tags,
     String? groupId,
@@ -122,7 +125,8 @@ final class CreatePostState extends Equatable {
       description: description ?? this.description,
       foundDate: foundDate ?? this.foundDate,
       rarity: rarity ?? this.rarity,
-      tasteRating: tasteRating ?? this.tasteRating,
+      ratingDraft: ratingDraft ?? this.ratingDraft,
+      isRated: isRated ?? this.isRated,
       drinkType: drinkType ?? this.drinkType,
       tags: tags ?? this.tags,
       groupId: clearGroup ? null : (groupId ?? this.groupId),
@@ -154,7 +158,8 @@ final class CreatePostState extends Equatable {
     description,
     foundDate,
     rarity,
-    tasteRating,
+    ratingDraft,
+    isRated,
     drinkType,
     tags,
     groupId,

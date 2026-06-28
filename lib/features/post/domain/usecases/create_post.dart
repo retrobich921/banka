@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/typedefs.dart';
+import '../entities/drink_rating.dart';
 import '../entities/drink_type.dart';
 import '../entities/post.dart';
 import '../repositories/post_repository.dart';
@@ -29,7 +30,7 @@ class CreatePost implements UseCase<Post, CreatePostParams> {
       photos: params.photos,
       foundDate: params.foundDate,
       rarity: params.rarity,
-      tasteRating: params.tasteRating,
+      rating: params.rating,
       drinkType: params.drinkType,
       description: params.description,
       tags: params.tags,
@@ -45,7 +46,7 @@ class CreatePostParams extends Equatable {
     required this.photos,
     required this.foundDate,
     required this.rarity,
-    this.tasteRating = 0,
+    this.rating,
     this.drinkType = DrinkType.energy,
     this.authorPhotoUrl,
     this.groupId,
@@ -71,7 +72,7 @@ class CreatePostParams extends Equatable {
   final List<PostPhoto> photos;
   final DateTime foundDate;
   final int rarity;
-  final int tasteRating;
+  final DrinkRating? rating;
   final DrinkType drinkType;
   final String description;
   final List<String> tags;
@@ -91,7 +92,7 @@ class CreatePostParams extends Equatable {
     photos,
     foundDate,
     rarity,
-    tasteRating,
+    rating,
     drinkType,
     description,
     tags,

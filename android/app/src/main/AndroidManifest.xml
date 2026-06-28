@@ -6,6 +6,8 @@
     
     <!-- Разрешения для работы с изображениями и интернетом -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Самообновление: установка скачанного APK из GitHub Releases -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 

@@ -1,7 +1,7 @@
 name: banka
 description: Социальное приложение и каталог для коллекционеров энергетических напитков.
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.11.5
@@ -66,6 +66,8 @@ dependencies:
   # Sprint 15 — StreamGroup для мерджа стримов из нескольких групп
   async: ^2.11.0
   camera: ^0.12.0+1
+  package_info_plus: ^10.2.0
+  open_filex: ^4.7.0
 
 dev_dependencies:
   flutter_test:

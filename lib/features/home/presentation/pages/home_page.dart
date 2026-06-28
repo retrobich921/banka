@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/update/app_updater.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
 import '../../../post/presentation/widgets/posts_feed_view.dart';
@@ -13,8 +14,22 @@ import '../../../post/presentation/widgets/posts_feed_view.dart';
 ///
 /// Отдельный таб «Подписки» появится в Sprint 16 (когда будет логика
 /// подписок); таб «Группа» доступен через `GroupDetailPage`.
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Автопроверка обновления на GitHub Releases при заходе на главный экран.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybePromptUpdate(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

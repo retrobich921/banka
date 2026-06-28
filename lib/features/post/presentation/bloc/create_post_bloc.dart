@@ -102,18 +102,13 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
 
     // Если группа передана явно (например, из экрана группы), используем её
     if (event.groupId != null) {
-      emit(
-        state.copyWith(
-          groupId: event.groupId,
-          groupName: event.groupName,
-        ),
-      );
+      emit(state.copyWith(groupId: event.groupId, groupName: event.groupName));
       return;
     }
 
     // Иначе пытаемся загрузить последнюю выбранную группу
     final lastGroupResult = await _getLastSelectedGroup();
-    
+
     await lastGroupResult.fold(
       // Игнорируем ошибки чтения — просто не автовыбираем группу
       (_) async {},
@@ -122,7 +117,7 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
 
         // Проверяем, что пользователь всё ещё состоит в этой группе
         final myGroupsStream = _watchMyGroups(event.authorId);
-        
+
         await for (final groupsResult in myGroupsStream.take(1)) {
           await groupsResult.fold(
             // Игнорируем ошибки загрузки групп
@@ -235,7 +230,9 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
   void _onFlavorSelected(
     CreatePostFlavorSelected event,
     Emitter<CreatePostState> emit,
-  ) => emit(state.copyWith(flavorId: event.flavorId, flavorName: event.flavorName));
+  ) => emit(
+    state.copyWith(flavorId: event.flavorId, flavorName: event.flavorName),
+  );
 
   void _onFlavorCleared(
     CreatePostFlavorCleared event,

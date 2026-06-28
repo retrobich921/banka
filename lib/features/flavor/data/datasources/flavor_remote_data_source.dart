@@ -7,11 +7,8 @@ import '../models/flavor_dto.dart';
 
 abstract interface class FlavorRemoteDataSource {
   Stream<List<Flavor>> watchFlavors(String brandId);
-  
-  Future<Flavor> createFlavor({
-    required String brandId,
-    required String name,
-  });
+
+  Future<Flavor> createFlavor({required String brandId, required String name});
 }
 
 @LazySingleton(as: FlavorRemoteDataSource)
@@ -33,7 +30,10 @@ final class FirestoreFlavorRemoteDataSource implements FlavorRemoteDataSource {
         .snapshots()
         .map(
           (snap) => snap.docs
-              .map((doc) => FlavorDto.fromSnapshot(brandId: brandId, snapshot: doc))
+              .map(
+                (doc) =>
+                    FlavorDto.fromSnapshot(brandId: brandId, snapshot: doc),
+              )
               .whereType<Flavor>()
               .toList(growable: false),
         );

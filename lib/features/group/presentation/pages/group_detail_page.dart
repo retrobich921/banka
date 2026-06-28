@@ -223,9 +223,7 @@ class _GroupBody extends StatelessWidget {
                 Icons.person_outline,
                 color: AppColors.onSurfaceMuted,
               ),
-              title: Text(
-                m.displayName.isNotEmpty ? m.displayName : m.userId,
-              ),
+              title: Text(m.displayName.isNotEmpty ? m.displayName : m.userId),
               subtitle: Text(_roleLabel(m.role)),
             ),
           ),
@@ -304,7 +302,7 @@ class _MembershipButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final bloc = context.read<GroupDetailBloc>();
     final group = state.group;
-    
+
     if (state.isOwner) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -330,10 +328,10 @@ class _MembershipButton extends StatelessWidget {
         label: const Text('Выйти из группы'),
       );
     }
-    
+
     final isPrivate = group != null && !group.isPublic;
     final hasPendingRequest = state.hasPendingRequest;
-    
+
     // Если есть ожидающий запрос, показываем серую кнопку
     if (hasPendingRequest) {
       return FilledButton.icon(
@@ -346,7 +344,7 @@ class _MembershipButton extends StatelessWidget {
         ),
       );
     }
-    
+
     return FilledButton.icon(
       onPressed: state.isMutating
           ? null

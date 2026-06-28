@@ -48,7 +48,7 @@ final class FirestoreCommentRemoteDataSource
   }) async {
     try {
       final batch = _firestore.batch();
-      
+
       // 1. Создаём комментарий
       final commentRef = _commentsRef(postId).doc();
       batch.set(
@@ -63,13 +63,12 @@ final class FirestoreCommentRemoteDataSource
           ),
         ),
       );
-      
+
       // 2. Инкрементим счётчик комментариев в посте
-      batch.update(
-        _firestore.collection(_posts).doc(postId),
-        <String, dynamic>{'commentsCount': FieldValue.increment(1)},
-      );
-      
+      batch.update(_firestore.collection(_posts).doc(postId), <String, dynamic>{
+        'commentsCount': FieldValue.increment(1),
+      });
+
       await batch.commit();
       return commentRef.id;
     } on FirebaseException catch (e) {
@@ -86,16 +85,15 @@ final class FirestoreCommentRemoteDataSource
   }) async {
     try {
       final batch = _firestore.batch();
-      
+
       // 1. Удаляем комментарий
       batch.delete(_commentsRef(postId).doc(commentId));
-      
+
       // 2. Декрементим счётчик комментариев в посте
-      batch.update(
-        _firestore.collection(_posts).doc(postId),
-        <String, dynamic>{'commentsCount': FieldValue.increment(-1)},
-      );
-      
+      batch.update(_firestore.collection(_posts).doc(postId), <String, dynamic>{
+        'commentsCount': FieldValue.increment(-1),
+      });
+
       await batch.commit();
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message, cause: e);

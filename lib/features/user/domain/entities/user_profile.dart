@@ -15,10 +15,13 @@ sealed class UserProfile with _$UserProfile {
     required String email,
     String? photoUrl,
     String? bio,
+
     /// Уникальный username пользователя (3-20 символов: буквы, цифры, подчёркивание)
     @Default('') String username,
+
     /// Lowercase версия username для case-insensitive поиска и проверки уникальности
     @Default('') String usernameLowercase,
+
     /// Timestamp последнего изменения username (для cooldown 30 дней)
     DateTime? usernameLastChangedAt,
     @Default(UserStats()) UserStats stats,

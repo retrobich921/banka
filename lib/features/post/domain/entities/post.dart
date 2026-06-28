@@ -30,8 +30,10 @@ sealed class Post with _$Post {
     @Default(<PostPhoto>[]) List<PostPhoto> photos,
     DateTime? foundDate,
     @Default(1) int rarity,
+
     /// Составная оценка (РЗТ-стиль). `null` — пользователь не оценивал.
     DrinkRating? rating,
+
     /// Категория напитка (энергетик / газировка / сок / …).
     @Default(DrinkType.energy) DrinkType drinkType,
     @Default('') String description,

@@ -239,13 +239,13 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
       await _firestore.runTransaction((transaction) async {
         final groupDoc = _groupsCol.doc(groupId);
         final memberDoc = _membersCol(groupId).doc(userId);
-        
+
         // Читаем текущее состояние группы
         final groupSnapshot = await transaction.get(groupDoc);
         if (!groupSnapshot.exists) {
           throw const ServerException(message: 'Группа не найдена');
         }
-        
+
         final member = GroupMember(
           userId: userId,
           groupId: groupId,
@@ -253,10 +253,10 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
           displayName: displayName,
           joinedAt: DateTime.now(),
         );
-        
+
         // Создаём member-документ
         transaction.set(memberDoc, GroupMemberDto.toFirestoreMap(member));
-        
+
         // Обновляем только разрешённые поля в группе
         transaction.update(groupDoc, <String, dynamic>{
           GroupDto.fMembersUids: FieldValue.arrayUnion(<String>[userId]),
@@ -280,19 +280,19 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
         final groupDoc = _groupsCol.doc(groupId);
         final memberDoc = _membersCol(groupId).doc(userId);
         final joinRequestDoc = _joinRequestsCol(groupId).doc(userId);
-        
+
         // Читаем текущее состояние группы
         final groupSnapshot = await transaction.get(groupDoc);
         if (!groupSnapshot.exists) {
           throw const ServerException(message: 'Группа не найдена');
         }
-        
+
         // Удаляем member-документ
         transaction.delete(memberDoc);
-        
+
         // Удаляем join_request документ (если существует)
         transaction.delete(joinRequestDoc);
-        
+
         // Обновляем только разрешённые поля в группе
         transaction.update(groupDoc, <String, dynamic>{
           GroupDto.fMembersUids: FieldValue.arrayRemove(<String>[userId]),
@@ -343,10 +343,10 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
       if (!groupSnapshot.exists) {
         throw const ServerException(message: 'Группа не найдена');
       }
-      
+
       final groupData = groupSnapshot.data();
       final groupOwnerId = groupData?[GroupDto.fOwnerId] as String? ?? '';
-      
+
       // Создаём запрос на вступление с groupOwnerId и displayName
       final request = JoinRequest(
         userId: userId,
@@ -356,9 +356,9 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
         groupOwnerId: groupOwnerId,
         requestedAt: DateTime.now(),
       );
-      await _joinRequestsCol(groupId)
-          .doc(userId)
-          .set(JoinRequestDto.toFirestoreMap(request));
+      await _joinRequestsCol(
+        groupId,
+      ).doc(userId).set(JoinRequestDto.toFirestoreMap(request));
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }
@@ -375,13 +375,18 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
       if (!requestSnap.exists) {
         throw const ServerException(message: 'Запрос не найден');
       }
-      
+
       final requestData = requestSnap.data();
-      final displayName = requestData?[JoinRequestDto.fDisplayName] as String? ?? '';
-      
+      final displayName =
+          requestData?[JoinRequestDto.fDisplayName] as String? ?? '';
+
       // Просто добавляем пользователя в группу через существующий метод
-      await joinGroup(groupId: groupId, userId: userId, displayName: displayName);
-      
+      await joinGroup(
+        groupId: groupId,
+        userId: userId,
+        displayName: displayName,
+      );
+
       // Затем обновляем статус запроса
       await _joinRequestsCol(groupId).doc(userId).update(<String, dynamic>{
         JoinRequestDto.fStatus: 'approved',
@@ -427,11 +432,16 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
         .where(JoinRequestDto.fStatus, isEqualTo: 'pending')
         .snapshots()
         .map(
-      (snap) => snap.docs
-          .map((doc) => JoinRequestDto.fromSnapshot(groupId: groupId, snapshot: doc))
-          .whereType<JoinRequest>()
-          .toList(growable: false),
-    );
+          (snap) => snap.docs
+              .map(
+                (doc) => JoinRequestDto.fromSnapshot(
+                  groupId: groupId,
+                  snapshot: doc,
+                ),
+              )
+              .whereType<JoinRequest>()
+              .toList(growable: false),
+        );
   }
 
   static List<Group> _groupListFromSnapshot(

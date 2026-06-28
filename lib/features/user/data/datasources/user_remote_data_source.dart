@@ -112,7 +112,7 @@ final class FirestoreUserRemoteDataSource implements UserRemoteDataSource {
     if (displayName != null) updates[UserProfileDto.fDisplayName] = displayName;
     if (bio != null) updates[UserProfileDto.fBio] = bio;
     if (photoUrl != null) updates[UserProfileDto.fPhotoUrl] = photoUrl;
-    
+
     if (updates.isEmpty) return;
     updates[UserProfileDto.fUpdatedAt] = Timestamp.fromDate(DateTime.now());
     try {
@@ -161,7 +161,7 @@ final class FirestoreUserRemoteDataSource implements UserRemoteDataSource {
           .where(UserProfileDto.fUsernameLowercase, isEqualTo: lowercase)
           .limit(1)
           .get();
-      
+
       if (query.docs.isEmpty) return null;
       return UserProfileDto.fromSnapshot(query.docs.first);
     } on FirebaseException catch (e) {

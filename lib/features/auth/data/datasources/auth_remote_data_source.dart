@@ -75,9 +75,9 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
           message: 'Firebase не вернул пользователя после signInWithCredential',
         );
       }
-      
+
       // Обновляем displayName из Google аккаунта, если он не установлен
-      if ((user.displayName == null || user.displayName!.isEmpty) && 
+      if ((user.displayName == null || user.displayName!.isEmpty) &&
           account.displayName != null) {
         await user.updateDisplayName(account.displayName);
         await user.reload();
@@ -86,7 +86,7 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
           return updatedUser.toDomain();
         }
       }
-      
+
       return user.toDomain();
     } on GoogleSignInException catch (e) {
       throw AuthException(

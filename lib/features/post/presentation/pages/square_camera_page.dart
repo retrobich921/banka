@@ -209,9 +209,7 @@ class _SquareCameraPageState extends State<SquareCameraPage>
 
   Future<void> _capture() async {
     final controller = _controller;
-    if (controller == null ||
-        !controller.value.isInitialized ||
-        _capturing) {
+    if (controller == null || !controller.value.isInitialized || _capturing) {
       return;
     }
     // У фронтальной камеры нет аппаратной вспышки — подсвечиваем белым
@@ -263,8 +261,7 @@ class _SquareCameraPageState extends State<SquareCameraPage>
         : cropped;
     final jpg = img.encodeJpg(resized, quality: _jpegQuality);
     final dir = await getTemporaryDirectory();
-    final path =
-        '${dir.path}/cam_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final path = '${dir.path}/cam_${DateTime.now().millisecondsSinceEpoch}.jpg';
     return File(path).writeAsBytes(jpg);
   }
 

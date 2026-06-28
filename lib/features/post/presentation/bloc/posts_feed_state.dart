@@ -23,8 +23,7 @@ final class PostsFeedScope extends Equatable {
   final String? brandId;
   final String? authorId;
 
-  bool get isGlobal =>
-      groupId == null && brandId == null && authorId == null;
+  bool get isGlobal => groupId == null && brandId == null && authorId == null;
   bool get isGroup => groupId != null;
   bool get isBrand => brandId != null;
   bool get isAuthor => authorId != null;

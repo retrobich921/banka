@@ -63,10 +63,7 @@ class JoinRequestsPage extends StatelessWidget {
             separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final request = requests[index];
-              return _JoinRequestTile(
-                request: request,
-                groupId: groupId,
-              );
+              return _JoinRequestTile(request: request, groupId: groupId);
             },
           );
         },
@@ -76,10 +73,7 @@ class JoinRequestsPage extends StatelessWidget {
 }
 
 class _JoinRequestTile extends StatefulWidget {
-  const _JoinRequestTile({
-    required this.request,
-    required this.groupId,
-  });
+  const _JoinRequestTile({required this.request, required this.groupId});
 
   final JoinRequest request;
   final String groupId;
@@ -188,15 +182,15 @@ class _JoinRequestTileState extends State<_JoinRequestTile> {
         child: Icon(Icons.person_outline, color: AppColors.onSurfaceMuted),
       ),
       title: Text(
-        widget.request.displayName.isNotEmpty 
-          ? widget.request.displayName 
-          : 'ID: ${widget.request.userId.substring(0, 8)}...',
+        widget.request.displayName.isNotEmpty
+            ? widget.request.displayName
+            : 'ID: ${widget.request.userId.substring(0, 8)}...',
       ),
       subtitle: Text(
         _formatDate(widget.request.requestedAt),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: AppColors.onSurfaceMuted,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceMuted),
       ),
       trailing: _isProcessing
           ? const SizedBox(

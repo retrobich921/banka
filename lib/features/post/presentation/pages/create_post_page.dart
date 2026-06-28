@@ -181,14 +181,14 @@ class _CreatePostViewState extends State<_CreatePostView> {
   Future<void> _capturePhoto() async {
     // Открываем встроенную квадратную камеру: снимок сразу 1:1.
     if (context.read<CreatePostBloc>().state.pickedFiles.length >= 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Максимум 6 фотографий')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Максимум 6 фотографий')));
       return;
     }
-    final file = await Navigator.of(context).push<File>(
-      MaterialPageRoute(builder: (_) => const SquareCameraPage()),
-    );
+    final file = await Navigator.of(
+      context,
+    ).push<File>(MaterialPageRoute(builder: (_) => const SquareCameraPage()));
     if (!mounted || file == null) return;
     context.read<CreatePostBloc>().add(CreatePostPhotosPicked([file]));
   }
@@ -328,7 +328,8 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       _FlavorField(
                         flavorName: state.flavorName,
                         enabled: !isBusy,
-                        onTap: () => _pickFlavor(state.brandId!, state.brandName),
+                        onTap: () =>
+                            _pickFlavor(state.brandId!, state.brandName),
                         onClear: () => context.read<CreatePostBloc>().add(
                           const CreatePostFlavorCleared(),
                         ),
@@ -882,13 +883,16 @@ class _TagsField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Теги (опционально)', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Теги (опционально)',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 4),
         Text(
           'Помогают находить похожие банки. Например: лимитка, зима2024, редкая',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.onSurfaceMuted,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceMuted),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -958,8 +962,8 @@ class _GroupSelector extends StatelessWidget {
       subtitle: Text(
         hasGroup
             ? isAutoSelected
-                ? 'Автовыбор · Пост попадёт в ленту этой группы'
-                : 'Пост попадёт в ленту этой группы'
+                  ? 'Автовыбор · Пост попадёт в ленту этой группы'
+                  : 'Пост попадёт в ленту этой группы'
             : 'Можно опубликовать без группы',
         style: Theme.of(
           context,

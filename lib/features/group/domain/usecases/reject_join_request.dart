@@ -12,18 +12,12 @@ class RejectJoinRequest implements UseCase<void, RejectJoinRequestParams> {
   final GroupRepository _repository;
 
   @override
-  ResultFuture<void> call(RejectJoinRequestParams params) =>
-      _repository.rejectJoinRequest(
-        groupId: params.groupId,
-        userId: params.userId,
-      );
+  ResultFuture<void> call(RejectJoinRequestParams params) => _repository
+      .rejectJoinRequest(groupId: params.groupId, userId: params.userId);
 }
 
 class RejectJoinRequestParams extends Equatable {
-  const RejectJoinRequestParams({
-    required this.groupId,
-    required this.userId,
-  });
+  const RejectJoinRequestParams({required this.groupId, required this.userId});
 
   final String groupId;
   final String userId;

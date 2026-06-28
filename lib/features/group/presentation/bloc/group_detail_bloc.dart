@@ -105,7 +105,7 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
               clearError: true,
             ),
           );
-          
+
           // Загружаем статус запроса на вступление, если пользователь не участник
           final userId = state.currentUserId;
           if (userId != null && !group.membersUids.contains(userId)) {
@@ -156,9 +156,10 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
     final params = GroupMembershipParams(
       groupId: groupId,
       userId: userId,
-      displayName: displayName ?? userId, // Fallback to userId if displayName is null
+      displayName:
+          displayName ?? userId, // Fallback to userId if displayName is null
     );
-    
+
     // Если группа закрытая, создаём запрос на вступление
     // Если публичная, сразу добавляем в участники
     final result = group.isPublic
@@ -169,15 +170,16 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
       (failure) async => emit(
         state.copyWith(
           status: GroupDetailStatus.error,
-          errorMessage: failure.message ?? 
-              (group.isPublic 
-                  ? 'Не удалось вступить в группу' 
+          errorMessage:
+              failure.message ??
+              (group.isPublic
+                  ? 'Не удалось вступить в группу'
                   : 'Не удалось отправить запрос'),
         ),
       ),
       (_) async {
         emit(state.copyWith(status: GroupDetailStatus.ready));
-        
+
         // Для закрытых групп загружаем статус запроса
         if (!group.isPublic) {
           final requestResult = await _getJoinRequest(

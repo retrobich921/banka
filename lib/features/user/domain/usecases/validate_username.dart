@@ -42,10 +42,7 @@ class ValidateUsername
 /// - `username`: Username для валидации
 /// - `userId`: ID пользователя, который пытается установить username
 final class ValidateUsernameParams extends Equatable {
-  const ValidateUsernameParams({
-    required this.username,
-    required this.userId,
-  });
+  const ValidateUsernameParams({required this.username, required this.userId});
 
   /// Username для валидации
   final String username;

@@ -136,10 +136,7 @@ final class UserRepositoryImpl implements UserRepository {
       // Fallback: генерируем случайный username
       final random = Random();
       for (var attempt = 0; attempt < 10; attempt++) {
-        final randomDigits = List.generate(
-          6,
-          (_) => random.nextInt(10),
-        ).join();
+        final randomDigits = List.generate(6, (_) => random.nextInt(10)).join();
         final candidate = 'user_$randomDigits';
         if (await _remote.isUsernameAvailable(candidate)) {
           return Right(candidate);
@@ -205,36 +202,30 @@ final class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  ResultFuture<void> updateUsername(
-    String userId,
-    String newUsername,
-  ) async {
+  ResultFuture<void> updateUsername(String userId, String newUsername) async {
     try {
       // Валидация перед обновлением
       final validationResult = await validateUsername(newUsername, userId);
-      return validationResult.fold(
-        Left.new,
-        (result) async {
-          // Проверяем результат валидации
-          return result.when(
-            valid: () async {
-              await _remote.updateUsername(userId, newUsername);
-              return const Right(null);
-            },
-            invalid: (reason) => const Left(
-              ServerFailure(message: 'Username не соответствует формату'),
+      return validationResult.fold(Left.new, (result) async {
+        // Проверяем результат валидации
+        return result.when(
+          valid: () async {
+            await _remote.updateUsername(userId, newUsername);
+            return const Right(null);
+          },
+          invalid: (reason) => const Left(
+            ServerFailure(message: 'Username не соответствует формату'),
+          ),
+          taken: () => const Left(
+            ServerFailure(message: 'Username уже занят, выберите другой'),
+          ),
+          cooldownActive: (nextDate) => const Left(
+            ServerFailure(
+              message: 'Username можно изменить только раз в 30 дней',
             ),
-            taken: () => const Left(
-              ServerFailure(message: 'Username уже занят, выберите другой'),
-            ),
-            cooldownActive: (nextDate) => const Left(
-              ServerFailure(
-                message: 'Username можно изменить только раз в 30 дней',
-              ),
-            ),
-          );
-        },
-      );
+          ),
+        );
+      });
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, cause: e.cause));
     } catch (e) {

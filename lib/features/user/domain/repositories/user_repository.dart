@@ -98,8 +98,5 @@ abstract interface class UserRepository {
   ///
   /// Возвращает `Right(void)` при успехе или `Left(Failure)` при ошибке
   /// валидации или сохранения.
-  ResultFuture<void> updateUsername(
-    String userId,
-    String newUsername,
-  );
+  ResultFuture<void> updateUsername(String userId, String newUsername);
 }

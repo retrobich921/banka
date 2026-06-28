@@ -5,7 +5,11 @@ import '../../domain/entities/drink_rating.dart';
 
 /// Бейдж итогового балла оценки (X/90), цвет — по величине.
 class RatingScoreBadge extends StatelessWidget {
-  const RatingScoreBadge({super.key, required this.score, this.compact = false});
+  const RatingScoreBadge({
+    super.key,
+    required this.score,
+    this.compact = false,
+  });
 
   final int score;
   final bool compact;

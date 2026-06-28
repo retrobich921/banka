@@ -101,9 +101,7 @@ class _ProfileContent extends StatelessWidget {
         if (metrics.pixels >= metrics.maxScrollExtent - 400 &&
             !feedState.isLoadingMore &&
             !feedState.hasReachedEnd) {
-          context.read<PostsFeedBloc>().add(
-            const PostsFeedLoadMoreRequested(),
-          );
+          context.read<PostsFeedBloc>().add(const PostsFeedLoadMoreRequested());
         }
         return false;
       },
@@ -142,7 +140,8 @@ class _ProfileContent extends StatelessWidget {
       return const [
         SliverToBoxAdapter(
           child: _CenteredHint(
-            text: 'Вы ещё не добавили ни одной банки.\nНажмите «+», '
+            text:
+                'Вы ещё не добавили ни одной банки.\nНажмите «+», '
                 'чтобы добавить первую.',
           ),
         ),

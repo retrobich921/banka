@@ -61,7 +61,8 @@ final class GroupDetailState extends Equatable {
       group: clearGroup ? null : (group ?? this.group),
       members: members ?? this.members,
       currentUserId: currentUserId ?? this.currentUserId,
-      currentUserDisplayName: currentUserDisplayName ?? this.currentUserDisplayName,
+      currentUserDisplayName:
+          currentUserDisplayName ?? this.currentUserDisplayName,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       joinRequest: clearJoinRequest ? null : (joinRequest ?? this.joinRequest),
     );

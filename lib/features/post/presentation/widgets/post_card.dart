@@ -127,7 +127,10 @@ class _PostCardState extends State<PostCard> {
               if (post.rating != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                  child: RatingScoreBadge(score: post.rating!.score, compact: true),
+                  child: RatingScoreBadge(
+                    score: post.rating!.score,
+                    compact: true,
+                  ),
                 ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
@@ -145,10 +148,7 @@ class _PostCardState extends State<PostCard> {
                         label: post.brandName!,
                       ),
                     if (post.groupName != null)
-                      _Pill(
-                        icon: Icons.group_outlined,
-                        label: post.groupName!,
-                      ),
+                      _Pill(icon: Icons.group_outlined, label: post.groupName!),
                   ],
                 ),
               ),

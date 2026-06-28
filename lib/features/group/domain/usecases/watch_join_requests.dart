@@ -6,7 +6,8 @@ import '../entities/group.dart';
 import '../repositories/group_repository.dart';
 
 @lazySingleton
-class WatchJoinRequests implements StreamResultUseCase<List<JoinRequest>, String> {
+class WatchJoinRequests
+    implements StreamResultUseCase<List<JoinRequest>, String> {
   const WatchJoinRequests(this._repository);
 
   final GroupRepository _repository;

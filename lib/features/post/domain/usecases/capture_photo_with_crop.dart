@@ -53,7 +53,8 @@ class CapturePhotoWithCrop implements UseCase<File, NoParams> {
         if (!requested.isGranted) {
           return const Left(
             PermissionFailure(
-              message: 'Доступ к камере запрещён. '
+              message:
+                  'Доступ к камере запрещён. '
                   'Разрешите доступ в настройках приложения.',
             ),
           );
@@ -82,7 +83,8 @@ class CapturePhotoWithCrop implements UseCase<File, NoParams> {
       if (image == null) {
         return const Left(
           ValidationFailure(
-            message: 'Не удалось декодировать изображение. '
+            message:
+                'Не удалось декодировать изображение. '
                 'Попробуйте сделать снимок ещё раз.',
           ),
         );
@@ -108,7 +110,8 @@ class CapturePhotoWithCrop implements UseCase<File, NoParams> {
       if (compressed.length > _maxFileSizeBytes) {
         return const Left(
           ValidationFailure(
-            message: 'Размер изображения превышает 5 МБ. '
+            message:
+                'Размер изображения превышает 5 МБ. '
                 'Попробуйте сделать снимок в условиях с меньшей детализацией.',
           ),
         );

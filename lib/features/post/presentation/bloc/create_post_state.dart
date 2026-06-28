@@ -131,7 +131,9 @@ final class CreatePostState extends Equatable {
       tags: tags ?? this.tags,
       groupId: clearGroup ? null : (groupId ?? this.groupId),
       groupName: clearGroup ? null : (groupName ?? this.groupName),
-      isGroupAutoSelected: clearGroup ? false : (isGroupAutoSelected ?? this.isGroupAutoSelected),
+      isGroupAutoSelected: clearGroup
+          ? false
+          : (isGroupAutoSelected ?? this.isGroupAutoSelected),
       uploadedCount: uploadedCount ?? this.uploadedCount,
       totalCount: totalCount ?? this.totalCount,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),

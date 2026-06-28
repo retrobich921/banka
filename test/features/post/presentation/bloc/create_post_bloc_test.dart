@@ -82,18 +82,18 @@ void main() {
     tmpDir = Directory.systemTemp.createTempSync('banka-create-post-');
 
     // Настройка дефолтных ответов для новых моков
-    when(() => getLastSelectedGroup()).thenAnswer(
-      (_) async => const Right(null),
-    );
-    when(() => saveLastSelectedGroup(any())).thenAnswer(
-      (_) async => const Right(null),
-    );
-    when(() => clearLastSelectedGroup()).thenAnswer(
-      (_) async => const Right(null),
-    );
-    when(() => watchMyGroups(any())).thenAnswer(
-      (_) => Stream.value(const Right(<Group>[])),
-    );
+    when(
+      () => getLastSelectedGroup(),
+    ).thenAnswer((_) async => const Right(null));
+    when(
+      () => saveLastSelectedGroup(any()),
+    ).thenAnswer((_) async => const Right(null));
+    when(
+      () => clearLastSelectedGroup(),
+    ).thenAnswer((_) async => const Right(null));
+    when(
+      () => watchMyGroups(any()),
+    ).thenAnswer((_) => Stream.value(const Right(<Group>[])));
   });
 
   tearDown(() {
@@ -105,15 +105,15 @@ void main() {
   File fakeFile(String name) => File(p.join(tmpDir.path, name));
 
   CreatePostBloc buildBloc() => CreatePostBloc(
-        createPost,
-        uploadPostImage,
-        saveBarcode,
-        getLastSelectedGroup,
-        saveLastSelectedGroup,
-        clearLastSelectedGroup,
-        capturePhotoWithCrop,
-        watchMyGroups,
-      );
+    createPost,
+    uploadPostImage,
+    saveBarcode,
+    getLastSelectedGroup,
+    saveLastSelectedGroup,
+    clearLastSelectedGroup,
+    capturePhotoWithCrop,
+    watchMyGroups,
+  );
 
   group('field reducers', () {
     blocTest<CreatePostBloc, CreatePostState>(
@@ -130,8 +130,11 @@ void main() {
       ),
       wait: const Duration(milliseconds: 100),
       expect: () => [
-        isA<CreatePostState>()
-            .having((s) => s.author?.id, 'author.id', authorId),
+        isA<CreatePostState>().having(
+          (s) => s.author?.id,
+          'author.id',
+          authorId,
+        ),
         isA<CreatePostState>()
             .having((s) => s.author?.id, 'author.id', authorId)
             .having((s) => s.groupId, 'groupId', 'grp-1')

@@ -77,10 +77,7 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
   /// Склейка realtime-первой страницы и дочитанных страниц без дублей.
   List<Post> _combined() {
     final ids = _firstPage.map((p) => p.id).toSet();
-    return [
-      ..._firstPage,
-      ..._more.where((p) => !ids.contains(p.id)),
-    ];
+    return [..._firstPage, ..._more.where((p) => !ids.contains(p.id))];
   }
 
   Future<void> _onSubscribe(

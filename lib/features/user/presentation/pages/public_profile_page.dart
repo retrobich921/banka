@@ -23,8 +23,9 @@ class PublicProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<PostsFeedBloc>(
-      create: (_) => sl<PostsFeedBloc>()
-        ..add(PostsFeedSubscribeRequested(PostsFeedScope.author(userId))),
+      create: (_) =>
+          sl<PostsFeedBloc>()
+            ..add(PostsFeedSubscribeRequested(PostsFeedScope.author(userId))),
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(title: const Text('Профиль')),
@@ -61,9 +62,7 @@ class _Content extends StatelessWidget {
         if (metrics.pixels >= metrics.maxScrollExtent - 400 &&
             !feedState.isLoadingMore &&
             !feedState.hasReachedEnd) {
-          context.read<PostsFeedBloc>().add(
-            const PostsFeedLoadMoreRequested(),
-          );
+          context.read<PostsFeedBloc>().add(const PostsFeedLoadMoreRequested());
         }
         return false;
       },

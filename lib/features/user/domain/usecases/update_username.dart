@@ -34,10 +34,7 @@ class UpdateUsername implements UseCase<void, UpdateUsernameParams> {
 /// - `userId`: ID пользователя, чей username нужно обновить
 /// - `newUsername`: Новый username для установки
 final class UpdateUsernameParams extends Equatable {
-  const UpdateUsernameParams({
-    required this.userId,
-    required this.newUsername,
-  });
+  const UpdateUsernameParams({required this.userId, required this.newUsername});
 
   /// ID пользователя, чей username нужно обновить
   final String userId;

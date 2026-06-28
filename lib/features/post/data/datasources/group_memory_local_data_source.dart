@@ -20,8 +20,7 @@ abstract interface class GroupMemoryLocalDataSource {
 /// Хранит ID последней выбранной группы локально на устройстве.
 /// Используется для автоматического выбора группы при создании поста.
 @LazySingleton(as: GroupMemoryLocalDataSource)
-class SharedPrefsGroupMemoryDataSource
-    implements GroupMemoryLocalDataSource {
+class SharedPrefsGroupMemoryDataSource implements GroupMemoryLocalDataSource {
   const SharedPrefsGroupMemoryDataSource(this._prefs);
 
   final SharedPreferences _prefs;

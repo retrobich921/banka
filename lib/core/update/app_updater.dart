@@ -37,9 +37,7 @@ class AppUpdater {
       final info = await PackageInfo.fromPlatform();
       final res = await http
           .get(
-            Uri.parse(
-              'https://api.github.com/repos/$_repo/releases/latest',
-            ),
+            Uri.parse('https://api.github.com/repos/$_repo/releases/latest'),
             headers: const {'Accept': 'application/vnd.github+json'},
           )
           .timeout(const Duration(seconds: 8));

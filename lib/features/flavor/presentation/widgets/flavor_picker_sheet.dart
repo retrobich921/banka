@@ -30,10 +30,7 @@ class FlavorPickerSheet extends StatelessWidget {
       backgroundColor: AppColors.surface,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => FlavorPickerSheet(
-        brandId: brandId,
-        brandName: brandName,
-      ),
+      builder: (_) => FlavorPickerSheet(brandId: brandId, brandName: brandName),
     );
   }
 
@@ -44,10 +41,7 @@ class FlavorPickerSheet extends StatelessWidget {
 }
 
 class _FlavorPickerView extends StatefulWidget {
-  const _FlavorPickerView({
-    required this.brandId,
-    required this.brandName,
-  });
+  const _FlavorPickerView({required this.brandId, required this.brandName});
 
   final String brandId;
   final String brandName;
@@ -117,8 +111,8 @@ class _FlavorPickerViewState extends State<_FlavorPickerView> {
                   final filtered = _query.isEmpty
                       ? flavors
                       : flavors
-                          .where((f) => f.name.toLowerCase().contains(_query))
-                          .toList(growable: false);
+                            .where((f) => f.name.toLowerCase().contains(_query))
+                            .toList(growable: false);
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Padding(
@@ -193,9 +187,9 @@ class _FlavorPickerViewState extends State<_FlavorPickerView> {
 
     final flavor = result.fold((_) => null, (f) => f);
     if (flavor == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось создать вкус')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Не удалось создать вкус')));
       return;
     }
 

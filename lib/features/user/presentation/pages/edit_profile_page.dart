@@ -62,10 +62,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     // Проверяем валидацию username, если он изменился
     if (username != _initialUsername && username.isNotEmpty) {
       final validation = state.usernameValidation;
-      if (validation == null || !validation.maybeMap(
-        valid: (_) => true,
-        orElse: () => false,
-      )) {
+      if (validation == null ||
+          !validation.maybeMap(valid: (_) => true, orElse: () => false)) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
@@ -144,7 +142,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   return validation.maybeMap(
                     cooldownActive: (cooldown) {
                       final dateFormat = DateFormat('dd.MM.yyyy');
-                      final nextDate = dateFormat.format(cooldown.nextAvailableDate);
+                      final nextDate = dateFormat.format(
+                        cooldown.nextAvailableDate,
+                      );
                       return Container(
                         margin: const EdgeInsets.only(bottom: 16),
                         padding: const EdgeInsets.all(12),
@@ -225,17 +225,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         );
                       },
                       invalid: (invalid) {
-                        suffixIcon = const Icon(
-                          Icons.error,
-                          color: Colors.red,
-                        );
+                        suffixIcon = const Icon(Icons.error, color: Colors.red);
                         errorText = invalid.reason;
                       },
                       taken: (_) {
-                        suffixIcon = const Icon(
-                          Icons.error,
-                          color: Colors.red,
-                        );
+                        suffixIcon = const Icon(Icons.error, color: Colors.red);
                         errorText = 'Username уже занят';
                       },
                       cooldownActive: (cooldown) {
@@ -244,7 +238,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           color: Color(0xFFFFB300),
                         );
                         final dateFormat = DateFormat('dd.MM.yyyy');
-                        final nextDate = dateFormat.format(cooldown.nextAvailableDate);
+                        final nextDate = dateFormat.format(
+                          cooldown.nextAvailableDate,
+                        );
                         errorText = 'Можно изменить после $nextDate';
                       },
                     );

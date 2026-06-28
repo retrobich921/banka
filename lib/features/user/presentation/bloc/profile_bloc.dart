@@ -199,10 +199,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     emit(state.copyWith(isValidatingUsername: true, clearValidation: true));
 
     final result = await _validateUsername(
-      ValidateUsernameParams(
-        username: event.username,
-        userId: userId,
-      ),
+      ValidateUsernameParams(username: event.username, userId: userId),
     );
 
     result.fold(
@@ -245,10 +242,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         event.username!.isNotEmpty &&
         event.username != state.profile?.username) {
       final usernameResult = await _updateUsername(
-        UpdateUsernameParams(
-          userId: userId,
-          newUsername: event.username!,
-        ),
+        UpdateUsernameParams(userId: userId, newUsername: event.username!),
       );
 
       final usernameError = usernameResult.fold(
@@ -287,9 +281,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             errorMessage: failure.message ?? 'Не удалось сохранить профиль',
           ),
         ),
-        (_) => emit(
-          state.copyWith(status: ProfileStatus.ready, clearError: true),
-        ),
+        (_) =>
+            emit(state.copyWith(status: ProfileStatus.ready, clearError: true)),
       );
     } else {
       emit(state.copyWith(status: ProfileStatus.ready, clearError: true));

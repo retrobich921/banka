@@ -65,7 +65,9 @@ abstract final class UserProfileDto {
       if (profile.usernameLowercase.isNotEmpty)
         fUsernameLowercase: profile.usernameLowercase,
       if (profile.usernameLastChangedAt != null)
-        fUsernameLastChangedAt: Timestamp.fromDate(profile.usernameLastChangedAt!),
+        fUsernameLastChangedAt: Timestamp.fromDate(
+          profile.usernameLastChangedAt!,
+        ),
       fStats: _statsToMap(profile.stats),
       fFcmTokens: profile.fcmTokens,
       if (profile.createdAt != null)

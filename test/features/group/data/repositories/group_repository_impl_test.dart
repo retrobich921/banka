@@ -15,6 +15,7 @@ void main() {
 
   const groupId = 'grp-1';
   const userId = 'uid-1';
+  const displayName = 'Alice';
   final group = Group(
     id: groupId,
     name: 'Monster',
@@ -120,17 +121,26 @@ void main() {
   group_('membership commands', () {
     test('joinGroup forwards parameters', () async {
       when(
-        () => remote.joinGroup(groupId: groupId, userId: userId),
+        () => remote.joinGroup(
+          groupId: groupId,
+          userId: userId,
+          displayName: displayName,
+        ),
       ).thenAnswer((_) async {});
 
       final result = await repository.joinGroup(
         groupId: groupId,
         userId: userId,
+        displayName: displayName,
       );
 
       expect(result, const Right<Failure, void>(null));
       verify(
-        () => remote.joinGroup(groupId: groupId, userId: userId),
+        () => remote.joinGroup(
+          groupId: groupId,
+          userId: userId,
+          displayName: displayName,
+        ),
       ).called(1);
     });
 

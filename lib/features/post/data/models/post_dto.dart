@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import 'post_photo_dto.dart';
 
@@ -15,10 +16,14 @@ abstract final class PostDto {
   static const String fGroupName = 'groupName';
   static const String fBrandId = 'brandId';
   static const String fBrandName = 'brandName';
+  static const String fFlavorId = 'flavorId';
+  static const String fFlavorName = 'flavorName';
   static const String fDrinkName = 'drinkName';
   static const String fPhotos = 'photos';
   static const String fFoundDate = 'foundDate';
   static const String fRarity = 'rarity';
+  static const String fTasteRating = 'tasteRating';
+  static const String fDrinkType = 'drinkType';
   static const String fDescription = 'description';
   static const String fTags = 'tags';
   static const String fLikesCount = 'likesCount';
@@ -43,10 +48,14 @@ abstract final class PostDto {
       groupName: data[fGroupName] as String?,
       brandId: data[fBrandId] as String?,
       brandName: data[fBrandName] as String?,
+      flavorId: data[fFlavorId] as String?,
+      flavorName: data[fFlavorName] as String?,
       drinkName: (data[fDrinkName] as String?) ?? '',
       photos: _photoList(data[fPhotos]),
       foundDate: _timestampToDate(data[fFoundDate]),
       rarity: (data[fRarity] as num?)?.toInt() ?? 1,
+      tasteRating: (data[fTasteRating] as num?)?.toInt() ?? 0,
+      drinkType: DrinkType.fromKey(data[fDrinkType] as String?),
       description: (data[fDescription] as String?) ?? '',
       tags: _stringList(data[fTags]),
       likesCount: (data[fLikesCount] as num?)?.toInt() ?? 0,
@@ -67,11 +76,15 @@ abstract final class PostDto {
       if (post.groupName != null) fGroupName: post.groupName,
       if (post.brandId != null) fBrandId: post.brandId,
       if (post.brandName != null) fBrandName: post.brandName,
+      if (post.flavorId != null) fFlavorId: post.flavorId,
+      if (post.flavorName != null) fFlavorName: post.flavorName,
       fDrinkName: post.drinkName,
       fPhotos: post.photos.map(PostPhotoDto.toMap).toList(growable: false),
       if (post.foundDate != null)
         fFoundDate: Timestamp.fromDate(post.foundDate!),
       fRarity: post.rarity,
+      fTasteRating: post.tasteRating,
+      fDrinkType: post.drinkType.storageKey,
       fDescription: post.description,
       fTags: post.tags,
       fLikesCount: post.likesCount,

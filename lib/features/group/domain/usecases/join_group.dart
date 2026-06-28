@@ -13,15 +13,24 @@ class JoinGroup implements UseCase<void, GroupMembershipParams> {
 
   @override
   ResultFuture<void> call(GroupMembershipParams params) =>
-      _repository.joinGroup(groupId: params.groupId, userId: params.userId);
+      _repository.joinGroup(
+        groupId: params.groupId,
+        userId: params.userId,
+        displayName: params.displayName,
+      );
 }
 
 class GroupMembershipParams extends Equatable {
-  const GroupMembershipParams({required this.groupId, required this.userId});
+  const GroupMembershipParams({
+    required this.groupId,
+    required this.userId,
+    required this.displayName,
+  });
 
   final String groupId;
   final String userId;
+  final String displayName;
 
   @override
-  List<Object?> get props => [groupId, userId];
+  List<Object?> get props => [groupId, userId, displayName];
 }

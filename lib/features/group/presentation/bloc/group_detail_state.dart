@@ -16,7 +16,9 @@ final class GroupDetailState extends Equatable {
     this.group,
     this.members = const <GroupMember>[],
     this.currentUserId,
+    this.currentUserDisplayName,
     this.errorMessage,
+    this.joinRequest,
   });
 
   const GroupDetailState.initial() : this();
@@ -25,7 +27,9 @@ final class GroupDetailState extends Equatable {
   final Group? group;
   final List<GroupMember> members;
   final String? currentUserId;
+  final String? currentUserDisplayName;
   final String? errorMessage;
+  final JoinRequest? joinRequest;
 
   bool get isOwner =>
       group != null && currentUserId != null && group!.ownerId == currentUserId;
@@ -35,6 +39,9 @@ final class GroupDetailState extends Equatable {
     return group!.membersUids.contains(currentUserId);
   }
 
+  bool get hasPendingRequest =>
+      joinRequest != null && joinRequest!.status == JoinRequestStatus.pending;
+
   bool get isMutating => status == GroupDetailStatus.mutating;
 
   GroupDetailState copyWith({
@@ -42,16 +49,21 @@ final class GroupDetailState extends Equatable {
     Group? group,
     List<GroupMember>? members,
     String? currentUserId,
+    String? currentUserDisplayName,
     String? errorMessage,
+    JoinRequest? joinRequest,
     bool clearGroup = false,
     bool clearError = false,
+    bool clearJoinRequest = false,
   }) {
     return GroupDetailState(
       status: status ?? this.status,
       group: clearGroup ? null : (group ?? this.group),
       members: members ?? this.members,
       currentUserId: currentUserId ?? this.currentUserId,
+      currentUserDisplayName: currentUserDisplayName ?? this.currentUserDisplayName,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      joinRequest: clearJoinRequest ? null : (joinRequest ?? this.joinRequest),
     );
   }
 
@@ -61,6 +73,8 @@ final class GroupDetailState extends Equatable {
     group,
     members,
     currentUserId,
+    currentUserDisplayName,
     errorMessage,
+    joinRequest,
   ];
 }

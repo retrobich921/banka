@@ -11,13 +11,15 @@ final class GroupDetailSubscribeRequested extends GroupDetailEvent {
   const GroupDetailSubscribeRequested({
     required this.groupId,
     required this.currentUserId,
+    this.currentUserDisplayName,
   });
 
   final String groupId;
   final String currentUserId;
+  final String? currentUserDisplayName;
 
   @override
-  List<Object?> get props => [groupId, currentUserId];
+  List<Object?> get props => [groupId, currentUserId, currentUserDisplayName];
 }
 
 final class GroupDetailJoinRequested extends GroupDetailEvent {

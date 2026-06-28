@@ -12,6 +12,7 @@ import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/post_detail_bloc.dart';
 import '../widgets/rarity_badge.dart';
+import '../widgets/taste_rating.dart';
 
 /// Детальный экран поста-«банки».
 ///
@@ -191,16 +192,28 @@ class _PostBody extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(
-              Icons.person_outline,
-              size: 16,
-              color: AppColors.onSurfaceMuted,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              post.authorName.isNotEmpty ? post.authorName : 'Аноним',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.onSurfaceMuted,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => context.pushNamed(
+                AppRoutes.userProfileName,
+                pathParameters: {'id': post.authorId},
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.person_outline,
+                    size: 16,
+                    color: AppColors.onSurfaceMuted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    post.authorName.isNotEmpty ? post.authorName : 'Аноним',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
               ),
             ),
             if (foundDateText != null) ...[
@@ -220,22 +233,45 @@ class _PostBody extends StatelessWidget {
             ],
           ],
         ),
-        if ((post.brandName != null && post.brandName!.isNotEmpty) ||
-            post.groupName != null) ...[
+        if (post.tasteRating > 0) ...[
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
+          Row(
             children: [
-              if (post.brandName != null && post.brandName!.isNotEmpty)
-                _Chip(icon: Icons.local_bar_outlined, label: post.brandName!),
-              if (post.groupName != null)
-                _Chip(icon: Icons.group_outlined, label: post.groupName!),
+              Text(
+                'Вкус',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceMuted,
+                ),
+              ),
+              const SizedBox(width: 8),
+              TasteStars(rating: post.tasteRating, size: 22),
             ],
           ),
         ],
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            _Chip(
+              icon: Icons.local_drink_outlined,
+              label: post.drinkType.label,
+            ),
+            if (post.brandName != null && post.brandName!.isNotEmpty)
+              _Chip(icon: Icons.local_bar_outlined, label: post.brandName!),
+            if (post.groupName != null)
+              _Chip(icon: Icons.group_outlined, label: post.groupName!),
+          ],
+        ),
         if (post.description.isNotEmpty) ...[
           const SizedBox(height: 16),
+          Text(
+            'Отзыв',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: AppColors.onSurfaceMuted,
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(post.description, style: theme.textTheme.bodyLarge),
         ],
         if (post.tags.isNotEmpty) ...[

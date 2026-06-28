@@ -2,6 +2,7 @@ import 'package:banka/core/error/exceptions.dart';
 import 'package:banka/core/error/failures.dart';
 import 'package:banka/features/post/data/datasources/post_remote_data_source.dart';
 import 'package:banka/features/post/data/repositories/post_repository_impl.dart';
+import 'package:banka/features/post/domain/entities/drink_type.dart';
 import 'package:banka/features/post/domain/entities/post.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,6 +30,10 @@ void main() {
     updatedAt: DateTime(2025, 5, 1),
   );
 
+  setUpAll(() {
+    registerFallbackValue(DrinkType.energy);
+  });
+
   setUp(() {
     remote = _MockRemote();
     repository = PostRepositoryImpl(remote);
@@ -49,6 +54,8 @@ void main() {
           photos: any(named: 'photos'),
           foundDate: any(named: 'foundDate'),
           rarity: any(named: 'rarity'),
+          tasteRating: any(named: 'tasteRating'),
+          drinkType: any(named: 'drinkType'),
           description: any(named: 'description'),
           tags: any(named: 'tags'),
         ),
@@ -80,6 +87,8 @@ void main() {
           photos: any(named: 'photos'),
           foundDate: any(named: 'foundDate'),
           rarity: any(named: 'rarity'),
+          tasteRating: any(named: 'tasteRating'),
+          drinkType: any(named: 'drinkType'),
           description: any(named: 'description'),
           tags: any(named: 'tags'),
         ),

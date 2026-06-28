@@ -10,6 +10,7 @@ import '../../../post/presentation/bloc/posts_feed_bloc.dart';
 import '../../../post/presentation/widgets/post_card.dart';
 import '../../domain/entities/group.dart';
 import '../bloc/group_detail_bloc.dart';
+import 'join_requests_page.dart';
 
 /// Экран конкретной группы.
 ///
@@ -54,6 +55,7 @@ class _GroupDetailViewState extends State<_GroupDetailView> {
         GroupDetailSubscribeRequested(
           groupId: widget.groupId,
           currentUserId: user.id,
+          currentUserDisplayName: user.displayName,
         ),
       );
     }
@@ -105,6 +107,16 @@ class _GroupDetailViewState extends State<_GroupDetailView> {
           appBar: AppBar(
             title: Text(group?.name ?? 'Группа'),
             actions: [
+              if (state.isOwner && group != null && !group.isPublic)
+                IconButton(
+                  icon: const Icon(Icons.person_add_outlined),
+                  tooltip: 'Запросы на вступление',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => JoinRequestsPage(groupId: group.id),
+                    ),
+                  ),
+                ),
               if (state.isOwner)
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
@@ -129,25 +141,26 @@ class _GroupDetailViewState extends State<_GroupDetailView> {
     final bloc = context.read<GroupDetailBloc>();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      useRootNavigator: false,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Удалить группу?'),
         content: const Text(
-          'Действие нельзя отменить. Посты в группе останутся, но будут '
-          'отвязаны.',
+          'Действие нельзя отменить. Участники и запросы на вступление будут '
+          'удалены автоматически. Посты в группе останутся, но будут отвязаны.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Отмена'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Удалить'),
           ),
         ],
       ),
     );
-    if (confirmed == true) {
+    if (confirmed == true && context.mounted) {
       bloc.add(const GroupDetailDeleteRequested());
     }
   }
@@ -210,7 +223,9 @@ class _GroupBody extends StatelessWidget {
                 Icons.person_outline,
                 color: AppColors.onSurfaceMuted,
               ),
-              title: Text(m.userId),
+              title: Text(
+                m.displayName.isNotEmpty ? m.displayName : m.userId,
+              ),
               subtitle: Text(_roleLabel(m.role)),
             ),
           ),
@@ -288,6 +303,8 @@ class _MembershipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<GroupDetailBloc>();
+    final group = state.group;
+    
     if (state.isOwner) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -313,12 +330,29 @@ class _MembershipButton extends StatelessWidget {
         label: const Text('Выйти из группы'),
       );
     }
+    
+    final isPrivate = group != null && !group.isPublic;
+    final hasPendingRequest = state.hasPendingRequest;
+    
+    // Если есть ожидающий запрос, показываем серую кнопку
+    if (hasPendingRequest) {
+      return FilledButton.icon(
+        onPressed: null, // Кнопка неактивна
+        icon: const Icon(Icons.schedule),
+        label: const Text('Запрос отправлен'),
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.surfaceVariant,
+          foregroundColor: AppColors.onSurfaceMuted,
+        ),
+      );
+    }
+    
     return FilledButton.icon(
       onPressed: state.isMutating
           ? null
           : () => bloc.add(const GroupDetailJoinRequested()),
-      icon: const Icon(Icons.add),
-      label: const Text('Вступить'),
+      icon: Icon(isPrivate ? Icons.lock_outline : Icons.add),
+      label: Text(isPrivate ? 'Запросить вступление' : 'Вступить'),
     );
   }
 }

@@ -1,0 +1,13 @@
+# Конфигурация тегов для `flutter test`.
+#
+# Тесты с тегом `emulator` — интеграционные, им нужен запущенный Firebase
+# Emulator Suite (`firebase emulators:start --only firestore,auth`). По
+# умолчанию они пропускаются, чтобы `flutter test` оставался зелёным на машинах
+# и в CI без эмулятора.
+#
+# Запустить их вручную (с поднятым эмулятором):
+#   firebase emulators:start --only firestore,auth
+#   flutter test --run-skipped --tags emulator
+tags:
+  emulator:
+    skip: "Нужен Firebase Emulator Suite — запуск: flutter test --run-skipped --tags emulator"

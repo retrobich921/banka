@@ -22,6 +22,7 @@ import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/user/presentation/bloc/profile_bloc.dart';
 import '../../features/user/presentation/pages/edit_profile_page.dart';
 import '../../features/user/presentation/pages/profile_page.dart';
+import '../../features/user/presentation/pages/public_profile_page.dart';
 import '../di/injector.dart';
 import 'app_routes.dart';
 
@@ -74,6 +75,12 @@ final class AppRouter {
           }
           return const CreatePostPage();
         },
+      ),
+      GoRoute(
+        path: AppRoutes.userProfile,
+        name: AppRoutes.userProfileName,
+        builder: (_, state) =>
+            PublicProfilePage(userId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.postDetail,

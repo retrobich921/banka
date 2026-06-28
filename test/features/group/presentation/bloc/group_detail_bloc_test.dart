@@ -1,8 +1,10 @@
 import 'package:banka/core/error/failures.dart';
 import 'package:banka/features/group/domain/entities/group.dart';
 import 'package:banka/features/group/domain/usecases/delete_group.dart';
+import 'package:banka/features/group/domain/usecases/get_join_request.dart';
 import 'package:banka/features/group/domain/usecases/join_group.dart';
 import 'package:banka/features/group/domain/usecases/leave_group.dart';
+import 'package:banka/features/group/domain/usecases/request_join_group.dart';
 import 'package:banka/features/group/domain/usecases/watch_group.dart';
 import 'package:banka/features/group/domain/usecases/watch_group_members.dart';
 import 'package:banka/features/group/presentation/bloc/group_detail_bloc.dart';
@@ -17,16 +19,22 @@ class _MockWatchGroupMembers extends Mock implements WatchGroupMembers {}
 
 class _MockJoinGroup extends Mock implements JoinGroup {}
 
+class _MockRequestJoinGroup extends Mock implements RequestJoinGroup {}
+
 class _MockLeaveGroup extends Mock implements LeaveGroup {}
 
 class _MockDeleteGroup extends Mock implements DeleteGroup {}
+
+class _MockGetJoinRequest extends Mock implements GetJoinRequest {}
 
 void main() {
   late _MockWatchGroup watchGroup;
   late _MockWatchGroupMembers watchGroupMembers;
   late _MockJoinGroup joinGroup;
+  late _MockRequestJoinGroup requestJoinGroup;
   late _MockLeaveGroup leaveGroup;
   late _MockDeleteGroup deleteGroup;
+  late _MockGetJoinRequest getJoinRequest;
 
   const groupId = 'grp-1';
   const userId = 'uid-1';
@@ -45,18 +53,24 @@ void main() {
     watchGroup = _MockWatchGroup();
     watchGroupMembers = _MockWatchGroupMembers();
     joinGroup = _MockJoinGroup();
+    requestJoinGroup = _MockRequestJoinGroup();
     leaveGroup = _MockLeaveGroup();
     deleteGroup = _MockDeleteGroup();
+    getJoinRequest = _MockGetJoinRequest();
 
-    registerFallbackValue(const GroupMembershipParams(groupId: '', userId: ''));
+    registerFallbackValue(
+      const GroupMembershipParams(groupId: '', userId: '', displayName: ''),
+    );
   });
 
   GroupDetailBloc buildBloc() => GroupDetailBloc(
     watchGroup,
     watchGroupMembers,
     joinGroup,
+    requestJoinGroup,
     leaveGroup,
     deleteGroup,
+    getJoinRequest,
   );
 
   group('subscribe', () {

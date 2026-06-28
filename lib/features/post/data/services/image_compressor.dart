@@ -16,7 +16,10 @@ import 'package:path_provider/path_provider.dart';
 /// Для unit-тестов наследуйся и переопредели `resolveTemporaryDirectory()`.
 @lazySingleton
 class ImageCompressor {
-  const ImageCompressor({this.maxLongSide = 1600, this.jpegQuality = 85});
+  const ImageCompressor({
+    @Named('maxLongSide') this.maxLongSide = 1600,
+    @Named('jpegQuality') this.jpegQuality = 85,
+  });
 
   final int maxLongSide;
   final int jpegQuality;

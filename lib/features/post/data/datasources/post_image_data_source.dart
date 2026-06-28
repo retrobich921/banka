@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 
@@ -8,7 +9,12 @@ import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/post.dart';
 import '../services/image_compressor.dart';
 
-/// Контракт remote-источника фотографий поста (Firebase Storage).
+/// Контракт remote-источника фотографий поста.
+///
+/// Изначально реализация была на Firebase Storage, но с октября 2025 на
+/// Spark (бесплатном) плане Storage недоступен. Поэтому фото заливаются в
+/// Cloudinary через unsigned upload preset, а в Firestore сохраняется
+/// итоговый `secure_url`.
 abstract interface class PostImageDataSource {
   Future<PostPhoto> uploadPostImage({
     required String postId,
@@ -17,14 +23,36 @@ abstract interface class PostImageDataSource {
   });
 }
 
+/// Реализация поверх Cloudinary REST API (unsigned upload).
+///
+/// Эндпойнт: `POST https://api.cloudinary.com/v1_1/{cloud}/image/upload`
+/// multipart-форма:
+///  - `file`: байты сжатого JPEG;
+///  - `upload_preset`: имя unsigned-пресета;
+///  - `folder`: `banka/posts/{postId}` — для удобной навигации в Cloudinary;
+///  - `public_id`: `{index}_{filename}` — стабильный ID без расширения.
+///
+/// Ответ JSON содержит `secure_url`, `width`, `height` — заполняем
+/// `PostPhoto`. До спринта с трансформациями `thumbUrl == url`.
 @LazySingleton(as: PostImageDataSource)
-final class FirebaseStoragePostImageDataSource implements PostImageDataSource {
-  FirebaseStoragePostImageDataSource(this._storage, this._compressor);
+final class CloudinaryPostImageDataSource implements PostImageDataSource {
+  CloudinaryPostImageDataSource(this._compressor);
 
-  final FirebaseStorage _storage;
   final ImageCompressor _compressor;
+  final http.Client _httpClient = http.Client();
 
-  static const String _postsPrefix = 'posts';
+  /// Cloudinary product environment cloud name. Публично безопасно.
+  static const String _cloudName = 'dwdum85wx';
+
+  /// Имя unsigned upload preset (Settings → Upload → Upload presets).
+  /// Безопасно лежать в клиенте, т.к. подразумевает только аплоад.
+  static const String _uploadPreset = 'banka921';
+
+  /// Префикс папки в Cloudinary, чтобы удобно было чистить.
+  static const String _folderPrefix = 'banka/posts';
+
+  Uri get _endpoint =>
+      Uri.parse('https://api.cloudinary.com/v1_1/$_cloudName/image/upload');
 
   @override
   Future<PostPhoto> uploadPostImage({
@@ -34,28 +62,54 @@ final class FirebaseStoragePostImageDataSource implements PostImageDataSource {
   }) async {
     try {
       final compressed = await _compressor.compress(file);
-      final ref = _storage
-          .ref()
-          .child(_postsPrefix)
-          .child(postId)
-          .child('${index}_${p.basename(compressed.file.path)}');
-      final task = await ref.putFile(
-        compressed.file,
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
-      final url = await task.ref.getDownloadURL();
+
+      final request = http.MultipartRequest('POST', _endpoint)
+        ..fields['upload_preset'] = _uploadPreset
+        ..fields['folder'] = '$_folderPrefix/$postId'
+        ..fields['public_id'] =
+            '${index}_${p.basenameWithoutExtension(compressed.file.path)}'
+        ..files.add(
+          await http.MultipartFile.fromPath('file', compressed.file.path),
+        );
+
+      final streamed = await _httpClient.send(request);
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw ServerException(
+          message:
+              'Cloudinary upload failed (${response.statusCode}): ${response.body}',
+        );
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final secureUrl = json['secure_url'] as String?;
+      if (secureUrl == null || secureUrl.isEmpty) {
+        throw ServerException(
+          message: 'Cloudinary не вернул secure_url: ${response.body}',
+        );
+      }
+
+      final width = (json['width'] as num?)?.toInt() ?? compressed.width;
+      final height = (json['height'] as num?)?.toInt() ?? compressed.height;
+
       return PostPhoto(
-        url: url,
-        // До срабатывания Cloud Function `onPostImageUploaded` (см.
-        // functions/index.js) thumbUrl == url; функция позже подменит.
-        thumbUrl: url,
-        width: compressed.width,
-        height: compressed.height,
+        url: secureUrl,
+        // До спринта с трансформациями thumbUrl == url. Когда подключим
+        // Cloudinary transformations, можно будет генерировать
+        // `c_fill,w_400,h_400,f_auto,q_auto` поверх public_id.
+        thumbUrl: secureUrl,
+        width: width,
+        height: height,
       );
-    } on FirebaseException catch (e) {
-      throw ServerException(message: e.message ?? e.code, cause: e);
+    } on ServerException {
+      rethrow;
     } on FormatException catch (e) {
       throw ServerException(message: e.message, cause: e);
+    } on http.ClientException catch (e) {
+      throw ServerException(message: 'Сеть недоступна: ${e.message}', cause: e);
+    } catch (e) {
+      throw ServerException(message: e.toString(), cause: e);
     }
   }
 }

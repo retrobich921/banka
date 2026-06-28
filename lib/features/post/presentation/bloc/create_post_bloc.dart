@@ -5,9 +5,16 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../../core/usecases/usecase.dart';
 import '../../../barcode/domain/usecases/save_barcode.dart';
+import '../../../group/domain/usecases/watch_my_groups.dart';
+import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/usecases/capture_photo_with_crop.dart';
+import '../../domain/usecases/clear_last_selected_group.dart';
 import '../../domain/usecases/create_post.dart';
+import '../../domain/usecases/get_last_selected_group.dart';
+import '../../domain/usecases/save_last_selected_group.dart';
 import '../../domain/usecases/upload_post_image.dart';
 
 part 'create_post_event.dart';
@@ -32,19 +39,32 @@ part 'create_post_state.dart';
 /// равно их найдёт по списку `posts.{postId}.photos[].url`.
 @injectable
 class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
-  CreatePostBloc(this._createPost, this._uploadPostImage, this._saveBarcode)
-    : super(const CreatePostState.initial()) {
+  CreatePostBloc(
+    this._createPost,
+    this._uploadPostImage,
+    this._saveBarcode,
+    this._getLastSelectedGroup,
+    this._saveLastSelectedGroup,
+    this._clearLastSelectedGroup,
+    this._capturePhotoWithCrop,
+    this._watchMyGroups,
+  ) : super(const CreatePostState.initial()) {
     on<CreatePostInitialized>(_onInitialized);
     on<CreatePostPhotosPicked>(_onPhotosPicked);
+    on<CreatePostCameraRequested>(_onCameraRequested);
     on<CreatePostPhotoRemoved>(_onPhotoRemoved);
     on<CreatePostDrinkNameChanged>(_onDrinkNameChanged);
     on<CreatePostBrandSelected>(_onBrandSelected);
     on<CreatePostBrandCleared>(_onBrandCleared);
+    on<CreatePostFlavorSelected>(_onFlavorSelected);
+    on<CreatePostFlavorCleared>(_onFlavorCleared);
     on<CreatePostBarcodeMatched>(_onBarcodeMatched);
     on<CreatePostBarcodeUnknown>(_onBarcodeUnknown);
     on<CreatePostBarcodeCleared>(_onBarcodeCleared);
     on<CreatePostFoundDateChanged>(_onFoundDateChanged);
     on<CreatePostRarityChanged>(_onRarityChanged);
+    on<CreatePostTasteRatingChanged>(_onTasteRatingChanged);
+    on<CreatePostDrinkTypeChanged>(_onDrinkTypeChanged);
     on<CreatePostTagsChanged>(_onTagsChanged);
     on<CreatePostDescriptionChanged>(_onDescriptionChanged);
     on<CreatePostGroupChanged>(_onGroupChanged);
@@ -56,11 +76,17 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
   final CreatePost _createPost;
   final UploadPostImage _uploadPostImage;
   final SaveBarcode _saveBarcode;
+  final GetLastSelectedGroup _getLastSelectedGroup;
+  final SaveLastSelectedGroup _saveLastSelectedGroup;
+  final ClearLastSelectedGroup _clearLastSelectedGroup;
+  final CapturePhotoWithCrop _capturePhotoWithCrop;
+  final WatchMyGroups _watchMyGroups;
 
-  void _onInitialized(
+  Future<void> _onInitialized(
     CreatePostInitialized event,
     Emitter<CreatePostState> emit,
-  ) {
+  ) async {
+    // Устанавливаем данные автора
     emit(
       state.copyWith(
         author: CreatePostAuthor(
@@ -68,10 +94,61 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
           name: event.authorName,
           photoUrl: event.authorPhotoUrl,
         ),
-        groupId: event.groupId,
-        groupName: event.groupName,
         clearError: true,
       ),
+    );
+
+    // Если группа передана явно (например, из экрана группы), используем её
+    if (event.groupId != null) {
+      emit(
+        state.copyWith(
+          groupId: event.groupId,
+          groupName: event.groupName,
+        ),
+      );
+      return;
+    }
+
+    // Иначе пытаемся загрузить последнюю выбранную группу
+    final lastGroupResult = await _getLastSelectedGroup();
+    
+    await lastGroupResult.fold(
+      // Игнорируем ошибки чтения — просто не автовыбираем группу
+      (_) async {},
+      (groupId) async {
+        if (groupId == null) return;
+
+        // Проверяем, что пользователь всё ещё состоит в этой группе
+        final myGroupsStream = _watchMyGroups(event.authorId);
+        
+        await for (final groupsResult in myGroupsStream.take(1)) {
+          await groupsResult.fold(
+            // Игнорируем ошибки загрузки групп
+            (_) async {},
+            (myGroups) async {
+              // Ищем сохранённую группу среди текущих групп пользователя
+              final group = myGroups.cast<dynamic>().firstWhere(
+                (g) => g.id == groupId,
+                orElse: () => null,
+              );
+
+              if (group != null) {
+                // Группа найдена — автовыбираем её
+                emit(
+                  state.copyWith(
+                    groupId: group.id as String,
+                    groupName: group.name as String,
+                    isGroupAutoSelected: true,
+                  ),
+                );
+              } else {
+                // Группа не найдена (удалена или пользователь вышел) — очищаем
+                await _clearLastSelectedGroup();
+              }
+            },
+          );
+        }
+      },
     );
   }
 
@@ -85,6 +162,48 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
         ? next.sublist(0, _maxPhotos)
         : next;
     emit(state.copyWith(pickedFiles: capped, clearError: true));
+  }
+
+  /// Обработчик запроса захвата фото с камеры.
+  /// Вызывает use case `CapturePhotoWithCrop` для получения фото с кропом 1:1,
+  /// затем добавляет его в список фото (с ограничением до 6 фото).
+  Future<void> _onCameraRequested(
+    CreatePostCameraRequested event,
+    Emitter<CreatePostState> emit,
+  ) async {
+    // Проверяем, не достигнут ли лимит фото
+    if (state.pickedFiles.length >= _maxPhotos) {
+      emit(
+        state.copyWith(
+          status: CreatePostStatus.error,
+          errorMessage: 'Максимум $_maxPhotos фотографий',
+        ),
+      );
+      return;
+    }
+
+    // Вызываем use case для захвата фото с камеры
+    final result = await _capturePhotoWithCrop(const NoParams());
+
+    result.fold(
+      (failure) {
+        // Обрабатываем ошибки захвата
+        emit(
+          state.copyWith(
+            status: CreatePostStatus.error,
+            errorMessage: failure.message ?? 'Не удалось захватить фото',
+          ),
+        );
+      },
+      (file) {
+        // Добавляем захваченное фото в список
+        final next = <File>[...state.pickedFiles, file];
+        final capped = next.length > _maxPhotos
+            ? next.sublist(0, _maxPhotos)
+            : next;
+        emit(state.copyWith(pickedFiles: capped, clearError: true));
+      },
+    );
   }
 
   void _onPhotoRemoved(
@@ -109,7 +228,17 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
   void _onBrandCleared(
     CreatePostBrandCleared event,
     Emitter<CreatePostState> emit,
-  ) => emit(state.copyWith(clearBrand: true));
+  ) => emit(state.copyWith(clearBrand: true, clearFlavor: true));
+
+  void _onFlavorSelected(
+    CreatePostFlavorSelected event,
+    Emitter<CreatePostState> emit,
+  ) => emit(state.copyWith(flavorId: event.flavorId, flavorName: event.flavorName));
+
+  void _onFlavorCleared(
+    CreatePostFlavorCleared event,
+    Emitter<CreatePostState> emit,
+  ) => emit(state.copyWith(clearFlavor: true));
 
   void _onBarcodeMatched(
     CreatePostBarcodeMatched event,
@@ -158,6 +287,19 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     emit(state.copyWith(rarity: clamped));
   }
 
+  void _onTasteRatingChanged(
+    CreatePostTasteRatingChanged event,
+    Emitter<CreatePostState> emit,
+  ) {
+    final clamped = event.value.clamp(0, 5);
+    emit(state.copyWith(tasteRating: clamped));
+  }
+
+  void _onDrinkTypeChanged(
+    CreatePostDrinkTypeChanged event,
+    Emitter<CreatePostState> emit,
+  ) => emit(state.copyWith(drinkType: event.value));
+
   void _onTagsChanged(
     CreatePostTagsChanged event,
     Emitter<CreatePostState> emit,
@@ -175,6 +317,7 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     state.copyWith(
       groupId: event.groupId,
       groupName: event.groupName,
+      isGroupAutoSelected: false, // Сбрасываем флаг при ручном изменении
       clearGroup: event.groupId == null,
     ),
   );
@@ -264,9 +407,15 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
         brandName: state.brandName.trim().isEmpty
             ? null
             : state.brandName.trim(),
+        flavorId: state.flavorId,
+        flavorName: state.flavorName.trim().isEmpty
+            ? null
+            : state.flavorName.trim(),
         photos: uploaded,
         foundDate: state.foundDate ?? DateTime.now(),
         rarity: state.rarity,
+        tasteRating: state.tasteRating,
+        drinkType: state.drinkType,
         description: state.description.trim(),
         tags: state.tags,
       ),
@@ -303,6 +452,12 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
           suggestedPhotoUrl: uploaded.firstOrNull?.url,
         ),
       );
+    }
+
+    // Сохраняем последнюю выбранную группу после успешного создания поста
+    if (state.groupId != null) {
+      await _saveLastSelectedGroup(state.groupId!);
+      // Игнорируем ошибки сохранения — не блокируем пользовательский поток
     }
 
     emit(

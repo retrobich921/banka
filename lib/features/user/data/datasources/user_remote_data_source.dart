@@ -23,6 +23,26 @@ abstract interface class UserRemoteDataSource {
     String? bio,
     String? photoUrl,
   });
+
+  // ========== Username-specific methods ==========
+
+  /// Проверяет доступность username (case-insensitive).
+  ///
+  /// Выполняет запрос к Firestore с фильтром по `usernameLowercase`.
+  /// Возвращает `true` если username свободен, `false` если занят.
+  Future<bool> isUsernameAvailable(String username);
+
+  /// Обновляет username пользователя.
+  ///
+  /// Обновляет поля `username`, `usernameLowercase`, `usernameLastChangedAt`
+  /// в документе `users/{userId}`. Также обновляет `updatedAt`.
+  Future<void> updateUsername(String userId, String newUsername);
+
+  /// Получает профиль пользователя по username (case-insensitive).
+  ///
+  /// Выполняет запрос к Firestore с фильтром по `usernameLowercase`.
+  /// Возвращает `null` если пользователь с таким username не найден.
+  Future<UserProfile?> getUserByUsername(String username);
 }
 
 /// Реализация поверх `cloud_firestore`. Все запросы идут в коллекцию `users`.
@@ -88,15 +108,62 @@ final class FirestoreUserRemoteDataSource implements UserRemoteDataSource {
     String? bio,
     String? photoUrl,
   }) async {
-    final updates = <String, dynamic>{
-      UserProfileDto.fDisplayName: ?displayName,
-      UserProfileDto.fBio: ?bio,
-      UserProfileDto.fPhotoUrl: ?photoUrl,
-    };
+    final updates = <String, dynamic>{};
+    if (displayName != null) updates[UserProfileDto.fDisplayName] = displayName;
+    if (bio != null) updates[UserProfileDto.fBio] = bio;
+    if (photoUrl != null) updates[UserProfileDto.fPhotoUrl] = photoUrl;
+    
     if (updates.isEmpty) return;
     updates[UserProfileDto.fUpdatedAt] = Timestamp.fromDate(DateTime.now());
     try {
       await _users.doc(userId).update(updates);
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  // ========== Username-specific methods ==========
+
+  @override
+  Future<bool> isUsernameAvailable(String username) async {
+    try {
+      final lowercase = username.toLowerCase();
+      final query = await _users
+          .where(UserProfileDto.fUsernameLowercase, isEqualTo: lowercase)
+          .limit(1)
+          .get();
+      return query.docs.isEmpty;
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
+  Future<void> updateUsername(String userId, String newUsername) async {
+    try {
+      final updates = <String, dynamic>{
+        UserProfileDto.fUsername: newUsername,
+        UserProfileDto.fUsernameLowercase: newUsername.toLowerCase(),
+        UserProfileDto.fUsernameLastChangedAt: FieldValue.serverTimestamp(),
+        UserProfileDto.fUpdatedAt: FieldValue.serverTimestamp(),
+      };
+      await _users.doc(userId).update(updates);
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
+  Future<UserProfile?> getUserByUsername(String username) async {
+    try {
+      final lowercase = username.toLowerCase();
+      final query = await _users
+          .where(UserProfileDto.fUsernameLowercase, isEqualTo: lowercase)
+          .limit(1)
+          .get();
+      
+      if (query.docs.isEmpty) return null;
+      return UserProfileDto.fromSnapshot(query.docs.first);
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }

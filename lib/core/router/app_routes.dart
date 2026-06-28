@@ -18,6 +18,7 @@ abstract final class AppRoutes {
   static const String search = '/search';
   static const String brands = '/brands';
   static const String brandDetail = '/brands/:id';
+  static const String userProfile = '/users/:id';
 
   // Names (используем при навигации `goNamed` / `pushNamed`).
   static const String splashName = 'splash';
@@ -34,4 +35,5 @@ abstract final class AppRoutes {
   static const String searchName = 'search';
   static const String brandsName = 'brands';
   static const String brandDetailName = 'brandDetail';
+  static const String userProfileName = 'userProfile';
 }

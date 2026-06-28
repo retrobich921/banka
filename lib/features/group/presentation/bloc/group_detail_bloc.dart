@@ -8,8 +8,10 @@ import 'package:injectable/injectable.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/group.dart';
 import '../../domain/usecases/delete_group.dart';
+import '../../domain/usecases/get_join_request.dart';
 import '../../domain/usecases/join_group.dart';
 import '../../domain/usecases/leave_group.dart';
+import '../../domain/usecases/request_join_group.dart';
 import '../../domain/usecases/watch_group.dart';
 import '../../domain/usecases/watch_group_members.dart';
 
@@ -24,8 +26,10 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
     this._watchGroup,
     this._watchGroupMembers,
     this._joinGroup,
+    this._requestJoinGroup,
     this._leaveGroup,
     this._deleteGroup,
+    this._getJoinRequest,
   ) : super(const GroupDetailState.initial()) {
     on<GroupDetailSubscribeRequested>(_onSubscribeRequested);
     on<GroupDetailJoinRequested>(_onJoinRequested);
@@ -39,8 +43,10 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
   final WatchGroup _watchGroup;
   final WatchGroupMembers _watchGroupMembers;
   final JoinGroup _joinGroup;
+  final RequestJoinGroup _requestJoinGroup;
   final LeaveGroup _leaveGroup;
   final DeleteGroup _deleteGroup;
+  final GetJoinRequest _getJoinRequest;
 
   StreamSubscription<Either<Failure, Group?>>? _groupSub;
   StreamSubscription<Either<Failure, List<GroupMember>>>? _membersSub;
@@ -61,6 +67,7 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
       state.copyWith(
         status: GroupDetailStatus.loading,
         currentUserId: event.currentUserId,
+        currentUserDisplayName: event.currentUserDisplayName,
         clearError: true,
       ),
     );
@@ -79,15 +86,15 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
   void _onGroupReceived(
     _GroupDetailGroupReceived event,
     Emitter<GroupDetailState> emit,
-  ) {
-    event.result.fold(
-      (failure) => emit(
+  ) async {
+    await event.result.fold(
+      (failure) async => emit(
         state.copyWith(
           status: GroupDetailStatus.error,
           errorMessage: failure.message ?? 'Не удалось загрузить группу',
         ),
       ),
-      (group) {
+      (group) async {
         if (group == null) {
           emit(state.copyWith(status: GroupDetailStatus.notFound));
         } else {
@@ -98,6 +105,22 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
               clearError: true,
             ),
           );
+
+          // Загружаем статус запроса на вступление, если пользователь не участник
+          final userId = state.currentUserId;
+          if (userId != null && !group.membersUids.contains(userId)) {
+            final requestResult = await _getJoinRequest(
+              groupId: group.id,
+              userId: userId,
+            );
+            requestResult.fold(
+              (_) {}, // Игнорируем ошибку
+              (request) => emit(state.copyWith(joinRequest: request)),
+            );
+          } else {
+            // Если пользователь уже участник, очищаем запрос
+            emit(state.copyWith(clearJoinRequest: true));
+          }
         }
       },
     );
@@ -124,22 +147,51 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
   ) async {
     final groupId = _currentGroupId;
     final userId = state.currentUserId;
-    if (groupId == null || userId == null) return;
+    final displayName = state.currentUserDisplayName;
+    final group = state.group;
+    if (groupId == null || userId == null || group == null) return;
 
     emit(state.copyWith(status: GroupDetailStatus.mutating, clearError: true));
 
-    final result = await _joinGroup(
-      GroupMembershipParams(groupId: groupId, userId: userId),
+    final params = GroupMembershipParams(
+      groupId: groupId,
+      userId: userId,
+      displayName:
+          displayName ?? userId, // Fallback to userId if displayName is null
     );
 
-    result.fold(
-      (failure) => emit(
+    // Если группа закрытая, создаём запрос на вступление
+    // Если публичная, сразу добавляем в участники
+    final result = group.isPublic
+        ? await _joinGroup(params)
+        : await _requestJoinGroup(params);
+
+    await result.fold(
+      (failure) async => emit(
         state.copyWith(
           status: GroupDetailStatus.error,
-          errorMessage: failure.message ?? 'Не удалось вступить в группу',
+          errorMessage:
+              failure.message ??
+              (group.isPublic
+                  ? 'Не удалось вступить в группу'
+                  : 'Не удалось отправить запрос'),
         ),
       ),
-      (_) => emit(state.copyWith(status: GroupDetailStatus.ready)),
+      (_) async {
+        emit(state.copyWith(status: GroupDetailStatus.ready));
+
+        // Для закрытых групп загружаем статус запроса
+        if (!group.isPublic) {
+          final requestResult = await _getJoinRequest(
+            groupId: groupId,
+            userId: userId,
+          );
+          requestResult.fold(
+            (_) {}, // Игнорируем ошибку
+            (request) => emit(state.copyWith(joinRequest: request)),
+          );
+        }
+      },
     );
   }
 
@@ -149,12 +201,17 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
   ) async {
     final groupId = _currentGroupId;
     final userId = state.currentUserId;
+    final displayName = state.currentUserDisplayName;
     if (groupId == null || userId == null) return;
 
     emit(state.copyWith(status: GroupDetailStatus.mutating, clearError: true));
 
     final result = await _leaveGroup(
-      GroupMembershipParams(groupId: groupId, userId: userId),
+      GroupMembershipParams(
+        groupId: groupId,
+        userId: userId,
+        displayName: displayName ?? '',
+      ),
     );
 
     result.fold(

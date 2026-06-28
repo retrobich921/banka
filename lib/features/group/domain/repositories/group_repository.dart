@@ -47,6 +47,7 @@ abstract interface class GroupRepository {
   ResultFuture<void> joinGroup({
     required String groupId,
     required String userId,
+    required String displayName,
   });
 
   ResultFuture<void> leaveGroup({
@@ -60,4 +61,32 @@ abstract interface class GroupRepository {
     required String groupId,
     required String userId,
   });
+
+  /// Создать запрос на вступление в закрытую группу
+  ResultFuture<void> requestJoin({
+    required String groupId,
+    required String userId,
+    required String displayName,
+  });
+
+  /// Одобрить запрос на вступление
+  ResultFuture<void> approveJoinRequest({
+    required String groupId,
+    required String userId,
+  });
+
+  /// Отклонить запрос на вступление
+  ResultFuture<void> rejectJoinRequest({
+    required String groupId,
+    required String userId,
+  });
+
+  /// Получить запрос на вступление конкретного пользователя
+  ResultFuture<JoinRequest?> getJoinRequest({
+    required String groupId,
+    required String userId,
+  });
+
+  /// Подписка на запросы на вступление (для владельца)
+  ResultStream<List<JoinRequest>> watchJoinRequests(String groupId);
 }

@@ -3,6 +3,8 @@ import 'package:banka/features/auth/domain/entities/auth_user.dart';
 import 'package:banka/features/user/domain/entities/user_profile.dart';
 import 'package:banka/features/user/domain/usecases/ensure_user_document.dart';
 import 'package:banka/features/user/domain/usecases/update_profile.dart';
+import 'package:banka/features/user/domain/usecases/update_username.dart';
+import 'package:banka/features/user/domain/usecases/validate_username.dart';
 import 'package:banka/features/user/domain/usecases/watch_user.dart';
 import 'package:banka/features/user/presentation/bloc/profile_bloc.dart';
 import 'package:bloc_test/bloc_test.dart';
@@ -16,10 +18,16 @@ class _MockWatchUser extends Mock implements WatchUser {}
 
 class _MockUpdateProfile extends Mock implements UpdateProfile {}
 
+class _MockValidateUsername extends Mock implements ValidateUsername {}
+
+class _MockUpdateUsername extends Mock implements UpdateUsername {}
+
 void main() {
   late _MockEnsureUserDocument ensureUserDocument;
   late _MockWatchUser watchUser;
   late _MockUpdateProfile updateProfile;
+  late _MockValidateUsername validateUsername;
+  late _MockUpdateUsername updateUsername;
 
   const authUser = AuthUser(
     id: 'uid-1',
@@ -40,6 +48,8 @@ void main() {
     ensureUserDocument = _MockEnsureUserDocument();
     watchUser = _MockWatchUser();
     updateProfile = _MockUpdateProfile();
+    validateUsername = _MockValidateUsername();
+    updateUsername = _MockUpdateUsername();
 
     registerFallbackValue(
       const EnsureUserDocumentParams(userId: '', email: '', displayName: ''),
@@ -47,8 +57,13 @@ void main() {
     registerFallbackValue(const UpdateProfileParams(userId: ''));
   });
 
-  ProfileBloc buildBloc() =>
-      ProfileBloc(ensureUserDocument, watchUser, updateProfile);
+  ProfileBloc buildBloc() => ProfileBloc(
+    ensureUserDocument,
+    watchUser,
+    updateProfile,
+    validateUsername,
+    updateUsername,
+  );
 
   group('ProfileSubscribeRequested', () {
     blocTest<ProfileBloc, ProfileState>(

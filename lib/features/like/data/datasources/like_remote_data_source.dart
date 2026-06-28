@@ -43,8 +43,7 @@ final class FirestoreLikeRemoteDataSource implements LikeRemoteDataSource {
     try {
       final batch = _firestore.batch();
 
-      // 1. Лайк в подколлекции поста — Cloud Function `onLikeWritten`
-      //    после этого инкрементит `posts/{postId}.likesCount`.
+      // 1. Лайк в подколлекции поста
       batch.set(
         _firestore
             .collection(_posts)
@@ -56,7 +55,12 @@ final class FirestoreLikeRemoteDataSource implements LikeRemoteDataSource {
         ),
       );
 
-      // 2. «Обратный» документ в `users/{uid}/likedPosts/{postId}` — нужен,
+      // 2. Инкрементим счётчик лайков в посте
+      batch.update(_firestore.collection(_posts).doc(postId), <String, dynamic>{
+        'likesCount': FieldValue.increment(1),
+      });
+
+      // 3. «Обратный» документ в `users/{uid}/likedPosts/{postId}` — нужен,
       //    чтобы быстро отдавать «мои лайки» на профиле (Sprint 16).
       batch.set(
         _firestore
@@ -82,6 +86,8 @@ final class FirestoreLikeRemoteDataSource implements LikeRemoteDataSource {
   }) async {
     try {
       final batch = _firestore.batch();
+
+      // 1. Удаляем лайк из подколлекции
       batch.delete(
         _firestore
             .collection(_posts)
@@ -89,6 +95,13 @@ final class FirestoreLikeRemoteDataSource implements LikeRemoteDataSource {
             .collection(_likes)
             .doc(userId),
       );
+
+      // 2. Декрементим счётчик лайков в посте
+      batch.update(_firestore.collection(_posts).doc(postId), <String, dynamic>{
+        'likesCount': FieldValue.increment(-1),
+      });
+
+      // 3. Удаляем из likedPosts пользователя
       batch.delete(
         _firestore
             .collection(_users)
@@ -96,6 +109,7 @@ final class FirestoreLikeRemoteDataSource implements LikeRemoteDataSource {
             .collection(_likedPosts)
             .doc(postId),
       );
+
       await batch.commit();
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message, cause: e);

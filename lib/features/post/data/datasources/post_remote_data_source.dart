@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../../../core/error/exceptions.dart';
+import '../../domain/entities/drink_rating.dart';
+import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import '../models/post_dto.dart';
 
@@ -17,9 +19,13 @@ abstract interface class PostRemoteDataSource {
     String? groupName,
     String? brandId,
     String? brandName,
+    String? flavorId,
+    String? flavorName,
     required List<PostPhoto> photos,
     required DateTime foundDate,
     required int rarity,
+    DrinkRating? rating,
+    DrinkType drinkType,
     required String description,
     required List<String> tags,
   });
@@ -49,6 +55,19 @@ abstract interface class PostRemoteDataSource {
     required String brandId,
     int limit,
     String? startAfterId,
+  });
+
+  /// Разовая (не realtime) загрузка следующей страницы ленты для указанного
+  /// скоупа. Используется для подгрузки при скролле: дочитываем только
+  /// `limit` постов после `startAfterId`, не перечитывая уже загруженные.
+  /// Скоуп определяется единственным заданным id (brandId / groupId /
+  /// authorId), иначе — глобальная лента.
+  Future<List<Post>> fetchFeedPage({
+    String? groupId,
+    String? brandId,
+    String? authorId,
+    String? startAfterId,
+    int limit,
   });
 
   Future<void> updatePost({
@@ -101,9 +120,13 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     String? groupName,
     String? brandId,
     String? brandName,
+    String? flavorId,
+    String? flavorName,
     required List<PostPhoto> photos,
     required DateTime foundDate,
     required int rarity,
+    DrinkRating? rating,
+    DrinkType drinkType = DrinkType.energy,
     required String description,
     required List<String> tags,
   }) async {
@@ -120,9 +143,13 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
         groupName: groupName,
         brandId: brandId,
         brandName: brandName,
+        flavorId: flavorId,
+        flavorName: flavorName,
         photos: photos,
         foundDate: foundDate,
         rarity: rarity,
+        rating: rating,
+        drinkType: drinkType,
         description: description,
         tags: tags,
         likesCount: 0,
@@ -243,6 +270,45 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     }
 
     yield* query.snapshots().map(_postListFromSnapshot);
+  }
+
+  @override
+  Future<List<Post>> fetchFeedPage({
+    String? groupId,
+    String? brandId,
+    String? authorId,
+    String? startAfterId,
+    int limit = 20,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query;
+      if (brandId != null) {
+        // Лента бренда сортируется по редкости (как watchBrandFeed).
+        query = _postsCol
+            .where(PostDto.fBrandId, isEqualTo: brandId)
+            .orderBy(PostDto.fRarity, descending: true);
+      } else if (groupId != null) {
+        query = _postsCol
+            .where(PostDto.fGroupId, isEqualTo: groupId)
+            .orderBy(PostDto.fCreatedAt, descending: true);
+      } else if (authorId != null) {
+        query = _postsCol
+            .where(PostDto.fAuthorId, isEqualTo: authorId)
+            .orderBy(PostDto.fCreatedAt, descending: true);
+      } else {
+        query = _postsCol.orderBy(PostDto.fCreatedAt, descending: true);
+      }
+
+      if (startAfterId != null) {
+        final cursor = await _postsCol.doc(startAfterId).get();
+        if (cursor.exists) query = query.startAfterDocument(cursor);
+      }
+
+      final snap = await query.limit(limit).get();
+      return _postListFromSnapshot(snap);
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
   }
 
   @override

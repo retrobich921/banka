@@ -13,5 +13,9 @@ final GetIt sl = GetIt.instance;
   asExtension: true,
 )
 Future<void> configureDependencies() async {
-  sl.init();
+  // ВАЖНО: обязательно await — сгенерированный `init()` асинхронный из-за
+  // `@preResolve` (SharedPreferences). Без await функция вернётся до того, как
+  // зарегистрируются зависимости после первого await внутри init (напр.
+  // AuthBloc), и `sl<AuthBloc>()` в app.dart упадёт «not registered».
+  await sl.init();
 }

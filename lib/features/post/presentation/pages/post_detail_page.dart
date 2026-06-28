@@ -9,9 +9,11 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../comment/presentation/widgets/comments_section.dart';
 import '../../../like/presentation/widgets/like_button.dart';
+import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/post_detail_bloc.dart';
 import '../widgets/rarity_badge.dart';
+import '../widgets/rating_widgets.dart';
 
 /// Детальный экран поста-«банки».
 ///
@@ -191,16 +193,28 @@ class _PostBody extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(
-              Icons.person_outline,
-              size: 16,
-              color: AppColors.onSurfaceMuted,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              post.authorName.isNotEmpty ? post.authorName : 'Аноним',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.onSurfaceMuted,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => context.pushNamed(
+                AppRoutes.userProfileName,
+                pathParameters: {'id': post.authorId},
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.person_outline,
+                    size: 16,
+                    color: AppColors.onSurfaceMuted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    post.authorName.isNotEmpty ? post.authorName : 'Аноним',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
               ),
             ),
             if (foundDateText != null) ...[
@@ -220,22 +234,42 @@ class _PostBody extends StatelessWidget {
             ],
           ],
         ),
-        if ((post.brandName != null && post.brandName!.isNotEmpty) ||
-            post.groupName != null) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
+        if (post.rating != null) ...[
+          const SizedBox(height: 16),
+          Row(
             children: [
-              if (post.brandName != null && post.brandName!.isNotEmpty)
-                _Chip(icon: Icons.local_bar_outlined, label: post.brandName!),
-              if (post.groupName != null)
-                _Chip(icon: Icons.group_outlined, label: post.groupName!),
+              Text('Оценка', style: theme.textTheme.titleSmall),
+              const SizedBox(width: 8),
+              RatingScoreBadge(score: post.rating!.score),
             ],
           ),
+          const SizedBox(height: 8),
+          _RatingBreakdown(rating: post.rating!),
         ],
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            _Chip(
+              icon: Icons.local_drink_outlined,
+              label: post.drinkType.label,
+            ),
+            if (post.brandName != null && post.brandName!.isNotEmpty)
+              _Chip(icon: Icons.local_bar_outlined, label: post.brandName!),
+            if (post.groupName != null)
+              _Chip(icon: Icons.group_outlined, label: post.groupName!),
+          ],
+        ),
         if (post.description.isNotEmpty) ...[
           const SizedBox(height: 16),
+          Text(
+            'Отзыв',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: AppColors.onSurfaceMuted,
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(post.description, style: theme.textTheme.bodyLarge),
         ],
         if (post.tags.isNotEmpty) ...[
@@ -282,6 +316,45 @@ class _PostBody extends StatelessWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+class _RatingBreakdown extends StatelessWidget {
+  const _RatingBreakdown({required this.rating});
+
+  final DrinkRating rating;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(String, int)>[
+      ('Вкус', rating.taste),
+      ('Баланс', rating.balance),
+      ('Текстура', rating.texture),
+      ('Послевкусие', rating.aftertaste),
+      ('Дизайн', rating.design),
+      ('Вайб', rating.vibe),
+    ];
+    final theme = Theme.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        for (final (label, value) in items)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              '$label · $value',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
+            ),
+          ),
       ],
     );
   }

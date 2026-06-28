@@ -38,6 +38,10 @@ final class ValidationFailure extends Failure {
   const ValidationFailure({super.message, super.cause});
 }
 
+final class CancelledFailure extends Failure {
+  const CancelledFailure({super.message, super.cause});
+}
+
 final class UnknownFailure extends Failure {
   const UnknownFailure({super.message, super.cause});
 }

@@ -40,7 +40,7 @@ class _GroupsPageState extends State<GroupsPage> {
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Мои'),
-              Tab(text: 'Открытые'),
+              Tab(text: 'Все группы'),
             ],
           ),
         ),
@@ -81,7 +81,7 @@ class _GroupsPageState extends State<GroupsPage> {
                   ),
                   _GroupsTab(
                     groups: state.publicGroups,
-                    emptyHint: 'Открытых групп пока нет.',
+                    emptyHint: 'Групп пока нет.',
                   ),
                 ],
               );

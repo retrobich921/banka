@@ -15,6 +15,9 @@ abstract final class UserProfileDto {
   static const String fEmail = 'email';
   static const String fPhotoUrl = 'photoUrl';
   static const String fBio = 'bio';
+  static const String fUsername = 'username';
+  static const String fUsernameLowercase = 'usernameLowercase';
+  static const String fUsernameLastChangedAt = 'usernameLastChangedAt';
   static const String fStats = 'stats';
   static const String fFcmTokens = 'fcmTokens';
   static const String fCreatedAt = 'createdAt';
@@ -38,6 +41,9 @@ abstract final class UserProfileDto {
       email: (data[fEmail] as String?) ?? '',
       photoUrl: data[fPhotoUrl] as String?,
       bio: data[fBio] as String?,
+      username: (data[fUsername] as String?) ?? '',
+      usernameLowercase: (data[fUsernameLowercase] as String?) ?? '',
+      usernameLastChangedAt: _timestampToDate(data[fUsernameLastChangedAt]),
       stats: _statsFromMap(data[fStats]),
       fcmTokens: ((data[fFcmTokens] as List<dynamic>?) ?? const <dynamic>[])
           .whereType<String>()
@@ -55,6 +61,13 @@ abstract final class UserProfileDto {
       fEmail: profile.email,
       if (profile.photoUrl != null) fPhotoUrl: profile.photoUrl,
       if (profile.bio != null) fBio: profile.bio,
+      if (profile.username.isNotEmpty) fUsername: profile.username,
+      if (profile.usernameLowercase.isNotEmpty)
+        fUsernameLowercase: profile.usernameLowercase,
+      if (profile.usernameLastChangedAt != null)
+        fUsernameLastChangedAt: Timestamp.fromDate(
+          profile.usernameLastChangedAt!,
+        ),
       fStats: _statsToMap(profile.stats),
       fFcmTokens: profile.fcmTokens,
       if (profile.createdAt != null)

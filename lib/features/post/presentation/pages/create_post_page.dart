@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
@@ -18,9 +19,13 @@ import '../../../barcode/presentation/pages/barcode_scanner_page.dart';
 import '../../../brand/domain/entities/brand.dart';
 import '../../../brand/domain/usecases/ensure_brand.dart';
 import '../../../brand/presentation/widgets/brand_picker_sheet.dart';
+import '../../../flavor/presentation/widgets/flavor_picker_sheet.dart';
 import '../../../group/domain/entities/group.dart';
 import '../../../group/domain/usecases/watch_my_groups.dart';
+import '../../domain/entities/drink_type.dart';
 import '../bloc/create_post_bloc.dart';
+import '../widgets/rating_widgets.dart';
+import 'square_camera_page.dart';
 
 /// Экран создания поста-«банки».
 ///
@@ -109,6 +114,18 @@ class _CreatePostViewState extends State<_CreatePostView> {
     );
   }
 
+  Future<void> _pickFlavor(String brandId, String brandName) async {
+    final picked = await FlavorPickerSheet.show(
+      context,
+      brandId: brandId,
+      brandName: brandName,
+    );
+    if (!mounted || picked == null) return;
+    context.read<CreatePostBloc>().add(
+      CreatePostFlavorSelected(flavorId: picked.id, flavorName: picked.name),
+    );
+  }
+
   Future<void> _scanBarcode() async {
     final code = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const BarcodeScannerPage()),
@@ -161,6 +178,47 @@ class _CreatePostViewState extends State<_CreatePostView> {
     );
   }
 
+  Future<void> _capturePhoto() async {
+    // Открываем встроенную квадратную камеру: снимок сразу 1:1.
+    if (context.read<CreatePostBloc>().state.pickedFiles.length >= 6) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Максимум 6 фотографий')));
+      return;
+    }
+    final file = await Navigator.of(
+      context,
+    ).push<File>(MaterialPageRoute(builder: (_) => const SquareCameraPage()));
+    if (!mounted || file == null) return;
+    context.read<CreatePostBloc>().add(CreatePostPhotosPicked([file]));
+  }
+
+  void _showPermissionDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Требуется доступ к камере'),
+        content: const Text(
+          'Для съёмки фото банки приложению нужен доступ к камере. '
+          'Пожалуйста, предоставьте разрешение в настройках.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              openAppSettings();
+            },
+            child: const Text('Открыть настройки'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _pickFoundDate(DateTime current) async {
     final picked = await showDatePicker(
       context: context,
@@ -182,6 +240,7 @@ class _CreatePostViewState extends State<_CreatePostView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(title: const Text('Новая банка')),
       body: BlocConsumer<CreatePostBloc, CreatePostState>(
         listenWhen: (prev, curr) =>
@@ -204,9 +263,15 @@ class _CreatePostViewState extends State<_CreatePostView> {
           }
           if (state.status == CreatePostStatus.error &&
               state.errorMessage != null) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+            // Проверяем, является ли ошибка ошибкой разрешения камеры
+            if (state.errorMessage!.toLowerCase().contains('permission') ||
+                state.errorMessage!.toLowerCase().contains('разрешение')) {
+              _showPermissionDialog(context);
+            } else {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+            }
           }
         },
         builder: (context, state) {
@@ -215,6 +280,7 @@ class _CreatePostViewState extends State<_CreatePostView> {
           return AbsorbPointer(
             absorbing: isBusy,
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Form(
                 key: _formKey,
@@ -224,28 +290,19 @@ class _CreatePostViewState extends State<_CreatePostView> {
                     _PhotoGrid(
                       files: state.pickedFiles,
                       onAdd: _pickPhotos,
+                      onCamera: _capturePhoto,
                       onRemove: (index) => context.read<CreatePostBloc>().add(
                         CreatePostPhotoRemoved(index),
                       ),
                       busy: isBusy,
                     ),
                     const SizedBox(height: 16),
-                    _BarcodeField(
-                      barcode: state.barcode,
-                      contributePending: state.barcodeContribute,
-                      enabled: !isBusy,
-                      onScan: _scanBarcode,
-                      onClear: () => context.read<CreatePostBloc>().add(
-                        const CreatePostBarcodeCleared(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _drinkNameController,
                       enabled: !isBusy,
                       decoration: const InputDecoration(
-                        labelText: 'Название напитка',
-                        hintText: 'Например, «Monster Energy»',
+                        labelText: 'Название поста',
+                        hintText: 'Например, «Monster Energy Яблоко»',
                       ),
                       onChanged: (v) => context.read<CreatePostBloc>().add(
                         CreatePostDrinkNameChanged(v),
@@ -266,6 +323,18 @@ class _CreatePostViewState extends State<_CreatePostView> {
                         const CreatePostBrandCleared(),
                       ),
                     ),
+                    if (state.brandId != null && state.brandId!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _FlavorField(
+                        flavorName: state.flavorName,
+                        enabled: !isBusy,
+                        onTap: () =>
+                            _pickFlavor(state.brandId!, state.brandName),
+                        onClear: () => context.read<CreatePostBloc>().add(
+                          const CreatePostFlavorCleared(),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     _FoundDateField(
                       date: foundDate,
@@ -276,6 +345,34 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       value: state.rarity,
                       onChanged: (v) => context.read<CreatePostBloc>().add(
                         CreatePostRarityChanged(v),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    RatingEditor(
+                      enabled: state.isRated,
+                      rating: state.ratingDraft,
+                      onEnabledChanged: (v) => context
+                          .read<CreatePostBloc>()
+                          .add(CreatePostRatingEnabled(v)),
+                      onChanged: (r) => context.read<CreatePostBloc>().add(
+                        CreatePostRatingChanged(r),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _DrinkTypeSelector(
+                      value: state.drinkType,
+                      onChanged: (t) => context.read<CreatePostBloc>().add(
+                        CreatePostDrinkTypeChanged(t),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _BarcodeField(
+                      barcode: state.barcode,
+                      contributePending: state.barcodeContribute,
+                      enabled: !isBusy,
+                      onScan: _scanBarcode,
+                      onClear: () => context.read<CreatePostBloc>().add(
+                        const CreatePostBarcodeCleared(),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -302,7 +399,8 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       maxLines: 4,
                       maxLength: 500,
                       decoration: const InputDecoration(
-                        labelText: 'Описание (опционально)',
+                        labelText: 'Отзыв / впечатления (опционально)',
+                        hintText: 'Каков на вкус? Стоит ли брать ещё?',
                       ),
                       onChanged: (v) => context.read<CreatePostBloc>().add(
                         CreatePostDescriptionChanged(v),
@@ -312,6 +410,7 @@ class _CreatePostViewState extends State<_CreatePostView> {
                     _GroupSelector(
                       groupId: state.groupId,
                       groupName: state.groupName,
+                      isAutoSelected: state.isGroupAutoSelected,
                     ),
                     const SizedBox(height: 24),
                     if (state.isUploading)
@@ -343,12 +442,14 @@ class _PhotoGrid extends StatelessWidget {
   const _PhotoGrid({
     required this.files,
     required this.onAdd,
+    required this.onCamera,
     required this.onRemove,
     required this.busy,
   });
 
   final List<File> files;
   final VoidCallback onAdd;
+  final VoidCallback onCamera;
   final void Function(int) onRemove;
   final bool busy;
 
@@ -366,11 +467,14 @@ class _PhotoGrid extends StatelessWidget {
           height: 100,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: files.length + 1,
+            itemCount: files.length + 2, // +2 для кнопок "Добавить" и "Камера"
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, i) {
               if (i == files.length) {
                 return _AddPhotoTile(onTap: busy ? null : onAdd);
+              }
+              if (i == files.length + 1) {
+                return _CameraTile(onTap: busy ? null : onCamera);
               }
               return _PhotoTile(
                 file: files[i],
@@ -404,6 +508,33 @@ class _AddPhotoTile extends StatelessWidget {
         alignment: Alignment.center,
         child: const Icon(
           Icons.add_a_photo_outlined,
+          color: AppColors.onSurfaceMuted,
+        ),
+      ),
+    );
+  }
+}
+
+class _CameraTile extends StatelessWidget {
+  const _CameraTile({this.onTap});
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.outline),
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.camera_alt_outlined,
           color: AppColors.onSurfaceMuted,
         ),
       ),
@@ -472,9 +603,10 @@ class _BarcodeField extends StatelessWidget {
           labelText: 'Штрих-код (опционально)',
           helperText: hasCode
               ? (contributePending
-                    ? 'Новый штрих-код — сохраним в общую базу при публикации'
-                    : 'Узнали банку — поля заполнены автоматически')
-              : 'Сканируй EAN-13 / UPC и автозаполняй название и бренд',
+                    ? 'Новый код — сохраним в общую базу для других пользователей'
+                    : 'Код найден в базе — данные заполнены автоматически')
+              : 'Отсканируй штрих-код для автозаполнения. Помогает другим пользователям быстрее добавлять такие же банки.',
+          helperMaxLines: 3,
           suffixIcon: hasCode
               ? IconButton(
                   icon: const Icon(Icons.close),
@@ -564,6 +696,60 @@ class _BrandField extends StatelessWidget {
   }
 }
 
+class _FlavorField extends StatelessWidget {
+  const _FlavorField({
+    required this.flavorName,
+    required this.enabled,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  final String flavorName;
+  final bool enabled;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEmpty = flavorName.isEmpty;
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Вкус (опционально)',
+          helperText: isEmpty ? 'Выберите вкус для этого бренда' : null,
+          suffixIcon: isEmpty
+              ? const Icon(Icons.expand_more, color: AppColors.onSurfaceMuted)
+              : IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: enabled ? onClear : null,
+                ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.icecream_outlined,
+              size: 18,
+              color: AppColors.onSurfaceMuted,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                isEmpty ? 'Выбрать вкус' : flavorName,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: isEmpty ? AppColors.onSurfaceMuted : null,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _FoundDateField extends StatelessWidget {
   const _FoundDateField({required this.date, required this.onTap});
 
@@ -638,6 +824,36 @@ class _RaritySlider extends StatelessWidget {
   }
 }
 
+class _DrinkTypeSelector extends StatelessWidget {
+  const _DrinkTypeSelector({required this.value, required this.onChanged});
+
+  final DrinkType value;
+  final ValueChanged<DrinkType> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Тип напитка', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final type in DrinkType.values)
+              ChoiceChip(
+                label: Text(type.label),
+                selected: type == value,
+                onSelected: (_) => onChanged(type),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class _TagsField extends StatelessWidget {
   const _TagsField({
     required this.controller,
@@ -667,8 +883,18 @@ class _TagsField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Теги', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Теги (опционально)',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 4),
+        Text(
+          'Помогают находить похожие банки. Например: лимитка, зима2024, редкая',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceMuted),
+        ),
+        const SizedBox(height: 8),
         TextField(
           controller: controller,
           textInputAction: TextInputAction.done,
@@ -698,10 +924,15 @@ class _TagsField extends StatelessWidget {
 }
 
 class _GroupSelector extends StatelessWidget {
-  const _GroupSelector({this.groupId, this.groupName});
+  const _GroupSelector({
+    this.groupId,
+    this.groupName,
+    this.isAutoSelected = false,
+  });
 
   final String? groupId;
   final String? groupName;
+  final bool isAutoSelected;
 
   Future<void> _pick(BuildContext context) async {
     final user = context.read<AuthBloc>().state.user;
@@ -730,7 +961,9 @@ class _GroupSelector extends StatelessWidget {
       title: Text(hasGroup ? groupName ?? 'Группа' : 'Без группы'),
       subtitle: Text(
         hasGroup
-            ? 'Пост попадёт в ленту этой группы'
+            ? isAutoSelected
+                  ? 'Автовыбор · Пост попадёт в ленту этой группы'
+                  : 'Пост попадёт в ленту этой группы'
             : 'Можно опубликовать без группы',
         style: Theme.of(
           context,

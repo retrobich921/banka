@@ -7,6 +7,7 @@ abstract final class GroupMemberDto {
   const GroupMemberDto._();
 
   static const String fRole = 'role';
+  static const String fDisplayName = 'displayName';
   static const String fJoinedAt = 'joinedAt';
 
   /// id документа === userId. groupId передаётся отдельно (parent path).
@@ -19,6 +20,7 @@ abstract final class GroupMemberDto {
       userId: snapshot.id,
       groupId: groupId,
       role: _roleFromString(data?[fRole] as String?),
+      displayName: data?[fDisplayName] as String? ?? '',
       joinedAt: _timestampToDate(data?[fJoinedAt]),
     );
   }
@@ -26,6 +28,7 @@ abstract final class GroupMemberDto {
   static Map<String, dynamic> toFirestoreMap(GroupMember member) {
     return <String, dynamic>{
       fRole: _roleToString(member.role),
+      fDisplayName: member.displayName,
       if (member.joinedAt != null)
         fJoinedAt: Timestamp.fromDate(member.joinedAt!),
     };

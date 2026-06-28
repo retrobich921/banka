@@ -1,7 +1,7 @@
 name: banka
 description: Социальное приложение и каталог для коллекционеров энергетических напитков.
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.11.5
@@ -12,11 +12,11 @@ dependencies:
 
   cupertino_icons: ^1.0.8
 
-  # Firebase
+  # Firebase (без firebase_storage — он недоступен на Spark-плане,
+  # фото грузятся в Cloudinary, см. CloudinaryPostImageDataSource).
   firebase_core: ^4.2.0
   firebase_auth: ^6.2.0
   cloud_firestore: ^6.1.0
-  firebase_storage: ^13.1.0
   firebase_messaging: ^16.1.0
   google_sign_in: ^7.2.0
 
@@ -47,11 +47,27 @@ dependencies:
   path_provider: ^2.1.5
   cached_network_image: ^3.4.1
 
+  # Cloudinary unsigned upload (заменяет Firebase Storage, чтобы остаться
+  # на бесплатном Spark-плане Firebase). См. CloudinaryPostImageDataSource.
+  http: ^1.2.2
+
   # Sprint 12 — debounce поискового ввода через event-transformer
   stream_transform: ^2.1.0
 
   # Sprint 14 — сканер штрих-кодов (EAN-13/UPC) для автозаполнения банок
   mobile_scanner: ^7.1.4
+
+  # Sprint 15 — локальное хранение последней выбранной группы
+  shared_preferences: ^2.2.2
+
+  # Sprint 15 — разрешения для камеры
+  permission_handler: ^11.0.1
+
+  # Sprint 15 — StreamGroup для мерджа стримов из нескольких групп
+  async: ^2.11.0
+  camera: ^0.12.0+1
+  package_info_plus: ^10.2.0
+  open_filex: ^4.7.0
 
 dev_dependencies:
   flutter_test:

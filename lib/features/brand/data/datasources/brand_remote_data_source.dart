@@ -26,27 +26,63 @@ final class FirestoreBrandRemoteDataSource implements BrandRemoteDataSource {
   final FirebaseFirestore _firestore;
 
   static const String _brands = 'brands';
+  static const String _posts = 'posts';
+  static const String _postBrandIdField = 'brandId';
 
   CollectionReference<Map<String, dynamic>> get _brandsCol =>
       _firestore.collection(_brands);
 
   @override
   Stream<List<Brand>> watchBrands() {
-    return _brandsCol
-        .orderBy(BrandDto.fPostsCount, descending: true)
-        .orderBy(BrandDto.fName)
-        .snapshots()
-        .map(
-          (snap) => snap.docs
-              .map(BrandDto.fromSnapshot)
-              .whereType<Brand>()
-              .toList(growable: false),
-        );
+    // Денорм-счётчик `brands/{}.postsCount` обновляла Cloud Function, но на
+    // Spark-плане функции не выполняются, поэтому в документе он всегда 0.
+    // Считаем реальное число постов агрегатным `count()`-запросом по каждому
+    // бренду и пересортируем по нему (postsCount desc, name asc). Брендов
+    // немного, поэтому N дешёвых count-запросов на эмит допустимы.
+    return _brandsCol.orderBy(BrandDto.fName).snapshots().asyncMap((
+      snap,
+    ) async {
+      final brands = snap.docs
+          .map(BrandDto.fromSnapshot)
+          .whereType<Brand>()
+          .toList();
+
+      final withCounts = await Future.wait(
+        brands.map((brand) async {
+          final agg = await _firestore
+              .collection(_posts)
+              .where(_postBrandIdField, isEqualTo: brand.id)
+              .count()
+              .get();
+          return brand.copyWith(postsCount: agg.count ?? brand.postsCount);
+        }),
+      );
+
+      withCounts.sort((a, b) {
+        final byCount = b.postsCount.compareTo(a.postsCount);
+        if (byCount != 0) return byCount;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+      return withCounts;
+    });
   }
 
   @override
-  Stream<Brand?> watchBrand(String brandId) =>
-      _brandsCol.doc(brandId).snapshots().map(BrandDto.fromSnapshot);
+  Stream<Brand?> watchBrand(String brandId) {
+    // Тот же приём, что и в watchBrands: postsCount в документе всегда 0
+    // (Cloud Function на Spark не работает), поэтому считаем реальное число
+    // постов агрегатным запросом.
+    return _brandsCol.doc(brandId).snapshots().asyncMap((snap) async {
+      final brand = BrandDto.fromSnapshot(snap);
+      if (brand == null) return null;
+      final agg = await _firestore
+          .collection(_posts)
+          .where(_postBrandIdField, isEqualTo: brand.id)
+          .count()
+          .get();
+      return brand.copyWith(postsCount: agg.count ?? brand.postsCount);
+    });
+  }
 
   @override
   Future<Brand> ensureBrand({

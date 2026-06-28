@@ -4,12 +4,16 @@ import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:stream_transform/stream_transform.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../domain/entities/user_profile.dart';
+import '../../domain/entities/username_validation_result.dart';
 import '../../domain/usecases/ensure_user_document.dart';
 import '../../domain/usecases/update_profile.dart';
+import '../../domain/usecases/update_username.dart';
+import '../../domain/usecases/validate_username.dart';
 import '../../domain/usecases/watch_user.dart';
 
 part 'profile_event.dart';
@@ -22,20 +26,38 @@ part 'profile_state.dart';
 /// (`EnsureUserDocument`). Сохранение правок идёт через `UpdateProfile`.
 @injectable
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
-  ProfileBloc(this._ensureUserDocument, this._watchUser, this._updateProfile)
-    : super(const ProfileState.initial()) {
+  ProfileBloc(
+    this._ensureUserDocument,
+    this._watchUser,
+    this._updateProfile,
+    this._validateUsername,
+    this._updateUsername,
+  ) : super(const ProfileState.initial()) {
     on<ProfileSubscribeRequested>(_onSubscribeRequested);
     on<ProfileEditSubmitted>(_onEditSubmitted);
     on<ProfileResetRequested>(_onResetRequested);
     on<_ProfileSnapshotReceived>(_onSnapshotReceived);
+    on<ProfileUsernameChanged>(
+      _onUsernameChanged,
+      transformer: _debounce(const Duration(milliseconds: 300)),
+    );
+    on<ProfileUsernameValidationRequested>(_onUsernameValidationRequested);
+    on<ProfileSaveRequested>(_onSaveRequested);
   }
 
   final EnsureUserDocument _ensureUserDocument;
   final WatchUser _watchUser;
   final UpdateProfile _updateProfile;
+  final ValidateUsername _validateUsername;
+  final UpdateUsername _updateUsername;
 
   StreamSubscription<Either<Failure, UserProfile?>>? _profileSubscription;
   String? _currentUserId;
+
+  /// Debounce transformer для username валидации
+  EventTransformer<T> _debounce<T>(Duration duration) {
+    return (events, mapper) => events.debounce(duration).switchMap(mapper);
+  }
 
   Future<void> _onSubscribeRequested(
     ProfileSubscribeRequested event,
@@ -157,6 +179,114 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     _profileSubscription = null;
     _currentUserId = null;
     emit(const ProfileState.initial());
+  }
+
+  Future<void> _onUsernameChanged(
+    ProfileUsernameChanged event,
+    Emitter<ProfileState> emit,
+  ) async {
+    // Debounced валидация username
+    add(ProfileUsernameValidationRequested(event.username));
+  }
+
+  Future<void> _onUsernameValidationRequested(
+    ProfileUsernameValidationRequested event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final userId = _currentUserId;
+    if (userId == null) return;
+
+    emit(state.copyWith(isValidatingUsername: true, clearValidation: true));
+
+    final result = await _validateUsername(
+      ValidateUsernameParams(username: event.username, userId: userId),
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isValidatingUsername: false,
+          usernameValidation: UsernameValidationResult.invalid(
+            failure.message ?? 'Ошибка валидации',
+          ),
+        ),
+      ),
+      (validationResult) => emit(
+        state.copyWith(
+          isValidatingUsername: false,
+          usernameValidation: validationResult,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onSaveRequested(
+    ProfileSaveRequested event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      emit(
+        state.copyWith(
+          status: ProfileStatus.error,
+          errorMessage: 'Профиль ещё не загружен',
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(status: ProfileStatus.saving, clearError: true));
+
+    // Если username изменился, обновляем его отдельно
+    if (event.username != null &&
+        event.username!.isNotEmpty &&
+        event.username != state.profile?.username) {
+      final usernameResult = await _updateUsername(
+        UpdateUsernameParams(userId: userId, newUsername: event.username!),
+      );
+
+      final usernameError = usernameResult.fold(
+        (failure) => failure.message ?? 'Не удалось обновить username',
+        (_) => null,
+      );
+
+      if (usernameError != null) {
+        emit(
+          state.copyWith(
+            status: ProfileStatus.error,
+            errorMessage: usernameError,
+          ),
+        );
+        return;
+      }
+    }
+
+    // Обновляем остальные поля профиля
+    if (event.displayName != null ||
+        event.bio != null ||
+        event.photoUrl != null) {
+      final result = await _updateProfile(
+        UpdateProfileParams(
+          userId: userId,
+          displayName: event.displayName,
+          bio: event.bio,
+          photoUrl: event.photoUrl,
+        ),
+      );
+
+      result.fold(
+        (failure) => emit(
+          state.copyWith(
+            status: ProfileStatus.error,
+            errorMessage: failure.message ?? 'Не удалось сохранить профиль',
+          ),
+        ),
+        (_) =>
+            emit(state.copyWith(status: ProfileStatus.ready, clearError: true)),
+      );
+    } else {
+      emit(state.copyWith(status: ProfileStatus.ready, clearError: true));
+    }
   }
 
   static String _safeDisplayName(AuthUser user) {

@@ -1,4 +1,6 @@
 import '../../../../core/utils/typedefs.dart';
+import '../entities/drink_rating.dart';
+import '../entities/drink_type.dart';
 import '../entities/post.dart';
 
 /// Контракт работы с коллекцией `posts/{postId}`.
@@ -16,9 +18,13 @@ abstract interface class PostRepository {
     String? groupName,
     String? brandId,
     String? brandName,
+    String? flavorId,
+    String? flavorName,
     required List<PostPhoto> photos,
     required DateTime foundDate,
     required int rarity,
+    DrinkRating? rating,
+    DrinkType drinkType = DrinkType.energy,
     String description = '',
     List<String> tags = const <String>[],
   });
@@ -51,6 +57,16 @@ abstract interface class PostRepository {
     required String brandId,
     int limit = 20,
     String? startAfterId,
+  });
+
+  /// Разовая загрузка следующей страницы ленты (для подгрузки при скролле).
+  /// Скоуп определяется единственным заданным id; иначе — глобальная лента.
+  ResultFuture<List<Post>> getFeedPage({
+    String? groupId,
+    String? brandId,
+    String? authorId,
+    String? startAfterId,
+    int limit = 20,
   });
 
   ResultFuture<void> updatePost({

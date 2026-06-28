@@ -42,6 +42,12 @@ final class CreatePostPhotosPicked extends CreatePostEvent {
   List<Object?> get props => [files.map((f) => f.path).toList()];
 }
 
+/// Событие запроса захвата фото с камеры с автоматическим кропом 1:1.
+/// Вызывает use case `CapturePhotoWithCrop` и добавляет результат в список фото.
+final class CreatePostCameraRequested extends CreatePostEvent {
+  const CreatePostCameraRequested();
+}
+
 final class CreatePostPhotoRemoved extends CreatePostEvent {
   const CreatePostPhotoRemoved(this.index);
   final int index;
@@ -78,6 +84,24 @@ final class CreatePostBrandCleared extends CreatePostEvent {
   const CreatePostBrandCleared();
 }
 
+/// Вкус выбран в `FlavorPickerSheet`.
+final class CreatePostFlavorSelected extends CreatePostEvent {
+  const CreatePostFlavorSelected({
+    required this.flavorId,
+    required this.flavorName,
+  });
+  final String flavorId;
+  final String flavorName;
+
+  @override
+  List<Object?> get props => [flavorId, flavorName];
+}
+
+/// Сбросить выбранный вкус.
+final class CreatePostFlavorCleared extends CreatePostEvent {
+  const CreatePostFlavorCleared();
+}
+
 final class CreatePostFoundDateChanged extends CreatePostEvent {
   const CreatePostFoundDateChanged(this.value);
   final DateTime value;
@@ -97,6 +121,33 @@ final class CreatePostRarityChanged extends CreatePostEvent {
 final class CreatePostTagsChanged extends CreatePostEvent {
   const CreatePostTagsChanged(this.value);
   final List<String> value;
+
+  @override
+  List<Object?> get props => [value];
+}
+
+/// Включить/выключить выставление оценки (тумблер «Оценить»).
+final class CreatePostRatingEnabled extends CreatePostEvent {
+  const CreatePostRatingEnabled(this.enabled);
+  final bool enabled;
+
+  @override
+  List<Object?> get props => [enabled];
+}
+
+/// Изменение составной оценки (любой из критериев / вайба).
+final class CreatePostRatingChanged extends CreatePostEvent {
+  const CreatePostRatingChanged(this.rating);
+  final DrinkRating rating;
+
+  @override
+  List<Object?> get props => [rating];
+}
+
+/// Категория напитка.
+final class CreatePostDrinkTypeChanged extends CreatePostEvent {
+  const CreatePostDrinkTypeChanged(this.value);
+  final DrinkType value;
 
   @override
   List<Object?> get props => [value];

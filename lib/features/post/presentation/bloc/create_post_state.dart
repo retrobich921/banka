@@ -21,12 +21,18 @@ final class CreatePostState extends Equatable {
     this.drinkName = '',
     this.brandId,
     this.brandName = '',
+    this.flavorId,
+    this.flavorName = '',
     this.description = '',
     this.foundDate,
     this.rarity = 5,
+    this.ratingDraft = const DrinkRating(),
+    this.isRated = false,
+    this.drinkType = DrinkType.energy,
     this.tags = const <String>[],
     this.groupId,
     this.groupName,
+    this.isGroupAutoSelected = false,
     this.uploadedCount = 0,
     this.totalCount = 0,
     this.errorMessage,
@@ -43,12 +49,18 @@ final class CreatePostState extends Equatable {
   final String drinkName;
   final String? brandId;
   final String brandName;
+  final String? flavorId;
+  final String flavorName;
   final String description;
   final DateTime? foundDate;
   final int rarity;
+  final DrinkRating ratingDraft;
+  final bool isRated;
+  final DrinkType drinkType;
   final List<String> tags;
   final String? groupId;
   final String? groupName;
+  final bool isGroupAutoSelected;
   final int uploadedCount;
   final int totalCount;
   final String? errorMessage;
@@ -77,12 +89,19 @@ final class CreatePostState extends Equatable {
     String? brandId,
     String? brandName,
     bool clearBrand = false,
+    String? flavorId,
+    String? flavorName,
+    bool clearFlavor = false,
     String? description,
     DateTime? foundDate,
     int? rarity,
+    DrinkRating? ratingDraft,
+    bool? isRated,
+    DrinkType? drinkType,
     List<String>? tags,
     String? groupId,
     String? groupName,
+    bool? isGroupAutoSelected,
     int? uploadedCount,
     int? totalCount,
     String? errorMessage,
@@ -101,12 +120,20 @@ final class CreatePostState extends Equatable {
       drinkName: drinkName ?? this.drinkName,
       brandId: clearBrand ? null : (brandId ?? this.brandId),
       brandName: clearBrand ? '' : (brandName ?? this.brandName),
+      flavorId: clearFlavor ? null : (flavorId ?? this.flavorId),
+      flavorName: clearFlavor ? '' : (flavorName ?? this.flavorName),
       description: description ?? this.description,
       foundDate: foundDate ?? this.foundDate,
       rarity: rarity ?? this.rarity,
+      ratingDraft: ratingDraft ?? this.ratingDraft,
+      isRated: isRated ?? this.isRated,
+      drinkType: drinkType ?? this.drinkType,
       tags: tags ?? this.tags,
       groupId: clearGroup ? null : (groupId ?? this.groupId),
       groupName: clearGroup ? null : (groupName ?? this.groupName),
+      isGroupAutoSelected: clearGroup
+          ? false
+          : (isGroupAutoSelected ?? this.isGroupAutoSelected),
       uploadedCount: uploadedCount ?? this.uploadedCount,
       totalCount: totalCount ?? this.totalCount,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -128,12 +155,18 @@ final class CreatePostState extends Equatable {
     drinkName,
     brandId,
     brandName,
+    flavorId,
+    flavorName,
     description,
     foundDate,
     rarity,
+    ratingDraft,
+    isRated,
+    drinkType,
     tags,
     groupId,
     groupName,
+    isGroupAutoSelected,
     uploadedCount,
     totalCount,
     errorMessage,

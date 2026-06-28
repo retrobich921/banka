@@ -3,8 +3,14 @@ import 'dart:io';
 import 'package:banka/core/error/failures.dart';
 import 'package:banka/features/barcode/domain/entities/barcode.dart';
 import 'package:banka/features/barcode/domain/usecases/save_barcode.dart';
+import 'package:banka/features/group/domain/entities/group.dart';
+import 'package:banka/features/group/domain/usecases/watch_my_groups.dart';
 import 'package:banka/features/post/domain/entities/post.dart';
+import 'package:banka/features/post/domain/usecases/capture_photo_with_crop.dart';
+import 'package:banka/features/post/domain/usecases/clear_last_selected_group.dart';
 import 'package:banka/features/post/domain/usecases/create_post.dart';
+import 'package:banka/features/post/domain/usecases/get_last_selected_group.dart';
+import 'package:banka/features/post/domain/usecases/save_last_selected_group.dart';
 import 'package:banka/features/post/domain/usecases/upload_post_image.dart';
 import 'package:banka/features/post/presentation/bloc/create_post_bloc.dart';
 import 'package:bloc_test/bloc_test.dart';
@@ -19,10 +25,27 @@ class _MockUploadPostImage extends Mock implements UploadPostImage {}
 
 class _MockSaveBarcode extends Mock implements SaveBarcode {}
 
+class _MockGetLastSelectedGroup extends Mock implements GetLastSelectedGroup {}
+
+class _MockSaveLastSelectedGroup extends Mock
+    implements SaveLastSelectedGroup {}
+
+class _MockClearLastSelectedGroup extends Mock
+    implements ClearLastSelectedGroup {}
+
+class _MockCapturePhotoWithCrop extends Mock implements CapturePhotoWithCrop {}
+
+class _MockWatchMyGroups extends Mock implements WatchMyGroups {}
+
 void main() {
   late _MockCreatePost createPost;
   late _MockUploadPostImage uploadPostImage;
   late _MockSaveBarcode saveBarcode;
+  late _MockGetLastSelectedGroup getLastSelectedGroup;
+  late _MockSaveLastSelectedGroup saveLastSelectedGroup;
+  late _MockClearLastSelectedGroup clearLastSelectedGroup;
+  late _MockCapturePhotoWithCrop capturePhotoWithCrop;
+  late _MockWatchMyGroups watchMyGroups;
   late Directory tmpDir;
 
   const authorId = 'uid-1';
@@ -51,7 +74,26 @@ void main() {
     createPost = _MockCreatePost();
     uploadPostImage = _MockUploadPostImage();
     saveBarcode = _MockSaveBarcode();
+    getLastSelectedGroup = _MockGetLastSelectedGroup();
+    saveLastSelectedGroup = _MockSaveLastSelectedGroup();
+    clearLastSelectedGroup = _MockClearLastSelectedGroup();
+    capturePhotoWithCrop = _MockCapturePhotoWithCrop();
+    watchMyGroups = _MockWatchMyGroups();
     tmpDir = Directory.systemTemp.createTempSync('banka-create-post-');
+
+    // Настройка дефолтных ответов для новых моков
+    when(
+      () => getLastSelectedGroup(),
+    ).thenAnswer((_) async => const Right(null));
+    when(
+      () => saveLastSelectedGroup(any()),
+    ).thenAnswer((_) async => const Right(null));
+    when(
+      () => clearLastSelectedGroup(),
+    ).thenAnswer((_) async => const Right(null));
+    when(
+      () => watchMyGroups(any()),
+    ).thenAnswer((_) => Stream.value(const Right(<Group>[])));
   });
 
   tearDown(() {
@@ -62,8 +104,16 @@ void main() {
   // нужно. Генерим только пути.
   File fakeFile(String name) => File(p.join(tmpDir.path, name));
 
-  CreatePostBloc buildBloc() =>
-      CreatePostBloc(createPost, uploadPostImage, saveBarcode);
+  CreatePostBloc buildBloc() => CreatePostBloc(
+    createPost,
+    uploadPostImage,
+    saveBarcode,
+    getLastSelectedGroup,
+    saveLastSelectedGroup,
+    clearLastSelectedGroup,
+    capturePhotoWithCrop,
+    watchMyGroups,
+  );
 
   group('field reducers', () {
     blocTest<CreatePostBloc, CreatePostState>(
@@ -78,7 +128,13 @@ void main() {
           groupName: 'Monster Lovers',
         ),
       ),
+      wait: const Duration(milliseconds: 100),
       expect: () => [
+        isA<CreatePostState>().having(
+          (s) => s.author?.id,
+          'author.id',
+          authorId,
+        ),
         isA<CreatePostState>()
             .having((s) => s.author?.id, 'author.id', authorId)
             .having((s) => s.groupId, 'groupId', 'grp-1')

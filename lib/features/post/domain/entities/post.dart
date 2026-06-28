@@ -1,5 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'drink_rating.dart';
+import 'drink_type.dart';
+
 part 'post.freezed.dart';
 
 /// Пост-«банка» — основная сущность каталога.
@@ -22,9 +25,17 @@ sealed class Post with _$Post {
     String? groupName,
     String? brandId,
     String? brandName,
+    String? flavorId,
+    String? flavorName,
     @Default(<PostPhoto>[]) List<PostPhoto> photos,
     DateTime? foundDate,
     @Default(1) int rarity,
+
+    /// Составная оценка (РЗТ-стиль). `null` — пользователь не оценивал.
+    DrinkRating? rating,
+
+    /// Категория напитка (энергетик / газировка / сок / …).
+    @Default(DrinkType.energy) DrinkType drinkType,
     @Default('') String description,
     @Default(<String>[]) List<String> tags,
     @Default(0) int likesCount,

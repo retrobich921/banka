@@ -150,9 +150,14 @@ final class GroupRepositoryImpl implements GroupRepository {
   ResultFuture<void> joinGroup({
     required String groupId,
     required String userId,
+    required String displayName,
   }) async {
     try {
-      await _remote.joinGroup(groupId: groupId, userId: userId);
+      await _remote.joinGroup(
+        groupId: groupId,
+        userId: userId,
+        displayName: displayName,
+      );
       return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, cause: e.cause));
@@ -208,6 +213,91 @@ final class GroupRepositoryImpl implements GroupRepository {
       return Left(ServerFailure(message: e.message, cause: e.cause));
     } catch (e) {
       return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultFuture<void> requestJoin({
+    required String groupId,
+    required String userId,
+    required String displayName,
+  }) async {
+    try {
+      await _remote.requestJoin(
+        groupId: groupId,
+        userId: userId,
+        displayName: displayName,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultFuture<void> approveJoinRequest({
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      await _remote.approveJoinRequest(groupId: groupId, userId: userId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultFuture<void> rejectJoinRequest({
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      await _remote.rejectJoinRequest(groupId: groupId, userId: userId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultFuture<JoinRequest?> getJoinRequest({
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      final request = await _remote.getJoinRequest(
+        groupId: groupId,
+        userId: userId,
+      );
+      return Right(request);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultStream<List<JoinRequest>> watchJoinRequests(String groupId) async* {
+    try {
+      await for (final requests in _remote.watchJoinRequests(groupId)) {
+        yield Right<Failure, List<JoinRequest>>(requests);
+      }
+    } on ServerException catch (e) {
+      yield Left<Failure, List<JoinRequest>>(
+        ServerFailure(message: e.message, cause: e.cause),
+      );
+    } catch (e) {
+      yield Left<Failure, List<JoinRequest>>(
+        ServerFailure(message: e.toString(), cause: e),
+      );
     }
   }
 }

@@ -40,6 +40,46 @@ final class ProfileEditSubmitted extends ProfileEvent {
   List<Object?> get props => [displayName, bio, photoUrl];
 }
 
+/// Пользователь изменил username в поле ввода.
+/// Триггерит debounced валидацию.
+final class ProfileUsernameChanged extends ProfileEvent {
+  const ProfileUsernameChanged(this.username);
+
+  final String username;
+
+  @override
+  List<Object> get props => [username];
+}
+
+/// Запрос валидации username.
+/// Вызывается после debounce при изменении username.
+final class ProfileUsernameValidationRequested extends ProfileEvent {
+  const ProfileUsernameValidationRequested(this.username);
+
+  final String username;
+
+  @override
+  List<Object> get props => [username];
+}
+
+/// Сохранить изменения профиля включая username.
+final class ProfileSaveRequested extends ProfileEvent {
+  const ProfileSaveRequested({
+    this.displayName,
+    this.bio,
+    this.photoUrl,
+    this.username,
+  });
+
+  final String? displayName;
+  final String? bio;
+  final String? photoUrl;
+  final String? username;
+
+  @override
+  List<Object?> get props => [displayName, bio, photoUrl, username];
+}
+
 /// Логически очистить блок (например, при logout) и отписаться от стрима.
 final class ProfileResetRequested extends ProfileEvent {
   const ProfileResetRequested();

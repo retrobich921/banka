@@ -4,6 +4,8 @@ import 'package:injectable/injectable.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/typedefs.dart';
+import '../../domain/entities/drink_rating.dart';
+import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../datasources/post_remote_data_source.dart';
@@ -24,9 +26,13 @@ final class PostRepositoryImpl implements PostRepository {
     String? groupName,
     String? brandId,
     String? brandName,
+    String? flavorId,
+    String? flavorName,
     required List<PostPhoto> photos,
     required DateTime foundDate,
     required int rarity,
+    DrinkRating? rating,
+    DrinkType drinkType = DrinkType.energy,
     String description = '',
     List<String> tags = const <String>[],
   }) async {
@@ -40,9 +46,13 @@ final class PostRepositoryImpl implements PostRepository {
         groupName: groupName,
         brandId: brandId,
         brandName: brandName,
+        flavorId: flavorId,
+        flavorName: flavorName,
         photos: photos,
         foundDate: foundDate,
         rarity: rarity,
+        rating: rating,
+        drinkType: drinkType,
         description: description,
         tags: tags,
       );
@@ -126,6 +136,30 @@ final class PostRepositoryImpl implements PostRepository {
       startAfterId: startAfterId,
     ),
   );
+
+  @override
+  ResultFuture<List<Post>> getFeedPage({
+    String? groupId,
+    String? brandId,
+    String? authorId,
+    String? startAfterId,
+    int limit = 20,
+  }) async {
+    try {
+      final posts = await _remote.fetchFeedPage(
+        groupId: groupId,
+        brandId: brandId,
+        authorId: authorId,
+        startAfterId: startAfterId,
+        limit: limit,
+      );
+      return Right(posts);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
 
   @override
   ResultFuture<void> updatePost({

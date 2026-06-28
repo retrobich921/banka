@@ -29,8 +29,17 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
 
   Future<void>? _initializing;
 
+  /// Web OAuth client ID из Firebase / google-services.json (oauth_client с
+  /// `client_type: 3`). На Android google_sign_in 7.x не сможет вернуть
+  /// валидный `idToken` для Firebase без `serverClientId` — Credential Manager
+  /// просто не запустит флоу или вернёт пустой токен.
+  static const String _serverClientId =
+      '118303358012-7qn2tfn87357e0u1ac57bvr9ush5fmg6.apps.googleusercontent.com';
+
   Future<void> _ensureGoogleInitialized() {
-    return _initializing ??= _googleSignIn.initialize();
+    return _initializing ??= _googleSignIn.initialize(
+      serverClientId: _serverClientId,
+    );
   }
 
   @override
@@ -66,6 +75,18 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
           message: 'Firebase не вернул пользователя после signInWithCredential',
         );
       }
+
+      // Обновляем displayName из Google аккаунта, если он не установлен
+      if ((user.displayName == null || user.displayName!.isEmpty) &&
+          account.displayName != null) {
+        await user.updateDisplayName(account.displayName);
+        await user.reload();
+        final updatedUser = _firebaseAuth.currentUser;
+        if (updatedUser != null) {
+          return updatedUser.toDomain();
+        }
+      }
+
       return user.toDomain();
     } on GoogleSignInException catch (e) {
       throw AuthException(

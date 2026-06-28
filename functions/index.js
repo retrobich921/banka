@@ -21,11 +21,60 @@ const {
   onDocumentCreated,
   onDocumentDeleted,
 } = require('firebase-functions/v2/firestore');
+const { onRequest } = require('firebase-functions/v2/https');
 const { FieldValue } = require('firebase-admin/firestore');
 const { logger } = require('firebase-functions');
 const sharp = require('sharp');
 
 initializeApp();
+
+// Функция для очистки старых запросов на вступление без groupOwnerId
+exports.cleanupJoinRequests = onRequest(
+  { region: 'europe-west3' },
+  async (req, res) => {
+    try {
+      const db = getFirestore();
+      let deletedCount = 0;
+
+      // Получаем все группы
+      const groupsSnapshot = await db.collection('groups').get();
+
+      for (const groupDoc of groupsSnapshot.docs) {
+        const groupId = groupDoc.id;
+        
+        // Получаем все запросы на вступление для этой группы
+        const requestsSnapshot = await db
+          .collection('groups')
+          .doc(groupId)
+          .collection('join_requests')
+          .get();
+
+        for (const requestDoc of requestsSnapshot.docs) {
+          const data = requestDoc.data();
+          
+          // Удаляем запросы без groupOwnerId или с пустым groupOwnerId
+          if (!data.groupOwnerId || data.groupOwnerId === '') {
+            await requestDoc.ref.delete();
+            deletedCount++;
+            logger.info(`Deleted join_request: ${groupId}/${requestDoc.id}`);
+          }
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Deleted ${deletedCount} old join requests`,
+        deletedCount
+      });
+    } catch (error) {
+      logger.error('Error cleaning up join requests:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+);
 
 exports.onPostImageUploaded = onObjectFinalized(
   { region: 'europe-west3', memory: '512MiB' },
@@ -191,4 +240,175 @@ exports.onPostDeletedUpdateBrandStats = onDocumentDeleted(
       logger.error('onPostDeletedUpdateBrandStats failed', { brandId, err });
     }
   },
+);
+
+// Каскадное удаление группы: удаляет все subcollections (members, join_requests)
+// и опционально отвязывает посты от группы
+exports.onGroupDeleted = onDocumentDeleted(
+  { document: 'groups/{groupId}', region: 'europe-west3' },
+  async (event) => {
+    const { groupId } = event.params;
+    const db = getFirestore();
+    
+    try {
+      logger.info(`Starting cascade delete for group: ${groupId}`);
+      
+      // Удаляем все документы из subcollection members
+      const membersSnapshot = await db
+        .collection('groups')
+        .doc(groupId)
+        .collection('members')
+        .get();
+      
+      const memberDeletePromises = membersSnapshot.docs.map((doc) => doc.ref.delete());
+      await Promise.all(memberDeletePromises);
+      logger.info(`Deleted ${membersSnapshot.size} members for group ${groupId}`);
+      
+      // Удаляем все документы из subcollection join_requests
+      const requestsSnapshot = await db
+        .collection('groups')
+        .doc(groupId)
+        .collection('join_requests')
+        .get();
+      
+      const requestDeletePromises = requestsSnapshot.docs.map((doc) => doc.ref.delete());
+      await Promise.all(requestDeletePromises);
+      logger.info(`Deleted ${requestsSnapshot.size} join requests for group ${groupId}`);
+      
+      // Отвязываем посты от группы (устанавливаем groupId = null)
+      const postsSnapshot = await db
+        .collection('posts')
+        .where('groupId', '==', groupId)
+        .get();
+      
+      const postUpdatePromises = postsSnapshot.docs.map((doc) => 
+        doc.ref.update({ groupId: null })
+      );
+      await Promise.all(postUpdatePromises);
+      logger.info(`Unlinked ${postsSnapshot.size} posts from group ${groupId}`);
+      
+      logger.info(`Successfully completed cascade delete for group: ${groupId}`);
+    } catch (err) {
+      logger.error('onGroupDeleted failed', { groupId, err });
+    }
+  },
+);
+
+// Миграция displayName для существующих участников групп
+// Вызывается вручную через HTTP request
+exports.migrateGroupMembersDisplayNames = onRequest(
+  { region: 'europe-west3' },
+  async (req, res) => {
+    try {
+      const db = getFirestore();
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      // Получаем все группы
+      const groupsSnapshot = await db.collection('groups').get();
+
+      for (const groupDoc of groupsSnapshot.docs) {
+        const groupId = groupDoc.id;
+        
+        // Получаем всех участников группы
+        const membersSnapshot = await db
+          .collection('groups')
+          .doc(groupId)
+          .collection('members')
+          .get();
+
+        for (const memberDoc of membersSnapshot.docs) {
+          const memberData = memberDoc.data();
+          const userId = memberDoc.id;
+          
+          // Пропускаем если displayName уже есть и не пустой
+          if (memberData.displayName && memberData.displayName !== '') {
+            skippedCount++;
+            continue;
+          }
+          
+          // Получаем данные пользователя из коллекции users
+          const userDoc = await db.collection('users').doc(userId).get();
+          
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            const displayName = userData.displayName || userData.name || '';
+            
+            if (displayName) {
+              // Обновляем displayName участника
+              await memberDoc.ref.update({ displayName });
+              updatedCount++;
+              logger.info(`Updated displayName for member ${userId} in group ${groupId}: ${displayName}`);
+            } else {
+              skippedCount++;
+              logger.warn(`No displayName found for user ${userId}`);
+            }
+          } else {
+            skippedCount++;
+            logger.warn(`User document not found for ${userId}`);
+          }
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Migration completed`,
+        updatedCount,
+        skippedCount
+      });
+    } catch (error) {
+      logger.error('Error migrating group members displayNames:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+);
+
+
+// Миграция: пересчёт postsCount для всех брендов на основе существующих постов
+// Вызывается вручную через HTTP request: POST https://<region>-<project>.cloudfunctions.net/recalculateBrandPostsCounts
+exports.recalculateBrandPostsCounts = onRequest(
+  { region: 'europe-west3' },
+  async (req, res) => {
+    try {
+      const db = getFirestore();
+      let updatedBrandsCount = 0;
+
+      // Получаем все бренды
+      const brandsSnapshot = await db.collection('brands').get();
+      
+      for (const brandDoc of brandsSnapshot.docs) {
+        const brandId = brandDoc.id;
+        
+        // Считаем количество постов с этим brandId
+        const postsSnapshot = await db
+          .collection('posts')
+          .where('brandId', '==', brandId)
+          .count()
+          .get();
+        
+        const actualPostsCount = postsSnapshot.data().count;
+        
+        // Обновляем postsCount в документе бренда
+        await brandDoc.ref.update({ postsCount: actualPostsCount });
+        updatedBrandsCount++;
+        
+        logger.info(`Updated brand ${brandId}: postsCount = ${actualPostsCount}`);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Recalculated postsCount for ${updatedBrandsCount} brands`,
+        updatedBrandsCount
+      });
+    } catch (error) {
+      logger.error('Error recalculating brand posts counts:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
 );

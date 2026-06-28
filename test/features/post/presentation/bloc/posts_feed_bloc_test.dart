@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:banka/core/error/failures.dart';
 import 'package:banka/features/post/domain/entities/post.dart';
+import 'package:banka/features/post/domain/usecases/fetch_feed_page.dart';
+import 'package:banka/features/post/domain/usecases/watch_author_feed.dart';
 import 'package:banka/features/post/domain/usecases/watch_brand_feed.dart';
 import 'package:banka/features/post/domain/usecases/watch_feed.dart';
 import 'package:banka/features/post/domain/usecases/watch_group_feed.dart';
@@ -17,25 +19,40 @@ class _MockWatchGroupFeed extends Mock implements WatchGroupFeed {}
 
 class _MockWatchBrandFeed extends Mock implements WatchBrandFeed {}
 
+class _MockWatchAuthorFeed extends Mock implements WatchAuthorFeed {}
+
+class _MockFetchFeedPage extends Mock implements FetchFeedPage {}
+
 void main() {
   late _MockWatchFeed watchFeed;
   late _MockWatchGroupFeed watchGroupFeed;
   late _MockWatchBrandFeed watchBrandFeed;
+  late _MockWatchAuthorFeed watchAuthorFeed;
+  late _MockFetchFeedPage fetchFeedPage;
 
   setUpAll(() {
     registerFallbackValue(const WatchFeedParams());
     registerFallbackValue(const WatchGroupFeedParams(groupId: 'g'));
     registerFallbackValue(const WatchBrandFeedParams(brandId: 'b'));
+    registerFallbackValue(const WatchAuthorFeedParams(authorId: 'a'));
+    registerFallbackValue(const FetchFeedPageParams());
   });
 
   setUp(() {
     watchFeed = _MockWatchFeed();
     watchGroupFeed = _MockWatchGroupFeed();
     watchBrandFeed = _MockWatchBrandFeed();
+    watchAuthorFeed = _MockWatchAuthorFeed();
+    fetchFeedPage = _MockFetchFeedPage();
   });
 
-  PostsFeedBloc buildBloc() =>
-      PostsFeedBloc(watchFeed, watchGroupFeed, watchBrandFeed);
+  PostsFeedBloc buildBloc() => PostsFeedBloc(
+    watchFeed,
+    watchGroupFeed,
+    watchBrandFeed,
+    watchAuthorFeed,
+    fetchFeedPage,
+  );
 
   Post makePost(String id) => Post(id: id, authorId: 'a', drinkName: 'd-$id');
 
@@ -150,6 +167,72 @@ void main() {
       verify: (_) {
         verify(() => watchFeed(any())).called(1);
         verify(() => watchGroupFeed(any())).called(1);
+      },
+    );
+  });
+
+  group('PostsFeedLoadMoreRequested', () {
+    blocTest<PostsFeedBloc, PostsFeedState>(
+      'дочитывает следующую страницу и дописывает её в конец',
+      setUp: () {
+        final firstPage = List.generate(20, (i) => makePost('p$i'));
+        final nextPage = List.generate(5, (i) => makePost('n$i'));
+        when(
+          () => watchFeed(any()),
+        ).thenAnswer((_) => Stream.value(Right(firstPage)));
+        when(
+          () => fetchFeedPage(any()),
+        ).thenAnswer((_) async => Right(nextPage));
+      },
+      build: buildBloc,
+      act: (b) async {
+        b.add(const PostsFeedSubscribeRequested(PostsFeedScope.global()));
+        await Future<void>.delayed(Duration.zero);
+        b.add(const PostsFeedLoadMoreRequested());
+      },
+      expect: () => [
+        isA<PostsFeedState>().having(
+          (s) => s.status,
+          'status',
+          PostsFeedStatus.loading,
+        ),
+        isA<PostsFeedState>()
+            .having((s) => s.posts.length, 'first page', 20)
+            .having((s) => s.hasReachedEnd, 'hasReachedEnd', false),
+        isA<PostsFeedState>().having(
+          (s) => s.isLoadingMore,
+          'isLoadingMore',
+          true,
+        ),
+        isA<PostsFeedState>()
+            .having((s) => s.posts.length, 'appended', 25)
+            .having((s) => s.isLoadingMore, 'isLoadingMore', false)
+            .having((s) => s.hasReachedEnd, 'hasReachedEnd', true),
+      ],
+      verify: (_) {
+        final captured =
+            verify(() => fetchFeedPage(captureAny())).captured.single
+                as FetchFeedPageParams;
+        expect(captured.startAfterId, 'p19');
+        verify(() => watchFeed(any())).called(1);
+      },
+    );
+
+    blocTest<PostsFeedBloc, PostsFeedState>(
+      'не догружает, если первая страница неполная (постов меньше лимита)',
+      setUp: () {
+        when(
+          () => watchFeed(any()),
+        ).thenAnswer((_) => Stream.value(Right(<Post>[makePost('only')])));
+      },
+      build: buildBloc,
+      act: (b) async {
+        b.add(const PostsFeedSubscribeRequested(PostsFeedScope.global()));
+        await Future<void>.delayed(Duration.zero);
+        b.add(const PostsFeedLoadMoreRequested());
+      },
+      verify: (_) {
+        verifyNever(() => fetchFeedPage(any()));
       },
     );
   });

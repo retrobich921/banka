@@ -38,6 +38,24 @@ sealed class GroupMember with _$GroupMember {
     required String userId,
     required String groupId,
     @Default(GroupRole.member) GroupRole role,
+    @Default('') String displayName,
     DateTime? joinedAt,
   }) = _GroupMember;
 }
+
+/// Запрос на вступление в закрытую группу.
+/// Документ `groups/{groupId}/join_requests/{userId}`.
+@freezed
+sealed class JoinRequest with _$JoinRequest {
+  const factory JoinRequest({
+    required String userId,
+    required String groupId,
+    @Default(JoinRequestStatus.pending) JoinRequestStatus status,
+    @Default('') String displayName,
+    @Default('') String groupOwnerId,
+    DateTime? requestedAt,
+    DateTime? respondedAt,
+  }) = _JoinRequest;
+}
+
+enum JoinRequestStatus { pending, approved, rejected }

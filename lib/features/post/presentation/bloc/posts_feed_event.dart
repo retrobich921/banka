@@ -16,6 +16,11 @@ final class PostsFeedSubscribeRequested extends PostsFeedEvent {
   List<Object?> get props => [scope];
 }
 
+/// Догрузить следующую страницу ленты (расширить окно подписки).
+final class PostsFeedLoadMoreRequested extends PostsFeedEvent {
+  const PostsFeedLoadMoreRequested();
+}
+
 final class PostsFeedResetRequested extends PostsFeedEvent {
   const PostsFeedResetRequested();
 }

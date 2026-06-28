@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/post.dart';
 import 'rarity_badge.dart';
+import 'rating_widgets.dart';
 
 /// Карточка-«банка» в ленте.
 ///
@@ -13,10 +14,19 @@ import 'rarity_badge.dart';
 /// `Hero(tag: 'post-photo-{id}')` на первом кадре, заголовок (название
 /// напитка), бейдж редкости, опциональный чип группы и теги.
 class PostCard extends StatefulWidget {
-  const PostCard({super.key, required this.post, required this.onTap});
+  const PostCard({
+    super.key,
+    required this.post,
+    required this.onTap,
+    this.onAuthorTap,
+  });
 
   final Post post;
   final VoidCallback onTap;
+
+  /// Тап по автору (аватар/имя) — переход на профиль автора. Если `null`,
+  /// область автора не кликабельна отдельно.
+  final VoidCallback? onAuthorTap;
 
   @override
   State<PostCard> createState() => _PostCardState();
@@ -58,28 +68,39 @@ class _PostCardState extends State<PostCard> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
-                    _AuthorAvatar(post: post),
-                    const SizedBox(width: 10),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            post.authorName.isNotEmpty
-                                ? post.authorName
-                                : 'Аноним',
-                            style: theme.textTheme.titleSmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (post.foundDate != null)
-                            Text(
-                              df.format(post.foundDate!),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.onSurfaceMuted,
+                      child: GestureDetector(
+                        onTap: widget.onAuthorTap,
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          children: [
+                            _AuthorAvatar(post: post),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    post.authorName.isNotEmpty
+                                        ? post.authorName
+                                        : 'Аноним',
+                                    style: theme.textTheme.titleSmall,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (post.foundDate != null)
+                                    Text(
+                                      df.format(post.foundDate!),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.onSurfaceMuted,
+                                          ),
+                                    ),
+                                ],
                               ),
                             ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     RarityBadge(rarity: post.rarity),
@@ -103,27 +124,34 @@ class _PostCardState extends State<PostCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if ((post.brandName != null && post.brandName!.isNotEmpty) ||
-                  post.groupName != null)
+              if (post.rating != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      if (post.brandName != null && post.brandName!.isNotEmpty)
-                        _Pill(
-                          icon: Icons.local_bar_outlined,
-                          label: post.brandName!,
-                        ),
-                      if (post.groupName != null)
-                        _Pill(
-                          icon: Icons.group_outlined,
-                          label: post.groupName!,
-                        ),
-                    ],
+                  child: RatingScoreBadge(
+                    score: post.rating!.score,
+                    compact: true,
                   ),
                 ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _Pill(
+                      icon: Icons.local_drink_outlined,
+                      label: post.drinkType.label,
+                    ),
+                    if (post.brandName != null && post.brandName!.isNotEmpty)
+                      _Pill(
+                        icon: Icons.local_bar_outlined,
+                        label: post.brandName!,
+                      ),
+                    if (post.groupName != null)
+                      _Pill(icon: Icons.group_outlined, label: post.groupName!),
+                  ],
+                ),
+              ),
               if (post.tags.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),

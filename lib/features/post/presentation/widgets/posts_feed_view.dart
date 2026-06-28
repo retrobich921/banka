@@ -29,16 +29,44 @@ class PostsFeedView extends StatelessWidget {
           return _CenteredText(text: emptyText);
         }
         final posts = state.posts;
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-          itemCount: posts.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 12),
-          itemBuilder: (context, i) => PostCard(
-            post: posts[i],
-            onTap: () => context.pushNamed(
-              AppRoutes.postDetailName,
-              pathParameters: {'id': posts[i].id},
-            ),
+        // Нижний лоадер-«хвост» во время догрузки следующей страницы.
+        final itemCount = posts.length + (state.isLoadingMore ? 1 : 0);
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            final metrics = notification.metrics;
+            // Подгружаем заранее (за 400px до конца), чтобы скролл был плавным.
+            if (metrics.pixels >= metrics.maxScrollExtent - 400 &&
+                !state.isLoadingMore &&
+                !state.hasReachedEnd) {
+              context.read<PostsFeedBloc>().add(
+                const PostsFeedLoadMoreRequested(),
+              );
+            }
+            return false;
+          },
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+            itemCount: itemCount,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (context, i) {
+              if (i >= posts.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return PostCard(
+                post: posts[i],
+                onTap: () => context.pushNamed(
+                  AppRoutes.postDetailName,
+                  pathParameters: {'id': posts[i].id},
+                ),
+                onAuthorTap: () => context.pushNamed(
+                  AppRoutes.userProfileName,
+                  pathParameters: {'id': posts[i].authorId},
+                ),
+              );
+            },
           ),
         );
       },

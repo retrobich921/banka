@@ -28,8 +28,8 @@
   через `CloudinaryPostImageDataSource`.
 
 ## ⚠️ Кодогенерация — критично
-`*.g.dart`, `*.freezed.dart`, `*.config.dart`, `firebase_options.dart` — **в `.gitignore`**
-и генерируются локально. После клона / смены ветки / правки аннотаций
+`*.g.dart`, `*.freezed.dart`, `*.config.dart` — **в `.gitignore`**, генерируются локально
+(`firebase_options.dart` — закоммичен, нужен CI). После клона / смены ветки / правки аннотаций
 (`@injectable`, `@freezed`, `@JsonSerializable`) ОБЯЗАТЕЛЬНО:
     dart run build_runner build --delete-conflicting-outputs
 - **Серый экран при запуске** + `Bad state: GetIt: ... AuthBloc is not registered`
@@ -47,6 +47,30 @@
 - `flutter test` — должно быть зелёным. Интеграционные тесты Security Rules помечены
   `@Tags(['emulator'])` и по умолчанию пропускаются (`dart_test.yaml`). Запуск с эмулятором:
   `firebase emulators:start --only firestore,auth` → `flutter test --run-skipped --tags emulator`.
+
+## Паттерны проекта (кодить быстрее, тратить меньше токенов)
+- **Добавляешь поле/фичу — веди по слоям среза ПО ПОРЯДКУ, не переоткрывая весь срез:**
+  `entity` → `*_dto.dart` (`fromMap`/`toFirestoreMap`) → `*_repository.dart` (контракт) →
+  `*_repository_impl.dart` → `*_remote_data_source.dart` (контракт + impl) →
+  `usecase` (+`Params`) → `bloc` (event/state/handler/submit) → UI →
+  `firestore.rules` (валидация) → тесты → `build_runner`. Это типовой путь — не
+  исследуй архитектуру заново каждый раз.
+- **Обратная совместимость с Firestore:** новые поля делать nullable / `@Default`,
+  в `fromMap` читать с дефолтом; неизвестный enum-ключ → безопасный дефолт + маппинг
+  легаси-ключей (пример: `DrinkType.fromKey`). Старые документы не должны ломаться.
+- **Денорм-счётчики (likes/comments/postsCount):** Cloud Functions на Spark НЕ
+  выполняются. Считать на клиенте — инкремент в батче при создании, либо агрегатный
+  `count()` (см. `watchBrands`/`watchBrand`). Не полагаться на функции.
+- **Лента:** первая страница realtime (`Watch*Feed`), догрузка — курсором
+  (`FetchFeedPage`, `startAfter`, без перечитывания). Скоупы — `PostsFeedScope`
+  (`global/group/brand/author`). Переиспользуй `PostsFeedView`/`PostsFeedBloc`.
+- **Переиспользуй, не плоди дубли:** общие виджеты (`RatingScoreBadge`, `_Pill`/чипы,
+  карточки), тему, скоупы. Мок-тесты блоков ломаются при смене конструктора — правь
+  `registerFallbackValue` и сигнатуры в тестах сразу.
+- **Токены:** НЕ читать сгенерированные файлы (`*.g.dart`/`*.freezed.dart`/`*.config.dart`/
+  `firebase_options.dart`) — выводи из аннотаций-источников. В итерации гонять
+  `flutter analyze <папка>` по затронутому, полный набор гейтов — перед коммитом.
+  `.kiro/steering` + этот файл — истина, не переоткрывать срез «для контекста».
 
 ## Отладка на телефоне и ЛОГИ (экономия токенов)
 **Не дампить сырой `adb logcat`** — на устройстве тонна системного шума, это жжёт токены.
@@ -70,15 +94,18 @@
 - Локаль дат — `ru_RU` (инициализируется в `main.dart`).
 
 ## Git — порядок работы
-Текущая фаза: **чиним баги, НЕ пушим.** Последовательность:
-1. Сначала исправляем функциональные баги и UI до стабильного состояния.
-2. Когда всё стабильно и красиво — по **явной команде** пользователя делаем один
-   аккуратный коммит/пуш «красивой» версии.
-3. Только после этого начинаем писать новые фичи.
-
-Правила: не коммитить/пушить напрямую в `main`; ветки `feat/ · fix/ · chore/ · refactor/ · docs/`;
-Conventional Commits; коммит/пуш — **только по явной просьбе**; не коммитить секреты и
-сгенерированные файлы.
+- Не коммитить/пушить напрямую в `main`; ветки `feat/ · fix/ · chore/ · refactor/ · docs/ · ci/`;
+  **Conventional Commits**; коммит/пуш — **только по явной просьбе**.
+- **Контрибьюторы: НИКОГДА не добавлять `Co-Authored-By` / любых соавторов в коммиты.**
+  Коммиты — только от пользователя (это попадает в граф контрибьюторов и release notes).
+- **Секреты не коммитить:** `key.properties`, `*.jks`, `.kiro/settings/mcp.json`. Уже в
+  `.gitignore`. `firebase_options.dart` и `google-services.json` закоммичены осознанно —
+  нужны CI для сборки (клиентские ключи, не секрет).
+- **Релизы:** bump `version:` в `pubspec.yaml` → тег `vX.Y.Z` → GitHub Actions
+  (`.github/workflows/release.yml`) собирает подписанный **`banka-<tag>.apk`** и публикует
+  GitHub Release; приложение само находит обновление (`lib/core/update/app_updater.dart`).
+  Подпись — release-keystore через `android/key.properties` (вне git; SHA-1 ключа должен
+  быть в Firebase, иначе Google Sign-In падает).
 
 ## Окружение
 - Windows 11, терминал **PowerShell 7** (`$null`, `$env:VAR`, `;` как разделитель).

@@ -52,8 +52,13 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
+      - name: Rename APK
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/banka-${{ github.ref_name }}.apk"
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: dist/banka-${{ github.ref_name }}.apk
           generate_release_notes: true

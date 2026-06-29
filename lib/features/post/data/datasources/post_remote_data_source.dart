@@ -5,6 +5,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/entities/post_ranking.dart';
 import '../models/post_dto.dart';
 
 /// Контракт remote-источника для постов. Бросает `ServerException` при
@@ -78,6 +79,9 @@ abstract interface class PostRemoteDataSource {
   });
 
   Future<void> deletePost(String postId);
+
+  /// Топ постов: сортировка по `ratingScore` (оценка) либо `likesCount`.
+  Future<List<Post>> fetchTopPosts({required PostRanking ranking, int limit});
 
   /// Sprint 12 — поиск постов по `searchKeywords`-токену + опциональные
   /// фильтры (brandId / groupId). Серверная часть = один `arrayContains`-запрос
@@ -344,6 +348,28 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
   Future<void> deletePost(String postId) async {
     try {
       await _postsCol.doc(postId).delete();
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
+  Future<List<Post>> fetchTopPosts({
+    required PostRanking ranking,
+    int limit = 50,
+  }) async {
+    try {
+      // topRated: посты без `ratingScore` Firestore автоматически исключает
+      // из orderBy — в топ попадают только оценённые.
+      final field = switch (ranking) {
+        PostRanking.topRated => PostDto.fRatingScore,
+        PostRanking.mostLiked => PostDto.fLikesCount,
+      };
+      final snap = await _postsCol
+          .orderBy(field, descending: true)
+          .limit(limit)
+          .get();
+      return _postListFromSnapshot(snap);
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }

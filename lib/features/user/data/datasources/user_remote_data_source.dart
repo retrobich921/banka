@@ -10,6 +10,10 @@ import '../models/user_profile_dto.dart';
 /// оборачивает их в `Failure`.
 abstract interface class UserRemoteDataSource {
   Future<UserProfile?> getUser(String userId);
+
+  /// Топ коллекционеров по `stats.cansCount` (desc).
+  Future<List<UserProfile>> topCollectors({int limit});
+
   Stream<UserProfile?> watchUser(String userId);
   Future<UserProfile> ensureUserDocument({
     required String userId,
@@ -62,6 +66,21 @@ final class FirestoreUserRemoteDataSource implements UserRemoteDataSource {
     try {
       final snap = await _users.doc(userId).get();
       return UserProfileDto.fromSnapshot(snap);
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
+  Future<List<UserProfile>> topCollectors({int limit = 50}) async {
+    try {
+      final snap = await _users
+          .orderBy('stats.cansCount', descending: true)
+          .limit(limit)
+          .get();
+      return snap.docs
+          .map((d) => UserProfileDto.fromMap(d.id, d.data()))
+          .toList(growable: false);
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }

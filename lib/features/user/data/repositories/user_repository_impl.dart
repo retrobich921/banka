@@ -30,6 +30,18 @@ final class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  ResultFuture<List<UserProfile>> topCollectors({int limit = 50}) async {
+    try {
+      final users = await _remote.topCollectors(limit: limit);
+      return Right(users);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
   ResultStream<UserProfile?> watchUser(String userId) async* {
     try {
       await for (final profile in _remote.watchUser(userId)) {

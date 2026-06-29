@@ -84,7 +84,6 @@ abstract final class UserProfileDto {
       cansCount: (map['cansCount'] as num?)?.toInt() ?? 0,
       likesReceived: (map['likesReceived'] as num?)?.toInt() ?? 0,
       groupsCount: (map['groupsCount'] as num?)?.toInt() ?? 0,
-      avgRarity: (map['avgRarity'] as num?)?.toDouble() ?? 0.0,
       topBrandId: map['topBrandId'] as String?,
     );
   }
@@ -93,7 +92,6 @@ abstract final class UserProfileDto {
     'cansCount': stats.cansCount,
     'likesReceived': stats.likesReceived,
     'groupsCount': stats.groupsCount,
-    'avgRarity': stats.avgRarity,
     if (stats.topBrandId != null) 'topBrandId': stats.topBrandId,
   };
 

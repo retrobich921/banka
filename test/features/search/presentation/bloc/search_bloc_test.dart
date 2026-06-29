@@ -18,7 +18,6 @@ void main() {
     authorId: 'u1',
     authorName: 'Albert',
     drinkName: 'Monster Energy',
-    rarity: 7,
     createdAt: DateTime(2025, 5, 1),
   );
 
@@ -106,9 +105,8 @@ void main() {
         ).thenAnswer((_) async => Right<Failure, List<Post>>([fixture]));
       },
       build: buildBloc,
-      act: (b) => b.add(
-        const SearchFiltersChanged(SearchFilters(rarityMin: 5, rarityMax: 9)),
-      ),
+      act: (b) =>
+          b.add(const SearchFiltersChanged(SearchFilters(brandId: 'b1'))),
       expect: () => [
         isA<SearchState>().having(
           (s) => s.status,
@@ -117,8 +115,7 @@ void main() {
         ),
         isA<SearchState>()
             .having((s) => s.status, 'status', SearchStatus.ready)
-            .having((s) => s.filters.rarityMin, 'rarityMin', 5)
-            .having((s) => s.filters.rarityMax, 'rarityMax', 9),
+            .having((s) => s.filters.brandId, 'brandId', 'b1'),
       ],
     );
 
@@ -145,7 +142,7 @@ void main() {
       },
       build: buildBloc,
       act: (b) async {
-        b.add(const SearchFiltersChanged(SearchFilters(rarityMin: 5)));
+        b.add(const SearchFiltersChanged(SearchFilters(brandId: 'b1')));
         await Future<void>.delayed(const Duration(milliseconds: 50));
         b.add(const SearchResetRequested());
       },

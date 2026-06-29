@@ -22,7 +22,6 @@ abstract interface class PostRepository {
     String? flavorName,
     required List<PostPhoto> photos,
     required DateTime foundDate,
-    required int rarity,
     DrinkRating? rating,
     DrinkType drinkType = DrinkType.energy,
     String description = '',
@@ -75,7 +74,6 @@ abstract interface class PostRepository {
     String? brandId,
     String? brandName,
     DateTime? foundDate,
-    int? rarity,
     String? description,
     List<String>? tags,
   });
@@ -83,13 +81,11 @@ abstract interface class PostRepository {
   ResultFuture<void> deletePost(String postId);
 
   /// Sprint 12 — поиск постов: `arrayContains`-запрос по `searchKeywords`
-  /// с опциональными фильтрами (rarity range / brandId / groupId).
+  /// с опциональными фильтрами (brandId / groupId).
   /// Возвращает «снэпшот» (Future, без real-time) — поиск интерактивен,
   /// каждый ввод порождает новый запрос.
   ResultFuture<List<Post>> searchPosts({
     String? query,
-    int? rarityMin,
-    int? rarityMax,
     String? brandId,
     String? groupId,
     int limit = 50,

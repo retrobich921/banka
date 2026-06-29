@@ -25,7 +25,6 @@ final class CreatePostState extends Equatable {
     this.flavorName = '',
     this.description = '',
     this.foundDate,
-    this.rarity = 5,
     this.ratingDraft = const DrinkRating(),
     this.isRated = false,
     this.drinkType = DrinkType.energy,
@@ -53,7 +52,6 @@ final class CreatePostState extends Equatable {
   final String flavorName;
   final String description;
   final DateTime? foundDate;
-  final int rarity;
   final DrinkRating ratingDraft;
   final bool isRated;
   final DrinkType drinkType;
@@ -94,7 +92,6 @@ final class CreatePostState extends Equatable {
     bool clearFlavor = false,
     String? description,
     DateTime? foundDate,
-    int? rarity,
     DrinkRating? ratingDraft,
     bool? isRated,
     DrinkType? drinkType,
@@ -124,7 +121,6 @@ final class CreatePostState extends Equatable {
       flavorName: clearFlavor ? '' : (flavorName ?? this.flavorName),
       description: description ?? this.description,
       foundDate: foundDate ?? this.foundDate,
-      rarity: rarity ?? this.rarity,
       ratingDraft: ratingDraft ?? this.ratingDraft,
       isRated: isRated ?? this.isRated,
       drinkType: drinkType ?? this.drinkType,
@@ -159,7 +155,6 @@ final class CreatePostState extends Equatable {
     flavorName,
     description,
     foundDate,
-    rarity,
     ratingDraft,
     isRated,
     drinkType,

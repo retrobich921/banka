@@ -26,7 +26,6 @@ void main() {
       PostPhoto(url: 'https://cdn/x.jpg', thumbUrl: 'https://cdn/x.jpg'),
     ],
     foundDate: DateTime(2025, 5, 1),
-    rarity: 7,
     createdAt: DateTime(2025, 5, 1),
     updatedAt: DateTime(2025, 5, 1),
   );
@@ -55,7 +54,6 @@ void main() {
           brandName: any(named: 'brandName'),
           photos: any(named: 'photos'),
           foundDate: any(named: 'foundDate'),
-          rarity: any(named: 'rarity'),
           rating: any(named: 'rating'),
           drinkType: any(named: 'drinkType'),
           description: any(named: 'description'),
@@ -69,7 +67,6 @@ void main() {
         drinkName: 'Monster Energy',
         photos: fixturePost.photos,
         foundDate: fixturePost.foundDate!,
-        rarity: 7,
       );
 
       expect(result, Right<Failure, Post>(fixturePost));
@@ -88,7 +85,6 @@ void main() {
           brandName: any(named: 'brandName'),
           photos: any(named: 'photos'),
           foundDate: any(named: 'foundDate'),
-          rarity: any(named: 'rarity'),
           rating: any(named: 'rating'),
           drinkType: any(named: 'drinkType'),
           description: any(named: 'description'),
@@ -102,7 +98,6 @@ void main() {
         drinkName: 'D',
         photos: const [],
         foundDate: DateTime(2025, 1, 1),
-        rarity: 1,
       );
 
       expect(result.isLeft(), isTrue);
@@ -203,13 +198,15 @@ void main() {
           brandId: any(named: 'brandId'),
           brandName: any(named: 'brandName'),
           foundDate: any(named: 'foundDate'),
-          rarity: any(named: 'rarity'),
           description: any(named: 'description'),
           tags: any(named: 'tags'),
         ),
       ).thenAnswer((_) async {});
 
-      final result = await repository.updatePost(postId: postId, rarity: 9);
+      final result = await repository.updatePost(
+        postId: postId,
+        description: 'x',
+      );
 
       expect(result.isRight(), isTrue);
     });
@@ -222,13 +219,15 @@ void main() {
           brandId: any(named: 'brandId'),
           brandName: any(named: 'brandName'),
           foundDate: any(named: 'foundDate'),
-          rarity: any(named: 'rarity'),
           description: any(named: 'description'),
           tags: any(named: 'tags'),
         ),
       ).thenThrow(const ServerException(message: 'no'));
 
-      final result = await repository.updatePost(postId: postId, rarity: 9);
+      final result = await repository.updatePost(
+        postId: postId,
+        description: 'x',
+      );
       expect(result.isLeft(), isTrue);
     });
 
@@ -252,8 +251,6 @@ void main() {
       when(
         () => remote.searchPosts(
           token: any(named: 'token'),
-          rarityMin: any(named: 'rarityMin'),
-          rarityMax: any(named: 'rarityMax'),
           brandId: any(named: 'brandId'),
           groupId: any(named: 'groupId'),
           limit: any(named: 'limit'),
@@ -266,8 +263,6 @@ void main() {
       verify(
         () => remote.searchPosts(
           token: 'monster',
-          rarityMin: null,
-          rarityMax: null,
           brandId: null,
           groupId: null,
           limit: 50,
@@ -279,22 +274,18 @@ void main() {
       when(
         () => remote.searchPosts(
           token: any(named: 'token'),
-          rarityMin: any(named: 'rarityMin'),
-          rarityMax: any(named: 'rarityMax'),
           brandId: any(named: 'brandId'),
           groupId: any(named: 'groupId'),
           limit: any(named: 'limit'),
         ),
       ).thenAnswer((_) async => [fixturePost]);
 
-      await repository.searchPosts(rarityMin: 5, rarityMax: 9);
+      await repository.searchPosts(brandId: 'br-1');
 
       verify(
         () => remote.searchPosts(
           token: null,
-          rarityMin: 5,
-          rarityMax: 9,
-          brandId: null,
+          brandId: 'br-1',
           groupId: null,
           limit: 50,
         ),
@@ -305,8 +296,6 @@ void main() {
       when(
         () => remote.searchPosts(
           token: any(named: 'token'),
-          rarityMin: any(named: 'rarityMin'),
-          rarityMax: any(named: 'rarityMax'),
           brandId: any(named: 'brandId'),
           groupId: any(named: 'groupId'),
           limit: any(named: 'limit'),
@@ -318,8 +307,6 @@ void main() {
       verify(
         () => remote.searchPosts(
           token: null,
-          rarityMin: null,
-          rarityMax: null,
           brandId: null,
           groupId: null,
           limit: 50,
@@ -331,8 +318,6 @@ void main() {
       when(
         () => remote.searchPosts(
           token: any(named: 'token'),
-          rarityMin: any(named: 'rarityMin'),
-          rarityMax: any(named: 'rarityMax'),
           brandId: any(named: 'brandId'),
           groupId: any(named: 'groupId'),
           limit: any(named: 'limit'),

@@ -18,7 +18,7 @@ void main() {
     id: userId,
     displayName: 'Alice',
     email: 'alice@example.com',
-    stats: UserStats(cansCount: 7, avgRarity: 3.5),
+    stats: UserStats(cansCount: 7),
   );
 
   setUp(() {

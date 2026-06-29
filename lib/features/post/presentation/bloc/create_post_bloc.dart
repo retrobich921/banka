@@ -63,7 +63,6 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     on<CreatePostBarcodeUnknown>(_onBarcodeUnknown);
     on<CreatePostBarcodeCleared>(_onBarcodeCleared);
     on<CreatePostFoundDateChanged>(_onFoundDateChanged);
-    on<CreatePostRarityChanged>(_onRarityChanged);
     on<CreatePostRatingEnabled>(_onRatingEnabled);
     on<CreatePostRatingChanged>(_onRatingChanged);
     on<CreatePostDrinkTypeChanged>(_onDrinkTypeChanged);
@@ -278,14 +277,6 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     Emitter<CreatePostState> emit,
   ) => emit(state.copyWith(foundDate: event.value));
 
-  void _onRarityChanged(
-    CreatePostRarityChanged event,
-    Emitter<CreatePostState> emit,
-  ) {
-    final clamped = event.value.clamp(1, 9);
-    emit(state.copyWith(rarity: clamped));
-  }
-
   void _onRatingEnabled(
     CreatePostRatingEnabled event,
     Emitter<CreatePostState> emit,
@@ -414,7 +405,6 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
             : state.flavorName.trim(),
         photos: uploaded,
         foundDate: state.foundDate ?? DateTime.now(),
-        rarity: state.rarity,
         rating: state.isRated ? state.ratingDraft : null,
         drinkType: state.drinkType,
         description: state.description.trim(),

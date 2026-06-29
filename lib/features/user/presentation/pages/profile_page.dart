@@ -302,10 +302,6 @@ class _StatsGrid extends StatelessWidget {
         _StatCell(label: 'Банок', value: stats.cansCount.toString()),
         _StatCell(label: 'Лайков', value: stats.likesReceived.toString()),
         _StatCell(label: 'Групп', value: stats.groupsCount.toString()),
-        _StatCell(
-          label: 'Сред. редкость',
-          value: stats.avgRarity.toStringAsFixed(1),
-        ),
       ],
     );
   }

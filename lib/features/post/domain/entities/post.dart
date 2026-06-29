@@ -29,7 +29,6 @@ sealed class Post with _$Post {
     String? flavorName,
     @Default(<PostPhoto>[]) List<PostPhoto> photos,
     DateTime? foundDate,
-    @Default(1) int rarity,
 
     /// Составная оценка (РЗТ-стиль). `null` — пользователь не оценивал.
     DrinkRating? rating,

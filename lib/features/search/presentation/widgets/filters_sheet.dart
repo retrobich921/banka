@@ -10,8 +10,7 @@ import '../../domain/entities/search_filters.dart';
 /// Bottom-sheet редактирования `SearchFilters`.
 ///
 /// Возвращает обновлённые фильтры через `Navigator.pop(filters)`.
-/// Доступны: слайдер диапазона редкости (1..9), селектор бренда
-/// (`BrandPickerSheet`) и текстовое поле ID группы.
+/// Доступны: селектор бренда (`BrandPickerSheet`) и текстовое поле ID группы.
 class FiltersSheet extends StatefulWidget {
   const FiltersSheet({super.key, required this.initial});
 
@@ -22,21 +21,13 @@ class FiltersSheet extends StatefulWidget {
 }
 
 class _FiltersSheetState extends State<FiltersSheet> {
-  late RangeValues _rarity;
   late TextEditingController _groupId;
   String? _brandId;
   String _brandName = '';
 
-  static const double _rarityMin = 1;
-  static const double _rarityMax = 9;
-
   @override
   void initState() {
     super.initState();
-    _rarity = RangeValues(
-      (widget.initial.rarityMin ?? _rarityMin.toInt()).toDouble(),
-      (widget.initial.rarityMax ?? _rarityMax.toInt()).toDouble(),
-    );
     _brandId = widget.initial.brandId;
     _groupId = TextEditingController(text: widget.initial.groupId ?? '');
   }
@@ -81,8 +72,6 @@ class _FiltersSheetState extends State<FiltersSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasRarityFilter =
-        _rarity.start > _rarityMin || _rarity.end < _rarityMax;
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -102,22 +91,6 @@ class _FiltersSheetState extends State<FiltersSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Редкость: ${_rarity.start.round()} — ${_rarity.end.round()}',
-              style: theme.textTheme.bodyMedium,
-            ),
-            RangeSlider(
-              min: _rarityMin,
-              max: _rarityMax,
-              divisions: 8,
-              values: _rarity,
-              labels: RangeLabels(
-                _rarity.start.round().toString(),
-                _rarity.end.round().toString(),
-              ),
-              onChanged: (v) => setState(() => _rarity = v),
-            ),
-            const SizedBox(height: 8),
             InkWell(
               onTap: _pickBrand,
               borderRadius: BorderRadius.circular(8),
@@ -178,10 +151,6 @@ class _FiltersSheetState extends State<FiltersSheet> {
                   onPressed: () {
                     Navigator.of(context).pop(
                       SearchFilters(
-                        rarityMin: hasRarityFilter
-                            ? _rarity.start.round()
-                            : null,
-                        rarityMax: hasRarityFilter ? _rarity.end.round() : null,
                         brandId: _brandId,
                         groupId: _groupId.text.trim().isEmpty
                             ? null

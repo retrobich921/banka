@@ -18,7 +18,7 @@ final class SearchQueryChanged extends SearchEvent {
   List<Object?> get props => [query];
 }
 
-/// Изменился набор фильтров (rarity range / brandId / groupId) —
+/// Изменился набор фильтров (brandId / groupId) —
 /// сразу перезапрашиваем результат с текущим query.
 final class SearchFiltersChanged extends SearchEvent {
   const SearchFiltersChanged(this.filters);

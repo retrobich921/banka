@@ -110,14 +110,6 @@ final class CreatePostFoundDateChanged extends CreatePostEvent {
   List<Object?> get props => [value];
 }
 
-final class CreatePostRarityChanged extends CreatePostEvent {
-  const CreatePostRarityChanged(this.value);
-  final int value;
-
-  @override
-  List<Object?> get props => [value];
-}
-
 final class CreatePostTagsChanged extends CreatePostEvent {
   const CreatePostTagsChanged(this.value);
   final List<String> value;

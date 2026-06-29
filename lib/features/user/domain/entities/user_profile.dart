@@ -39,7 +39,6 @@ sealed class UserStats with _$UserStats {
     @Default(0) int cansCount,
     @Default(0) int likesReceived,
     @Default(0) int groupsCount,
-    @Default(0.0) double avgRarity,
     String? topBrandId,
   }) = _UserStats;
 }

@@ -22,8 +22,6 @@ void main() {
     when(
       () => repo.searchPosts(
         query: any(named: 'query'),
-        rarityMin: any(named: 'rarityMin'),
-        rarityMax: any(named: 'rarityMax'),
         brandId: any(named: 'brandId'),
         groupId: any(named: 'groupId'),
         limit: any(named: 'limit'),
@@ -33,23 +31,12 @@ void main() {
     await usecase(
       const SearchPostsParams(
         query: 'monster',
-        filters: SearchFilters(
-          rarityMin: 3,
-          rarityMax: 8,
-          brandId: 'b1',
-          groupId: 'g1',
-        ),
+        filters: SearchFilters(brandId: 'b1', groupId: 'g1'),
       ),
     );
 
     verify(
-      () => repo.searchPosts(
-        query: 'monster',
-        rarityMin: 3,
-        rarityMax: 8,
-        brandId: 'b1',
-        groupId: 'g1',
-      ),
+      () => repo.searchPosts(query: 'monster', brandId: 'b1', groupId: 'g1'),
     ).called(1);
   });
 }

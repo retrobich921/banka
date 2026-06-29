@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/post.dart';
-import 'rarity_badge.dart';
 import 'rating_widgets.dart';
 
 /// Карточка-«банка» в ленте.
@@ -103,7 +102,6 @@ class _PostCardState extends State<PostCard> {
                         ),
                       ),
                     ),
-                    RarityBadge(rarity: post.rarity),
                   ],
                 ),
               ),

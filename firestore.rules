@@ -111,9 +111,6 @@ service cloud.firestore {
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.likesCount == 0
         && request.resource.data.commentsCount == 0
-        && request.resource.data.rarity is int
-        && request.resource.data.rarity >= 1
-        && request.resource.data.rarity <= 9
         && request.resource.data.drinkType is string
         // Оценка необязательна; если есть — это map с числовым ratingScore.
         && (!('rating' in request.resource.data)

@@ -29,7 +29,6 @@ void main() {
           },
         ],
         'foundDate': Timestamp.fromDate(foundDate),
-        'rarity': 7,
         'description': 'Found in 7-Eleven',
         'tags': <String>['monster', 'usa'],
         'likesCount': 5,
@@ -50,7 +49,6 @@ void main() {
       expect(post.photos.first.thumbUrl, 'https://cdn/1_thumb.jpg');
       expect(post.photos.first.width, 1600);
       expect(post.foundDate, foundDate);
-      expect(post.rarity, 7);
       expect(post.likesCount, 5);
       expect(post.commentsCount, 2);
       expect(post.tags, ['monster', 'usa']);
@@ -63,7 +61,6 @@ void main() {
       expect(post.authorId, '');
       expect(post.drinkName, '');
       expect(post.photos, isEmpty);
-      expect(post.rarity, 1);
       expect(post.likesCount, 0);
       expect(post.commentsCount, 0);
       expect(post.tags, isEmpty);
@@ -88,7 +85,6 @@ void main() {
           ),
         ],
         foundDate: DateTime(2025, 1, 5),
-        rarity: 3,
         createdAt: DateTime(2025, 1, 5),
       );
 
@@ -98,7 +94,6 @@ void main() {
       expect(map['drinkName'], 'Burn Original');
       expect(map.containsKey('groupId'), isFalse);
       expect(map.containsKey('brandId'), isFalse);
-      expect(map['rarity'], 3);
       expect(map['photos'], isA<List<dynamic>>());
       expect(map['createdAt'], isA<Timestamp>());
 
@@ -124,7 +119,6 @@ void main() {
           ),
         ],
         foundDate: DateTime(2025, 6, 1),
-        rarity: 5,
         description: 'so cool',
         tags: const ['ru'],
         likesCount: 3,

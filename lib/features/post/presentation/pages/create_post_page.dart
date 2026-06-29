@@ -341,13 +341,6 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       onTap: () => _pickFoundDate(foundDate),
                     ),
                     const SizedBox(height: 24),
-                    _RaritySlider(
-                      value: state.rarity,
-                      onChanged: (v) => context.read<CreatePostBloc>().add(
-                        CreatePostRarityChanged(v),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     RatingEditor(
                       enabled: state.isRated,
                       rating: state.ratingDraft,
@@ -776,50 +769,6 @@ class _FoundDateField extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _RaritySlider extends StatelessWidget {
-  const _RaritySlider({required this.value, required this.onChanged});
-
-  final int value;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text('Редкость', style: Theme.of(context).textTheme.titleMedium),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '$value / 9',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        Slider(
-          min: 1,
-          max: 9,
-          divisions: 8,
-          value: value.toDouble(),
-          label: '$value',
-          onChanged: (v) => onChanged(v.round()),
-        ),
-      ],
     );
   }
 }

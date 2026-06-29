@@ -19,7 +19,6 @@ class UpdatePost implements UseCase<void, UpdatePostParams> {
       brandId: params.brandId,
       brandName: params.brandName,
       foundDate: params.foundDate,
-      rarity: params.rarity,
       description: params.description,
       tags: params.tags,
     );
@@ -33,7 +32,6 @@ class UpdatePostParams extends Equatable {
     this.brandId,
     this.brandName,
     this.foundDate,
-    this.rarity,
     this.description,
     this.tags,
   });
@@ -43,7 +41,6 @@ class UpdatePostParams extends Equatable {
   final String? brandId;
   final String? brandName;
   final DateTime? foundDate;
-  final int? rarity;
   final String? description;
   final List<String>? tags;
 
@@ -54,7 +51,6 @@ class UpdatePostParams extends Equatable {
     brandId,
     brandName,
     foundDate,
-    rarity,
     description,
     tags,
   ];

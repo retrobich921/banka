@@ -59,7 +59,6 @@ void main() {
         drinkName: '',
         photos: const <PostPhoto>[],
         foundDate: DateTime(2025),
-        rarity: 1,
       ),
     );
     registerFallbackValue(
@@ -139,18 +138,6 @@ void main() {
             .having((s) => s.author?.id, 'author.id', authorId)
             .having((s) => s.groupId, 'groupId', 'grp-1')
             .having((s) => s.groupName, 'groupName', 'Monster Lovers'),
-      ],
-    );
-
-    blocTest<CreatePostBloc, CreatePostState>(
-      'CreatePostRarityChanged clamps to [1..9]',
-      build: buildBloc,
-      act: (b) => b
-        ..add(const CreatePostRarityChanged(20))
-        ..add(const CreatePostRarityChanged(0)),
-      expect: () => [
-        isA<CreatePostState>().having((s) => s.rarity, 'rarity', 9),
-        isA<CreatePostState>().having((s) => s.rarity, 'rarity', 1),
       ],
     );
 
@@ -295,7 +282,6 @@ void main() {
               authorName: 'Albert',
               drinkName: 'Monster',
               foundDate: foundDate,
-              rarity: 7,
               createdAt: foundDate,
             ),
           ),
@@ -307,7 +293,6 @@ void main() {
         pickedFiles: [fakeFile('a.jpg'), fakeFile('b.jpg')],
         drinkName: 'Monster Energy',
         foundDate: foundDate,
-        rarity: 7,
       ),
       act: (b) => b.add(const CreatePostSubmitted()),
       verify: (b) {
@@ -357,7 +342,6 @@ void main() {
               authorName: 'Albert',
               drinkName: 'Monster',
               foundDate: foundDate,
-              rarity: 7,
               createdAt: foundDate,
             ),
           ),
@@ -406,7 +390,6 @@ void main() {
               authorName: 'Albert',
               drinkName: 'Monster',
               foundDate: foundDate,
-              rarity: 7,
               createdAt: foundDate,
             ),
           ),
@@ -474,7 +457,7 @@ void main() {
     blocTest<CreatePostBloc, CreatePostState>(
       'CreatePostResetRequested resets to initial',
       build: buildBloc,
-      seed: () => const CreatePostState(drinkName: 'Monster', rarity: 9),
+      seed: () => const CreatePostState(drinkName: 'Monster'),
       act: (b) => b.add(const CreatePostResetRequested()),
       verify: (b) {
         expect(b.state, const CreatePostState.initial());

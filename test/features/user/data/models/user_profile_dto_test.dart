@@ -18,7 +18,6 @@ void main() {
           'cansCount': 12,
           'likesReceived': 99,
           'groupsCount': 3,
-          'avgRarity': 4.5,
           'topBrandId': 'brand-monster',
         },
         'fcmTokens': <String>['token-1', 'token-2'],
@@ -39,7 +38,6 @@ void main() {
       expect(profile.stats.cansCount, 12);
       expect(profile.stats.likesReceived, 99);
       expect(profile.stats.groupsCount, 3);
-      expect(profile.stats.avgRarity, 4.5);
       expect(profile.stats.topBrandId, 'brand-monster');
     });
 
@@ -71,7 +69,7 @@ void main() {
         id: 'uid-4',
         displayName: 'Bob',
         email: 'bob@example.com',
-        stats: const UserStats(cansCount: 5, avgRarity: 3.2),
+        stats: const UserStats(cansCount: 5),
         createdAt: DateTime(2025, 1, 1),
         updatedAt: DateTime(2025, 1, 2),
       );
@@ -87,7 +85,6 @@ void main() {
         'cansCount': 5,
         'likesReceived': 0,
         'groupsCount': 0,
-        'avgRarity': 3.2,
       });
       expect(map['createdAt'], isA<Timestamp>());
       expect(map['updatedAt'], isA<Timestamp>());
@@ -104,7 +101,6 @@ void main() {
           cansCount: 1,
           likesReceived: 2,
           groupsCount: 3,
-          avgRarity: 4.0,
           topBrandId: 'brand-x',
         ),
         fcmTokens: const ['t'],

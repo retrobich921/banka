@@ -29,7 +29,6 @@ class CreatePost implements UseCase<Post, CreatePostParams> {
       flavorName: params.flavorName,
       photos: params.photos,
       foundDate: params.foundDate,
-      rarity: params.rarity,
       rating: params.rating,
       drinkType: params.drinkType,
       description: params.description,
@@ -45,7 +44,6 @@ class CreatePostParams extends Equatable {
     required this.drinkName,
     required this.photos,
     required this.foundDate,
-    required this.rarity,
     this.rating,
     this.drinkType = DrinkType.energy,
     this.authorPhotoUrl,
@@ -71,7 +69,6 @@ class CreatePostParams extends Equatable {
   final String? flavorName;
   final List<PostPhoto> photos;
   final DateTime foundDate;
-  final int rarity;
   final DrinkRating? rating;
   final DrinkType drinkType;
   final String description;
@@ -91,7 +88,6 @@ class CreatePostParams extends Equatable {
     flavorName,
     photos,
     foundDate,
-    rarity,
     rating,
     drinkType,
     description,

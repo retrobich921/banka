@@ -30,7 +30,6 @@ final class PostRepositoryImpl implements PostRepository {
     String? flavorName,
     required List<PostPhoto> photos,
     required DateTime foundDate,
-    required int rarity,
     DrinkRating? rating,
     DrinkType drinkType = DrinkType.energy,
     String description = '',
@@ -50,7 +49,6 @@ final class PostRepositoryImpl implements PostRepository {
         flavorName: flavorName,
         photos: photos,
         foundDate: foundDate,
-        rarity: rarity,
         rating: rating,
         drinkType: drinkType,
         description: description,
@@ -168,7 +166,6 @@ final class PostRepositoryImpl implements PostRepository {
     String? brandId,
     String? brandName,
     DateTime? foundDate,
-    int? rarity,
     String? description,
     List<String>? tags,
   }) async {
@@ -179,7 +176,6 @@ final class PostRepositoryImpl implements PostRepository {
         brandId: brandId,
         brandName: brandName,
         foundDate: foundDate,
-        rarity: rarity,
         description: description,
         tags: tags,
       );
@@ -206,8 +202,6 @@ final class PostRepositoryImpl implements PostRepository {
   @override
   ResultFuture<List<Post>> searchPosts({
     String? query,
-    int? rarityMin,
-    int? rarityMax,
     String? brandId,
     String? groupId,
     int limit = 50,
@@ -216,8 +210,6 @@ final class PostRepositoryImpl implements PostRepository {
       final token = _firstToken(query);
       final posts = await _remote.searchPosts(
         token: token,
-        rarityMin: rarityMin,
-        rarityMax: rarityMax,
         brandId: brandId,
         groupId: groupId,
         limit: limit,

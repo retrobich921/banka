@@ -23,7 +23,6 @@ abstract interface class PostRemoteDataSource {
     String? flavorName,
     required List<PostPhoto> photos,
     required DateTime foundDate,
-    required int rarity,
     DrinkRating? rating,
     DrinkType drinkType,
     required String description,
@@ -48,9 +47,7 @@ abstract interface class PostRemoteDataSource {
     String? startAfterId,
   });
 
-  /// Sprint 13 — лента бренда. Использует индекс `brandId ASC +
-  /// rarity DESC` — карточки сортируются по редкости (сначала
-  /// «лимитки»), что даёт приятный story-витриный эффект.
+  /// Лента бренда: `where(brandId) + orderBy(createdAt desc)`.
   Stream<List<Post>> watchBrandFeed({
     required String brandId,
     int limit,
@@ -76,7 +73,6 @@ abstract interface class PostRemoteDataSource {
     String? brandId,
     String? brandName,
     DateTime? foundDate,
-    int? rarity,
     String? description,
     List<String>? tags,
   });
@@ -84,14 +80,11 @@ abstract interface class PostRemoteDataSource {
   Future<void> deletePost(String postId);
 
   /// Sprint 12 — поиск постов по `searchKeywords`-токену + опциональные
-  /// фильтры (rarity range / brandId / groupId). Серверная часть = один
-  /// `arrayContains`-запрос (если есть токен) или базовый список по
-  /// `createdAt desc`; остальные фильтры применяются на клиенте, чтобы
-  /// не плодить composite-индексы.
+  /// фильтры (brandId / groupId). Серверная часть = один `arrayContains`-запрос
+  /// (если есть токен) или базовый список по `createdAt desc`; остальные
+  /// фильтры применяются на клиенте, чтобы не плодить composite-индексы.
   Future<List<Post>> searchPosts({
     String? token,
-    int? rarityMin,
-    int? rarityMax,
     String? brandId,
     String? groupId,
     int limit,
@@ -124,7 +117,6 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     String? flavorName,
     required List<PostPhoto> photos,
     required DateTime foundDate,
-    required int rarity,
     DrinkRating? rating,
     DrinkType drinkType = DrinkType.energy,
     required String description,
@@ -147,7 +139,6 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
         flavorName: flavorName,
         photos: photos,
         foundDate: foundDate,
-        rarity: rarity,
         rating: rating,
         drinkType: drinkType,
         description: description,
@@ -261,7 +252,7 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
   }) async* {
     Query<Map<String, dynamic>> query = _postsCol
         .where(PostDto.fBrandId, isEqualTo: brandId)
-        .orderBy(PostDto.fRarity, descending: true)
+        .orderBy(PostDto.fCreatedAt, descending: true)
         .limit(limit);
 
     if (startAfterId != null) {
@@ -283,10 +274,9 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     try {
       Query<Map<String, dynamic>> query;
       if (brandId != null) {
-        // Лента бренда сортируется по редкости (как watchBrandFeed).
         query = _postsCol
             .where(PostDto.fBrandId, isEqualTo: brandId)
-            .orderBy(PostDto.fRarity, descending: true);
+            .orderBy(PostDto.fCreatedAt, descending: true);
       } else if (groupId != null) {
         query = _postsCol
             .where(PostDto.fGroupId, isEqualTo: groupId)
@@ -318,7 +308,6 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     String? brandId,
     String? brandName,
     DateTime? foundDate,
-    int? rarity,
     String? description,
     List<String>? tags,
   }) async {
@@ -327,7 +316,6 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
       PostDto.fBrandId: ?brandId,
       PostDto.fBrandName: ?brandName,
       if (foundDate != null) PostDto.fFoundDate: Timestamp.fromDate(foundDate),
-      PostDto.fRarity: ?rarity,
       PostDto.fDescription: ?description,
       PostDto.fTags: ?tags,
     };
@@ -364,8 +352,6 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
   @override
   Future<List<Post>> searchPosts({
     String? token,
-    int? rarityMin,
-    int? rarityMax,
     String? brandId,
     String? groupId,
     int limit = 50,
@@ -390,8 +376,6 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
           .where((p) {
             if (brandId != null && p.brandId != brandId) return false;
             if (groupId != null && p.groupId != groupId) return false;
-            if (rarityMin != null && p.rarity < rarityMin) return false;
-            if (rarityMax != null && p.rarity > rarityMax) return false;
             return true;
           })
           .toList(growable: false);

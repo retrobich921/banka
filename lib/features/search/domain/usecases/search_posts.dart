@@ -17,8 +17,6 @@ class SearchPosts {
   ResultFuture<List<Post>> call(SearchPostsParams params) {
     return _repository.searchPosts(
       query: params.query,
-      rarityMin: params.filters.rarityMin,
-      rarityMax: params.filters.rarityMax,
       brandId: params.filters.brandId,
       groupId: params.filters.groupId,
     );

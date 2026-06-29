@@ -12,7 +12,6 @@ import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/post_detail_bloc.dart';
-import '../widgets/rarity_badge.dart';
 import '../widgets/rating_widgets.dart';
 
 /// Детальный экран поста-«банки».
@@ -181,15 +180,7 @@ class _PostBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(post.drinkName, style: theme.textTheme.headlineSmall),
-            ),
-            const SizedBox(width: 12),
-            RarityBadge(rarity: post.rarity, size: 36),
-          ],
-        ),
+        Text(post.drinkName, style: theme.textTheme.headlineSmall),
         const SizedBox(height: 8),
         Row(
           children: [

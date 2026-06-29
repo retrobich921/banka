@@ -22,7 +22,6 @@ abstract final class PostDto {
   static const String fDrinkName = 'drinkName';
   static const String fPhotos = 'photos';
   static const String fFoundDate = 'foundDate';
-  static const String fRarity = 'rarity';
   static const String fRating = 'rating';
   static const String fRatingScore = 'ratingScore';
   static const String fDrinkType = 'drinkType';
@@ -55,7 +54,6 @@ abstract final class PostDto {
       drinkName: (data[fDrinkName] as String?) ?? '',
       photos: _photoList(data[fPhotos]),
       foundDate: _timestampToDate(data[fFoundDate]),
-      rarity: (data[fRarity] as num?)?.toInt() ?? 1,
       rating: _ratingFromMap(data[fRating]),
       drinkType: DrinkType.fromKey(data[fDrinkType] as String?),
       description: (data[fDescription] as String?) ?? '',
@@ -84,7 +82,6 @@ abstract final class PostDto {
       fPhotos: post.photos.map(PostPhotoDto.toMap).toList(growable: false),
       if (post.foundDate != null)
         fFoundDate: Timestamp.fromDate(post.foundDate!),
-      fRarity: post.rarity,
       if (post.rating != null) fRating: _ratingToMap(post.rating!),
       if (post.rating != null) fRatingScore: post.rating!.score,
       fDrinkType: post.drinkType.storageKey,

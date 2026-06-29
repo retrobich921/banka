@@ -2,6 +2,7 @@ import '../../../../core/utils/typedefs.dart';
 import '../entities/drink_rating.dart';
 import '../entities/drink_type.dart';
 import '../entities/post.dart';
+import '../entities/post_ranking.dart';
 
 /// Контракт работы с коллекцией `posts/{postId}`.
 ///
@@ -79,6 +80,12 @@ abstract interface class PostRepository {
   });
 
   ResultFuture<void> deletePost(String postId);
+
+  /// Топ постов для раздела «Топы»: по оценке (`ratingScore`) или по лайкам.
+  ResultFuture<List<Post>> topPosts({
+    required PostRanking ranking,
+    int limit = 50,
+  });
 
   /// Sprint 12 — поиск постов: `arrayContains`-запрос по `searchKeywords`
   /// с опциональными фильтрами (brandId / groupId).

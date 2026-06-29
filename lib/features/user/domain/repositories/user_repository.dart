@@ -10,6 +10,9 @@ abstract interface class UserRepository {
   /// Разовый снимок профиля по `userId`. `Right(null)` — документ не существует.
   ResultFuture<UserProfile?> getUser(String userId);
 
+  /// Топ коллекционеров — пользователи по числу банок (`stats.cansCount` desc).
+  ResultFuture<List<UserProfile>> topCollectors({int limit = 50});
+
   /// Real-time стрим профиля. Эмитит `null`, когда документ удалён или ещё
   /// не создан (например, между `signInWithGoogle` и `ensureUserDocument`).
   ResultStream<UserProfile?> watchUser(String userId);

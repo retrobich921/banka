@@ -7,6 +7,7 @@ import '../../../../core/utils/typedefs.dart';
 import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/entities/post_ranking.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../datasources/post_remote_data_source.dart';
 
@@ -192,6 +193,21 @@ final class PostRepositoryImpl implements PostRepository {
     try {
       await _remote.deletePost(postId);
       return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultFuture<List<Post>> topPosts({
+    required PostRanking ranking,
+    int limit = 50,
+  }) async {
+    try {
+      final posts = await _remote.fetchTopPosts(ranking: ranking, limit: limit);
+      return Right(posts);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, cause: e.cause));
     } catch (e) {

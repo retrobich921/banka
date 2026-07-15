@@ -5,15 +5,19 @@ import '../../post/data/models/post_dto.dart';
 import '../domain/entities/drink.dart';
 import 'models/drink_dto.dart';
 
-/// Одноразовая миграция: проставляет старым постам `drinkId` (ключ
-/// вычислим из названия + бренда, которые в постах всегда были) и
-/// наполняет агрегаты карточек `drinks/*` из истории.
+/// Одноразовая миграция карточек напитков (v2).
 ///
-/// Запускается с любого клиента при старте; от повторного/параллельного
-/// запуска защищает claim-документ `meta/drink_backfill_v1` (transaction).
-/// Каждый чанк постов коммитится одним батчем (обновления постов +
-/// инкременты карточек атомарно) — при обрыве на середине уже
-/// обработанные посты имеют drinkId и не пересчитываются при ретрае.
+/// v1 строила ключ карточки из названия поста — а названия оказались
+/// свободным творчеством («я хз что писать»), и каждый пост становился
+/// отдельным «напитком». v2 пересобирает всё по структурным полям:
+/// карточка = **бренд + вкус**; посты без бренда/вкуса в карточки не
+/// попадают.
+///
+/// Шаги: снести все документы `drinks/*` → пересчитать `drinkId` у всех
+/// постов (проставить новый или удалить, если бренд/вкус не выбраны) →
+/// пересобрать агрегаты (посты, оценки, цены, магазины, обложки).
+/// От повторного/параллельного запуска защищает claim-документ
+/// `meta/drink_backfill_v2` (transaction).
 @lazySingleton
 class DrinkBackfill {
   DrinkBackfill(this._firestore);
@@ -23,7 +27,7 @@ class DrinkBackfill {
   static const int _chunkSize = 150;
 
   DocumentReference<Map<String, dynamic>> get _meta =>
-      _firestore.collection('meta').doc('drink_backfill_v1');
+      _firestore.collection('meta').doc('drink_backfill_v2');
 
   /// Безопасно вызывать при каждом старте: если миграция уже выполнена
   /// или выполняется другим клиентом — сразу выходит.
@@ -41,7 +45,8 @@ class DrinkBackfill {
       });
       if (!claimed) return;
 
-      await _run();
+      await _wipeDrinks();
+      await _rebuildFromPosts();
 
       await _meta.set(<String, dynamic>{
         'status': 'done',
@@ -55,51 +60,74 @@ class DrinkBackfill {
     }
   }
 
-  Future<void> _run() async {
-    final snap = await _firestore.collection('posts').get();
-    final pending = snap.docs
-        .where((d) => (d.data()[PostDto.fDrinkId] as String?) == null)
-        .toList();
-    if (pending.isEmpty) return;
-
-    for (var i = 0; i < pending.length; i += _chunkSize) {
-      final chunk = pending.sublist(
-        i,
-        i + _chunkSize > pending.length ? pending.length : i + _chunkSize,
-      );
+  /// Полная зачистка старых карточек (в т.ч. мусорных из v1).
+  Future<void> _wipeDrinks() async {
+    final snap = await _firestore.collection('drinks').get();
+    for (var i = 0; i < snap.docs.length; i += _chunkSize) {
       final batch = _firestore.batch();
+      for (final doc in snap.docs.skip(i).take(_chunkSize)) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+  }
 
-      // Агрегаты чанка группируем в памяти, чтобы не писать один
-      // drink-документ десятки раз в одном батче.
-      final drinkUpdates = <String, Map<String, dynamic>>{};
+  Future<void> _rebuildFromPosts() async {
+    final snap = await _firestore.collection('posts').get();
+    final docs = snap.docs;
+
+    for (var i = 0; i < docs.length; i += _chunkSize) {
+      final chunk = docs.skip(i).take(_chunkSize).toList();
+      final batch = _firestore.batch();
+      final drinkUpdates = <String, _DrinkAgg>{};
 
       for (final doc in chunk) {
         final post = PostDto.fromMap(doc.id, doc.data());
-        final drinkId = drinkKeyOf(post.drinkName, post.brandId);
-        batch.update(doc.reference, <String, dynamic>{
-          PostDto.fDrinkId: drinkId,
-        });
-
-        final agg = drinkUpdates.putIfAbsent(
-          drinkId,
-          () => <String, dynamic>{
-            DrinkDto.fName: post.drinkName,
-            DrinkDto.fBrandId: ?post.brandId,
-            DrinkDto.fBrandName: ?post.brandName,
-            '_posts': 0,
-            '_ratingSum': 0.0,
-            '_ratingCount': 0,
-            '_thumb': null,
-          },
+        final drinkId = drinkKeyOf(
+          brandId: post.brandId,
+          flavorId: post.flavorId,
         );
-        agg['_posts'] = (agg['_posts'] as int) + 1;
-        if (post.rating != null) {
-          agg['_ratingSum'] =
-              (agg['_ratingSum'] as double) + post.rating!.score;
-          agg['_ratingCount'] = (agg['_ratingCount'] as int) + 1;
-        }
-        if (post.photos.isNotEmpty) {
-          agg['_thumb'] = post.photos.first.thumbUrl;
+
+        if (drinkId == null) {
+          // Бренд/вкус не выбраны — карточки нет; чистим старую привязку.
+          if (post.drinkId != null) {
+            batch.update(doc.reference, <String, dynamic>{
+              PostDto.fDrinkId: FieldValue.delete(),
+            });
+          }
+        } else {
+          if (post.drinkId != drinkId) {
+            batch.update(doc.reference, <String, dynamic>{
+              PostDto.fDrinkId: drinkId,
+            });
+          }
+          final agg = drinkUpdates.putIfAbsent(
+            drinkId,
+            () => _DrinkAgg(
+              name: drinkDisplayName(
+                brandName: post.brandName,
+                flavorName: post.flavorName,
+              ),
+              brandId: post.brandId,
+              brandName: post.brandName,
+            ),
+          );
+          agg.posts += 1;
+          if (post.rating != null) {
+            agg.ratingSum += post.rating!.score;
+            agg.ratingCount += 1;
+          }
+          if (post.price != null) {
+            agg.pricesSum += post.price!;
+            agg.pricesCount += 1;
+          }
+          final store = post.store;
+          if (store != null && store.isNotEmpty) {
+            agg.stores[store] = (agg.stores[store] ?? 0) + 1;
+          }
+          if (post.photos.isNotEmpty) {
+            agg.thumbUrl = post.photos.first.thumbUrl;
+          }
         }
       }
 
@@ -108,21 +136,24 @@ class DrinkBackfill {
         batch.set(
           _firestore.collection('drinks').doc(entry.key),
           <String, dynamic>{
-            DrinkDto.fName: agg[DrinkDto.fName],
-            if (agg[DrinkDto.fBrandId] != null)
-              DrinkDto.fBrandId: agg[DrinkDto.fBrandId],
-            if (agg[DrinkDto.fBrandName] != null)
-              DrinkDto.fBrandName: agg[DrinkDto.fBrandName],
-            if (agg['_thumb'] != null) DrinkDto.fThumbUrl: agg['_thumb'],
-            DrinkDto.fPostsCount: FieldValue.increment(agg['_posts'] as int),
-            if ((agg['_ratingCount'] as int) > 0) ...{
-              DrinkDto.fRatingSum: FieldValue.increment(
-                agg['_ratingSum'] as double,
-              ),
-              DrinkDto.fRatingCount: FieldValue.increment(
-                agg['_ratingCount'] as int,
-              ),
+            DrinkDto.fName: agg.name,
+            DrinkDto.fBrandId: ?agg.brandId,
+            DrinkDto.fBrandName: ?agg.brandName,
+            DrinkDto.fThumbUrl: ?agg.thumbUrl,
+            DrinkDto.fPostsCount: FieldValue.increment(agg.posts),
+            if (agg.ratingCount > 0) ...{
+              DrinkDto.fRatingSum: FieldValue.increment(agg.ratingSum),
+              DrinkDto.fRatingCount: FieldValue.increment(agg.ratingCount),
             },
+            if (agg.pricesCount > 0) ...{
+              DrinkDto.fPricesSum: FieldValue.increment(agg.pricesSum),
+              DrinkDto.fPricesCount: FieldValue.increment(agg.pricesCount),
+            },
+            if (agg.stores.isNotEmpty)
+              DrinkDto.fStores: {
+                for (final s in agg.stores.entries)
+                  s.key: FieldValue.increment(s.value),
+              },
             DrinkDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
           },
           SetOptions(merge: true),
@@ -132,4 +163,19 @@ class DrinkBackfill {
       await batch.commit();
     }
   }
+}
+
+class _DrinkAgg {
+  _DrinkAgg({required this.name, this.brandId, this.brandName});
+
+  final String name;
+  final String? brandId;
+  final String? brandName;
+  String? thumbUrl;
+  int posts = 0;
+  double ratingSum = 0;
+  int ratingCount = 0;
+  double pricesSum = 0;
+  int pricesCount = 0;
+  final Map<String, int> stores = {};
 }

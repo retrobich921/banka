@@ -268,7 +268,8 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn()
         && request.resource.data.name is string;
-      allow delete: if false;
+      // Delete нужен клиентской миграции (пересборка карточек).
+      allow delete: if isSignedIn();
     }
 
     // ---- meta/{docId} — служебные claim-документы клиентских миграций -----

@@ -149,7 +149,7 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     try {
       final doc = _postsCol.doc();
       final now = DateTime.now();
-      final drinkId = drinkKeyOf(drinkName, brandId);
+      final drinkId = drinkKeyOf(brandId: brandId, flavorId: flavorId);
       final post = Post(
         id: doc.id,
         authorId: authorId,
@@ -201,25 +201,36 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
 
       // Карточка напитка (drinks/{drinkId}) — агрегат «РЗТ-стиля»:
       // средняя оценка, счётчик постов, статистика магазинов и цен.
-      final cleanStore = post.store;
-      batch.set(_firestore.collection('drinks').doc(drinkId), <String, dynamic>{
-        DrinkDto.fName: drinkName,
-        DrinkDto.fBrandId: ?brandId,
-        DrinkDto.fBrandName: ?brandName,
-        if (photos.isNotEmpty) DrinkDto.fThumbUrl: photos.first.thumbUrl,
-        DrinkDto.fPostsCount: FieldValue.increment(1),
-        if (rating != null) ...{
-          DrinkDto.fRatingSum: FieldValue.increment(rating.score),
-          DrinkDto.fRatingCount: FieldValue.increment(1),
-        },
-        if (price != null) ...{
-          DrinkDto.fPricesSum: FieldValue.increment(price),
-          DrinkDto.fPricesCount: FieldValue.increment(1),
-        },
-        if (cleanStore != null)
-          DrinkDto.fStores: {cleanStore: FieldValue.increment(1)},
-        DrinkDto.fUpdatedAt: Timestamp.fromDate(now),
-      }, SetOptions(merge: true));
+      // Заводится только для постов с выбранными брендом И вкусом —
+      // название поста свободное и напиток не идентифицирует.
+      if (drinkId != null) {
+        final cleanStore = post.store;
+        batch.set(
+          _firestore.collection('drinks').doc(drinkId),
+          <String, dynamic>{
+            DrinkDto.fName: drinkDisplayName(
+              brandName: brandName,
+              flavorName: flavorName,
+            ),
+            DrinkDto.fBrandId: ?brandId,
+            DrinkDto.fBrandName: ?brandName,
+            if (photos.isNotEmpty) DrinkDto.fThumbUrl: photos.first.thumbUrl,
+            DrinkDto.fPostsCount: FieldValue.increment(1),
+            if (rating != null) ...{
+              DrinkDto.fRatingSum: FieldValue.increment(rating.score),
+              DrinkDto.fRatingCount: FieldValue.increment(1),
+            },
+            if (price != null) ...{
+              DrinkDto.fPricesSum: FieldValue.increment(price),
+              DrinkDto.fPricesCount: FieldValue.increment(1),
+            },
+            if (cleanStore != null)
+              DrinkDto.fStores: {cleanStore: FieldValue.increment(1)},
+            DrinkDto.fUpdatedAt: Timestamp.fromDate(now),
+          },
+          SetOptions(merge: true),
+        );
+      }
 
       await batch.commit();
       return post;

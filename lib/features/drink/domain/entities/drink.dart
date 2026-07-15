@@ -40,14 +40,20 @@ sealed class Drink with _$Drink {
   double? get priceAvg => pricesCount == 0 ? null : pricesSum / pricesCount;
 }
 
-/// Детерминированный ключ карточки напитка: слаг названия + бренд.
-/// Один и тот же напиток из разных постов попадает в одну карточку.
-String drinkKeyOf(String drinkName, String? brandId) {
-  var slug = drinkName
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-zа-яё0-9]+'), '-')
-      .replaceAll(RegExp(r'^-+|-+$'), '');
-  if (slug.isEmpty) slug = 'drink';
-  if (slug.length > 80) slug = slug.substring(0, 80);
-  return (brandId == null || brandId.isEmpty) ? slug : '$slug--$brandId';
+/// Детерминированный ключ карточки напитка: **бренд + вкус**.
+///
+/// Название поста — свободное творчество автора («я хз что писать») и для
+/// идентификации напитка не годится. Напиток определяют структурные поля:
+/// бренд и вкус из пикеров. Пост без выбранного бренда или вкуса в карточку
+/// не агрегируется (возвращается null).
+String? drinkKeyOf({String? brandId, String? flavorId}) {
+  if (brandId == null || brandId.isEmpty) return null;
+  if (flavorId == null || flavorId.isEmpty) return null;
+  return '$brandId--$flavorId';
 }
+
+/// Отображаемое имя карточки: «Бренд Вкус».
+String drinkDisplayName({String? brandName, String? flavorName}) => [
+  if (brandName != null && brandName.isNotEmpty) brandName,
+  if (flavorName != null && flavorName.isNotEmpty) flavorName,
+].join(' ');

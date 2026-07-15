@@ -242,13 +242,18 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     CreatePostBarcodeMatched event,
     Emitter<CreatePostState> emit,
   ) {
+    // Автозаполнение — только в пустые поля: если пользователь уже ввёл
+    // название или выбрал бренд, скан кода их НЕ перезаписывает
+    // (код просто привязывается к посту).
+    final keepName = state.drinkName.trim().isNotEmpty;
+    final keepBrand = state.brandId != null && state.brandId!.isNotEmpty;
     emit(
       state.copyWith(
         barcode: event.code,
         barcodeContribute: false,
-        drinkName: event.drinkName,
-        brandId: event.brandId,
-        brandName: event.brandName ?? '',
+        drinkName: keepName ? state.drinkName : event.drinkName,
+        brandId: keepBrand ? state.brandId : event.brandId,
+        brandName: keepBrand ? state.brandName : (event.brandName ?? ''),
         clearError: true,
       ),
     );

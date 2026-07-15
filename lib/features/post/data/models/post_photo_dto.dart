@@ -1,3 +1,4 @@
+import '../../../../core/utils/cloudinary.dart';
 import '../../domain/entities/post.dart';
 
 /// DTO-конверсия `PostPhoto` ↔ Map (вложенный в `posts/{postId}.photos`).
@@ -11,9 +12,15 @@ abstract final class PostPhotoDto {
 
   static PostPhoto fromMap(Map<String, dynamic> data) {
     final url = (data[fUrl] as String?) ?? '';
+    final rawThumb = (data[fThumbUrl] as String?) ?? '';
+    // Легаси-посты писались с thumbUrl == url (полноразмер) — превью
+    // строим на лету Cloudinary-трансформацией.
+    final thumb = (rawThumb.isEmpty || rawThumb == url)
+        ? cloudinaryThumb(url)
+        : rawThumb;
     return PostPhoto(
       url: url,
-      thumbUrl: (data[fThumbUrl] as String?) ?? url,
+      thumbUrl: thumb,
       width: (data[fWidth] as num?)?.toInt() ?? 0,
       height: (data[fHeight] as num?)?.toInt() ?? 0,
     );

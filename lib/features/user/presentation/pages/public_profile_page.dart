@@ -1,4 +1,4 @@
-import 'package:dartz/dartz.dart';
+import 'package:dartz/dartz.dart' hide State;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -10,8 +10,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../follow/presentation/widgets/follow_button.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
 import '../../../post/presentation/widgets/post_card.dart';
+import '../../../post/presentation/widgets/posts_shelf_grid.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/usecases/watch_user.dart';
+import '../widgets/achievements_row.dart';
 
 /// Просмотр профиля другого пользователя (read-only): аватар, имя,
 /// @username, био, статистика и лента его банок. Открывается по тапу на
@@ -48,10 +50,18 @@ class PublicProfilePage extends StatelessWidget {
   }
 }
 
-class _Content extends StatelessWidget {
+class _Content extends StatefulWidget {
   const _Content({required this.profile});
 
   final UserProfile profile;
+
+  @override
+  State<_Content> createState() => _ContentState();
+}
+
+class _ContentState extends State<_Content> {
+  // Полка (сетка) — вид коллекции по умолчанию.
+  bool _shelf = true;
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +79,34 @@ class _Content extends StatelessWidget {
       },
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _Header(profile: profile)),
-          const SliverToBoxAdapter(child: _SectionTitle('Банки')),
+          SliverToBoxAdapter(child: _Header(profile: widget.profile)),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: AchievementsRow(cansCount: widget.profile.stats.cansCount),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Полка',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  ShelfViewToggle(
+                    shelf: _shelf,
+                    onChanged: (v) => setState(() => _shelf = v),
+                  ),
+                ],
+              ),
+            ),
+          ),
           ..._buildBanks(context, feedState),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
@@ -98,6 +134,19 @@ class _Content extends StatelessWidget {
     }
 
     final posts = state.posts;
+    if (_shelf) {
+      return [
+        PostsShelfSliver(posts: posts),
+        if (state.isLoadingMore)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+      ];
+    }
+
     final itemCount = posts.length + (state.isLoadingMore ? 1 : 0);
     return [
       SliverPadding(
@@ -170,28 +219,6 @@ class _Header extends StatelessWidget {
           const SizedBox(height: 16),
           _StatsGrid(stats: profile.stats),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          text,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
       ),
     );
   }

@@ -14,6 +14,7 @@ import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/post_detail_bloc.dart';
 import '../widgets/rating_widgets.dart';
+import '../widgets/share_post_card.dart';
 
 /// Детальный экран поста-«банки».
 ///
@@ -114,6 +115,12 @@ class _PostDetailViewState extends State<_PostDetailView> {
           appBar: AppBar(
             title: const Text('Банка'),
             actions: [
+              if (post != null)
+                IconButton(
+                  tooltip: 'Поделиться',
+                  icon: const Icon(Icons.ios_share),
+                  onPressed: () => showSharePostDialog(context, post),
+                ),
               if (isAuthor)
                 IconButton(
                   tooltip: post.archived

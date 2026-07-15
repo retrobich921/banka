@@ -18,9 +18,7 @@ import '../widgets/rating_widgets.dart';
 /// Детальный экран поста-«банки».
 ///
 /// Подписывается на стрим конкретного поста через `PostDetailBloc`,
-/// чтобы реагировать на live-обновления (лайки/комменты придут в
-/// Sprint 10/11). Первая фотография оборачивается в `Hero` с тем же
-/// `tag`, что и в `PostCard` ленты.
+/// чтобы реагировать на live-обновления лайков/комментов.
 class PostDetailPage extends StatelessWidget {
   const PostDetailPage({super.key, required this.postId});
 
@@ -201,9 +199,6 @@ class _Carousel extends StatelessWidget {
                   color: AppColors.onSurfaceFaint,
                 ),
               );
-              if (i == 0) {
-                return Hero(tag: 'post-photo-${post.id}', child: image);
-              }
               return image;
             },
           ),

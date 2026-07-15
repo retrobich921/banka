@@ -81,6 +81,15 @@ abstract interface class PostRepository {
 
   ResultFuture<void> deletePost(String postId);
 
+  /// Лента подписок: свежие посты от людей [authorIds] и групп [groupIds],
+  /// слитые по `createdAt desc`. Пост, попавший в оба источника (подписан и
+  /// на автора, и на его группу), возвращается один раз.
+  ResultFuture<List<Post>> subscriptionsFeed({
+    required List<String> authorIds,
+    required List<String> groupIds,
+    int limit = 50,
+  });
+
   /// Топ постов для раздела «Топы»: по оценке (`ratingScore`) или по лайкам.
   ResultFuture<List<Post>> topPosts({
     required PostRanking ranking,

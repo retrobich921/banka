@@ -1,6 +1,14 @@
 part of 'post_detail_bloc.dart';
 
-enum PostDetailStatus { initial, loading, ready, notFound, error }
+enum PostDetailStatus {
+  initial,
+  loading,
+  ready,
+  notFound,
+  error,
+  deleting,
+  deleted,
+}
 
 final class PostDetailState extends Equatable {
   const PostDetailState({

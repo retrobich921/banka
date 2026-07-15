@@ -4,6 +4,7 @@ import 'package:banka/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:banka/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:banka/features/home/presentation/pages/home_page.dart';
 import 'package:banka/features/post/presentation/bloc/posts_feed_bloc.dart';
+import 'package:banka/features/post/presentation/bloc/subscriptions_feed_bloc.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,6 +16,10 @@ class _MockAuthBloc extends MockBloc<AuthEvent, AuthState>
 
 class _MockPostsFeedBloc extends MockBloc<PostsFeedEvent, PostsFeedState>
     implements PostsFeedBloc {}
+
+class _MockSubscriptionsFeedBloc
+    extends MockBloc<SubscriptionsFeedEvent, SubscriptionsFeedState>
+    implements SubscriptionsFeedBloc {}
 
 void main() {
   setUpAll(() {
@@ -65,49 +70,55 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets(
-    'HomeView shows brand title, FAB and sign-out button (empty feed)',
-    (tester) async {
-      const user = AuthUser(
-        id: 'uid-1',
-        email: 'a@b.com',
-        displayName: 'Alice',
-      );
-      final auth = _MockAuthBloc();
-      whenListen(
-        auth,
-        const Stream<AuthState>.empty(),
-        initialState: const AuthState.authenticated(user),
-      );
+  testWidgets('FeedTabView shows brand title, tabs and FAB (empty feed)', (
+    tester,
+  ) async {
+    const user = AuthUser(id: 'uid-1', email: 'a@b.com', displayName: 'Alice');
+    final auth = _MockAuthBloc();
+    whenListen(
+      auth,
+      const Stream<AuthState>.empty(),
+      initialState: const AuthState.authenticated(user),
+    );
 
-      final feed = _MockPostsFeedBloc();
-      whenListen(
-        feed,
-        const Stream<PostsFeedState>.empty(),
-        initialState: const PostsFeedState(
-          status: PostsFeedStatus.ready,
-          posts: [],
+    final feed = _MockPostsFeedBloc();
+    whenListen(
+      feed,
+      const Stream<PostsFeedState>.empty(),
+      initialState: const PostsFeedState(
+        status: PostsFeedStatus.ready,
+        posts: [],
+      ),
+    );
+
+    final subs = _MockSubscriptionsFeedBloc();
+    whenListen(
+      subs,
+      const Stream<SubscriptionsFeedState>.empty(),
+      initialState: const SubscriptionsFeedState(
+        status: SubscriptionsFeedStatus.ready,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthBloc>.value(value: auth),
+            BlocProvider<PostsFeedBloc>.value(value: feed),
+            BlocProvider<SubscriptionsFeedBloc>.value(value: subs),
+          ],
+          child: const FeedTabView(userId: 'uid-1'),
         ),
-      );
+      ),
+    );
+    await tester.pump();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.dark,
-          home: MultiBlocProvider(
-            providers: [
-              BlocProvider<AuthBloc>.value(value: auth),
-              BlocProvider<PostsFeedBloc>.value(value: feed),
-            ],
-            child: const HomeView(),
-          ),
-        ),
-      );
-      await tester.pump();
-
-      expect(find.text('banka'), findsOneWidget);
-      expect(find.byIcon(Icons.logout), findsOneWidget);
-      expect(find.byIcon(Icons.add_a_photo_outlined), findsOneWidget);
-      expect(find.textContaining('Запостить банку'), findsWidgets);
-    },
-  );
+    expect(find.text('banka'), findsOneWidget);
+    expect(find.text('Все'), findsOneWidget);
+    expect(find.text('Подписки'), findsOneWidget);
+    expect(find.byIcon(Icons.add_a_photo_outlined), findsOneWidget);
+    expect(find.textContaining('Запостить банку'), findsWidgets);
+  });
 }

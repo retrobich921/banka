@@ -201,6 +201,26 @@ final class PostRepositoryImpl implements PostRepository {
   }
 
   @override
+  ResultFuture<List<Post>> subscriptionsFeed({
+    required List<String> authorIds,
+    required List<String> groupIds,
+    int limit = 50,
+  }) async {
+    try {
+      final posts = await _remote.fetchSubscriptionsFeed(
+        authorIds: authorIds,
+        groupIds: groupIds,
+        limit: limit,
+      );
+      return Right(posts);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
   ResultFuture<List<Post>> topPosts({
     required PostRanking ranking,
     int limit = 50,

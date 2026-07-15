@@ -80,6 +80,14 @@ abstract interface class PostRemoteDataSource {
 
   Future<void> deletePost(String postId);
 
+  /// Лента подписок: посты авторов [authorIds] + посты групп [groupIds],
+  /// объединённые по `createdAt desc`, без дублей.
+  Future<List<Post>> fetchSubscriptionsFeed({
+    required List<String> authorIds,
+    required List<String> groupIds,
+    int limit,
+  });
+
   /// Топ постов: сортировка по `ratingScore` (оценка) либо `likesCount`.
   Future<List<Post>> fetchTopPosts({required PostRanking ranking, int limit});
 
@@ -347,7 +355,86 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
   @override
   Future<void> deletePost(String postId) async {
     try {
-      await _postsCol.doc(postId).delete();
+      final docRef = _postsCol.doc(postId);
+      final snap = await docRef.get();
+      if (!snap.exists) return;
+      final data = snap.data()!;
+      final groupId = data[PostDto.fGroupId] as String?;
+      final authorId = data[PostDto.fAuthorId] as String?;
+
+      // Зеркально createPost: удаляем пост и откатываем denorm-счётчики
+      // группы и автора одним батчем.
+      final batch = _firestore.batch()..delete(docRef);
+      if (groupId != null) {
+        batch.update(
+          _firestore.collection(_groups).doc(groupId),
+          <String, dynamic>{
+            'postsCount': FieldValue.increment(-1),
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          },
+        );
+      }
+      if (authorId != null && authorId.isNotEmpty) {
+        batch.update(
+          _firestore.collection('users').doc(authorId),
+          <String, dynamic>{'stats.cansCount': FieldValue.increment(-1)},
+        );
+      }
+      await batch.commit();
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
+  Future<List<Post>> fetchSubscriptionsFeed({
+    required List<String> authorIds,
+    required List<String> groupIds,
+    int limit = 50,
+  }) async {
+    try {
+      // whereIn ограничен 10 значениями — бьём списки на чанки и сливаем.
+      // Дубли (подписан и на автора, и на группу с его постом) убираем по id.
+      const chunkSize = 10;
+      List<List<String>> chunks(List<String> ids) => [
+        for (var i = 0; i < ids.length; i += chunkSize)
+          ids.sublist(
+            i,
+            i + chunkSize > ids.length ? ids.length : i + chunkSize,
+          ),
+      ];
+
+      final queries = <Future<QuerySnapshot<Map<String, dynamic>>>>[
+        for (final chunk in chunks(authorIds))
+          _postsCol
+              .where(PostDto.fAuthorId, whereIn: chunk)
+              .orderBy(PostDto.fCreatedAt, descending: true)
+              .limit(limit)
+              .get(),
+        for (final chunk in chunks(groupIds))
+          _postsCol
+              .where(PostDto.fGroupId, whereIn: chunk)
+              .orderBy(PostDto.fCreatedAt, descending: true)
+              .limit(limit)
+              .get(),
+      ];
+      if (queries.isEmpty) return const [];
+
+      final snaps = await Future.wait(queries);
+      final byId = <String, Post>{};
+      for (final snap in snaps) {
+        for (final post in _postListFromSnapshot(snap)) {
+          byId[post.id] = post;
+        }
+      }
+      final merged = byId.values.toList()
+        ..sort((a, b) {
+          final ad = a.createdAt;
+          final bd = b.createdAt;
+          if (ad == null || bd == null) return ad == null ? 1 : -1;
+          return bd.compareTo(ad);
+        });
+      return merged.length > limit ? merged.sublist(0, limit) : merged;
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }

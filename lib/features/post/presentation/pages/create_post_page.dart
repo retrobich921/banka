@@ -263,9 +263,9 @@ class _CreatePostViewState extends State<_CreatePostView> {
           }
           if (state.status == CreatePostStatus.error &&
               state.errorMessage != null) {
-            // Проверяем, является ли ошибка ошибкой разрешения камеры
-            if (state.errorMessage!.toLowerCase().contains('permission') ||
-                state.errorMessage!.toLowerCase().contains('разрешение')) {
+            // Диалог настроек показываем только для отказа в доступе к камере;
+            // прочие ошибки (в т.ч. Firestore permission-denied) — снекбаром.
+            if (state.errorMessage!.toLowerCase().contains('камер')) {
               _showPermissionDialog(context);
             } else {
               ScaffoldMessenger.of(

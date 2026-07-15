@@ -7,13 +7,19 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/update/app_updater.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../group/presentation/bloc/groups_list_bloc.dart';
+import '../../../group/presentation/pages/groups_page.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
+import '../../../post/presentation/bloc/subscriptions_feed_bloc.dart';
 import '../../../post/presentation/widgets/posts_feed_view.dart';
+import '../../../post/presentation/widgets/subscriptions_feed_view.dart';
+import '../../../tops/presentation/pages/tops_page.dart';
+import '../../../user/presentation/bloc/profile_bloc.dart';
+import '../../../user/presentation/pages/profile_page.dart';
 
-/// Главный экран — глобальная лента «Все банки».
-///
-/// Отдельный таб «Подписки» появится в Sprint 16 (когда будет логика
-/// подписок); таб «Группа» доступен через `GroupDetailPage`.
+/// Главный экран с нижней навигацией: Лента (Все / Подписки), Топы,
+/// Группы, Профиль. Разделы живут в `IndexedStack`, чтобы не терять
+/// состояние (скролл, подписки) при переключении.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -22,6 +28,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  int _tab = 0;
+
   @override
   void initState() {
     super.initState();
@@ -33,70 +41,132 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<PostsFeedBloc>(
-      create: (_) =>
-          sl<PostsFeedBloc>()
-            ..add(const PostsFeedSubscribeRequested(PostsFeedScope.global())),
-      child: const HomeView(),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          const FeedTab(),
+          const TopsPage(),
+          BlocProvider<GroupsListBloc>(
+            create: (_) => sl<GroupsListBloc>(),
+            child: const GroupsPage(),
+          ),
+          BlocProvider<ProfileBloc>(
+            create: (_) => sl<ProfileBloc>(),
+            child: const ProfilePage(),
+          ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (i) => setState(() => _tab = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Лента',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.emoji_events_outlined),
+            selectedIcon: Icon(Icons.emoji_events),
+            label: 'Топы',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups),
+            label: 'Группы',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Профиль',
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// View-слой главного экрана. Вынесен публично, чтобы виджет-тест
-/// мог обернуть его собственным `BlocProvider<PostsFeedBloc>` без
-/// инициализации DI-контейнера.
-@visibleForTesting
-class HomeView extends StatelessWidget {
-  const HomeView({super.key});
+/// Вкладка «Лента»: глобальная лента и лента подписок (VK-style).
+class FeedTab extends StatelessWidget {
+  const FeedTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.pushNamed(AppRoutes.postCreateName),
-        icon: const Icon(Icons.add_a_photo_outlined),
-        label: const Text('Запостить банку'),
-      ),
-      appBar: AppBar(
-        title: const Text('banka'),
-        actions: [
-          IconButton(
-            tooltip: 'Поиск',
-            icon: const Icon(Icons.search),
-            onPressed: () => context.pushNamed(AppRoutes.searchName),
+    final userId = context.read<AuthBloc>().state.user?.id;
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<PostsFeedBloc>(
+          create: (_) => sl<PostsFeedBloc>()
+            ..add(const PostsFeedSubscribeRequested(PostsFeedScope.global())),
+        ),
+        BlocProvider<SubscriptionsFeedBloc>(
+          create: (_) {
+            final bloc = sl<SubscriptionsFeedBloc>();
+            if (userId != null) bloc.add(SubscriptionsFeedRequested(userId));
+            return bloc;
+          },
+        ),
+      ],
+      child: FeedTabView(userId: userId),
+    );
+  }
+}
+
+/// View-слой вкладки «Лента». Вынесен публично, чтобы виджет-тест мог
+/// обернуть его собственными BlocProvider'ами без инициализации DI.
+@visibleForTesting
+class FeedTabView extends StatelessWidget {
+  const FeedTabView({super.key, this.userId});
+
+  final String? userId;
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => context.pushNamed(AppRoutes.postCreateName),
+          icon: const Icon(Icons.add_a_photo_outlined),
+          label: const Text('Запостить банку'),
+        ),
+        appBar: AppBar(
+          title: const Text('banka'),
+          actions: [
+            IconButton(
+              tooltip: 'Поиск',
+              icon: const Icon(Icons.search),
+              onPressed: () => context.pushNamed(AppRoutes.searchName),
+            ),
+            IconButton(
+              tooltip: 'Бренды',
+              icon: const Icon(Icons.local_drink_outlined),
+              onPressed: () => context.pushNamed(AppRoutes.brandsName),
+            ),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Все'),
+              Tab(text: 'Подписки'),
+            ],
           ),
-          IconButton(
-            tooltip: 'Топы',
-            icon: const Icon(Icons.emoji_events_outlined),
-            onPressed: () => context.pushNamed(AppRoutes.topsName),
-          ),
-          IconButton(
-            tooltip: 'Бренды',
-            icon: const Icon(Icons.local_drink_outlined),
-            onPressed: () => context.pushNamed(AppRoutes.brandsName),
-          ),
-          IconButton(
-            tooltip: 'Группы',
-            icon: const Icon(Icons.groups_outlined),
-            onPressed: () => context.pushNamed(AppRoutes.groupsName),
-          ),
-          IconButton(
-            tooltip: 'Мой профиль',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => context.pushNamed(AppRoutes.profileName),
-          ),
-          IconButton(
-            tooltip: 'Выйти',
-            icon: const Icon(Icons.logout),
-            onPressed: () =>
-                context.read<AuthBloc>().add(const AuthSignOutRequested()),
-          ),
-        ],
-      ),
-      body: const PostsFeedView(
-        emptyText:
-            'Пока никто не запостил банку.\nБудь первым — нажми «Запостить банку».',
+        ),
+        body: TabBarView(
+          children: [
+            const PostsFeedView(
+              emptyText:
+                  'Пока никто не запостил банку.\n'
+                  'Будь первым — нажми «Запостить банку».',
+            ),
+            if (userId != null)
+              SubscriptionsFeedView(userId: userId!)
+            else
+              const SizedBox.shrink(),
+          ],
+        ),
       ),
     );
   }

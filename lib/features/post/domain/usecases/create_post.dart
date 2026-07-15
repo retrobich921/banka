@@ -33,6 +33,8 @@ class CreatePost implements UseCase<Post, CreatePostParams> {
       drinkType: params.drinkType,
       description: params.description,
       tags: params.tags,
+      store: params.store,
+      price: params.price,
     );
   }
 }
@@ -55,6 +57,8 @@ class CreatePostParams extends Equatable {
     this.flavorName,
     this.description = '',
     this.tags = const <String>[],
+    this.store,
+    this.price,
   });
 
   final String authorId;
@@ -73,6 +77,8 @@ class CreatePostParams extends Equatable {
   final DrinkType drinkType;
   final String description;
   final List<String> tags;
+  final String? store;
+  final double? price;
 
   @override
   List<Object?> get props => [
@@ -92,5 +98,7 @@ class CreatePostParams extends Equatable {
     drinkType,
     description,
     tags,
+    store,
+    price,
   ];
 }

@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../../../core/error/exceptions.dart';
+import '../../../drink/data/models/drink_dto.dart';
+import '../../../drink/domain/entities/drink.dart';
 import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
@@ -28,6 +30,8 @@ abstract interface class PostRemoteDataSource {
     DrinkType drinkType,
     required String description,
     required List<String> tags,
+    String? store,
+    double? price,
   });
 
   Future<Post?> getPost(String postId);
@@ -139,10 +143,13 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     DrinkType drinkType = DrinkType.energy,
     required String description,
     required List<String> tags,
+    String? store,
+    double? price,
   }) async {
     try {
       final doc = _postsCol.doc();
       final now = DateTime.now();
+      final drinkId = drinkKeyOf(drinkName, brandId);
       final post = Post(
         id: doc.id,
         authorId: authorId,
@@ -155,6 +162,9 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
         brandName: brandName,
         flavorId: flavorId,
         flavorName: flavorName,
+        drinkId: drinkId,
+        store: (store == null || store.trim().isEmpty) ? null : store.trim(),
+        price: price,
         photos: photos,
         foundDate: foundDate,
         rating: rating,
@@ -188,6 +198,28 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
         _firestore.collection('users').doc(authorId),
         <String, dynamic>{'stats.cansCount': FieldValue.increment(1)},
       );
+
+      // Карточка напитка (drinks/{drinkId}) — агрегат «РЗТ-стиля»:
+      // средняя оценка, счётчик постов, статистика магазинов и цен.
+      final cleanStore = post.store;
+      batch.set(_firestore.collection('drinks').doc(drinkId), <String, dynamic>{
+        DrinkDto.fName: drinkName,
+        DrinkDto.fBrandId: ?brandId,
+        DrinkDto.fBrandName: ?brandName,
+        if (photos.isNotEmpty) DrinkDto.fThumbUrl: photos.first.thumbUrl,
+        DrinkDto.fPostsCount: FieldValue.increment(1),
+        if (rating != null) ...{
+          DrinkDto.fRatingSum: FieldValue.increment(rating.score),
+          DrinkDto.fRatingCount: FieldValue.increment(1),
+        },
+        if (price != null) ...{
+          DrinkDto.fPricesSum: FieldValue.increment(price),
+          DrinkDto.fPricesCount: FieldValue.increment(1),
+        },
+        if (cleanStore != null)
+          DrinkDto.fStores: {cleanStore: FieldValue.increment(1)},
+        DrinkDto.fUpdatedAt: Timestamp.fromDate(now),
+      }, SetOptions(merge: true));
 
       await batch.commit();
       return post;
@@ -367,10 +399,31 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
       final data = snap.data()!;
       final groupId = data[PostDto.fGroupId] as String?;
       final authorId = data[PostDto.fAuthorId] as String?;
+      final post = PostDto.fromMap(postId, data);
 
       // Зеркально createPost: удаляем пост и откатываем denorm-счётчики
-      // группы и автора одним батчем.
+      // группы, автора и карточки напитка одним батчем.
       final batch = _firestore.batch()..delete(docRef);
+      if (post.drinkId != null && post.drinkId!.isNotEmpty) {
+        batch.set(
+          _firestore.collection('drinks').doc(post.drinkId),
+          <String, dynamic>{
+            DrinkDto.fPostsCount: FieldValue.increment(-1),
+            if (post.rating != null) ...{
+              DrinkDto.fRatingSum: FieldValue.increment(-post.rating!.score),
+              DrinkDto.fRatingCount: FieldValue.increment(-1),
+            },
+            if (post.price != null) ...{
+              DrinkDto.fPricesSum: FieldValue.increment(-post.price!),
+              DrinkDto.fPricesCount: FieldValue.increment(-1),
+            },
+            if (post.store != null)
+              DrinkDto.fStores: {post.store!: FieldValue.increment(-1)},
+            DrinkDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
+          },
+          SetOptions(merge: true),
+        );
+      }
       if (groupId != null) {
         batch.update(
           _firestore.collection(_groups).doc(groupId),

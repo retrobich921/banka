@@ -7,6 +7,9 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/usecases/usecase.dart';
+import '../../../drink/domain/entities/drink.dart';
+import '../../../drink/domain/usecases/drink_usecases.dart';
 import '../../../post/domain/entities/post.dart';
 import '../../../post/domain/entities/post_ranking.dart';
 import '../../../post/domain/usecases/top_posts.dart';
@@ -31,7 +34,7 @@ class TopsPage extends StatelessWidget {
           title: const Text('Топы'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: '🏆 Лучшие'),
+              Tab(text: '🥤 Напитки'),
               Tab(text: '❤️ Популярные'),
               Tab(text: '👤 Коллекционеры'),
             ],
@@ -39,12 +42,121 @@ class TopsPage extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
-            _TopPostsTab(ranking: PostRanking.topRated),
+            _TopDrinksTab(),
             _TopPostsTab(ranking: PostRanking.mostLiked),
             _TopCollectorsTab(),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ============================= Напитки =============================
+
+/// Чарт напитков (карточки товара, РЗТ-стиль): сортировка по средней
+/// оценке сообщества; неоценённые — в хвосте по числу постов.
+class _TopDrinksTab extends StatefulWidget {
+  const _TopDrinksTab();
+
+  @override
+  State<_TopDrinksTab> createState() => _TopDrinksTabState();
+}
+
+class _TopDrinksTabState extends State<_TopDrinksTab> {
+  late final Future<Either<Failure, List<Drink>>> _future =
+      sl<FetchTopDrinks>()(const NoParams());
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Either<Failure, List<Drink>>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final drinks =
+            snapshot.data!.fold((_) => <Drink>[], (list) => list).toList()
+              ..sort((a, b) {
+                final aAvg = a.ratingAvg;
+                final bAvg = b.ratingAvg;
+                if (aAvg != null && bAvg != null) return bAvg.compareTo(aAvg);
+                if (aAvg != null) return -1;
+                if (bAvg != null) return 1;
+                return b.postsCount.compareTo(a.postsCount);
+              });
+        if (drinks.isEmpty) {
+          return const _CenteredHint(
+            text:
+                'Карточки напитков появляются из новых постов.\n'
+                'Запости банку — и она попадёт в чарт.',
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: drinks.length,
+          itemBuilder: (context, i) =>
+              _DrinkTile(rank: i + 1, drink: drinks[i]),
+        );
+      },
+    );
+  }
+}
+
+class _DrinkTile extends StatelessWidget {
+  const _DrinkTile({required this.rank, required this.drink});
+
+  final int rank;
+  final Drink drink;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      onTap: () => context.pushNamed(
+        AppRoutes.drinkDetailName,
+        pathParameters: {'id': drink.id},
+      ),
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _RankBadge(rank: rank),
+          const SizedBox(width: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: (drink.thumbUrl == null || drink.thumbUrl!.isEmpty)
+                ? const _ThumbPlaceholder()
+                : CachedNetworkImage(
+                    imageUrl: drink.thumbUrl!,
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, _, _) => const _ThumbPlaceholder(),
+                  ),
+          ),
+        ],
+      ),
+      title: Text(
+        drink.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.titleSmall,
+      ),
+      subtitle: Text(
+        [
+          if (drink.brandName?.isNotEmpty == true) drink.brandName!,
+          '${drink.postsCount} постов',
+          if (drink.ratingCount > 0) '${drink.ratingCount} оценок',
+        ].join(' · '),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: AppColors.onSurfaceMuted,
+        ),
+      ),
+      trailing: drink.ratingAvg != null
+          ? RatingScoreBadge(score: drink.ratingAvg!.round(), compact: true)
+          : null,
     );
   }
 }

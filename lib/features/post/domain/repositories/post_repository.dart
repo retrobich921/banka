@@ -27,6 +27,8 @@ abstract interface class PostRepository {
     DrinkType drinkType = DrinkType.energy,
     String description = '',
     List<String> tags = const <String>[],
+    String? store,
+    double? price,
   });
 
   ResultFuture<Post?> getPost(String postId);

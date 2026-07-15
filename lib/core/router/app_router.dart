@@ -11,6 +11,7 @@ import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/brand/presentation/pages/brand_detail_page.dart';
 import '../../features/brand/presentation/pages/brands_page.dart';
+import '../../features/drink/presentation/pages/drink_detail_page.dart';
 import '../../features/group/presentation/bloc/groups_list_bloc.dart';
 import '../../features/group/presentation/pages/create_group_page.dart';
 import '../../features/group/presentation/pages/group_detail_page.dart';
@@ -116,6 +117,12 @@ final class AppRouter {
         path: AppRoutes.activity,
         name: AppRoutes.activityName,
         builder: (_, _) => const ActivityPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.drinkDetail,
+        name: AppRoutes.drinkDetailName,
+        builder: (_, state) =>
+            DrinkDetailPage(drinkId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.brands,

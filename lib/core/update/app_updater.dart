@@ -158,12 +158,14 @@ Future<void> _showUpdateDialog(BuildContext context, AppUpdate update) {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (update.notes.isNotEmpty)
-                  Text(
-                    update.notes,
-                    maxLines: 6,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.onSurfaceMuted,
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        update.notes,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.onSurfaceMuted,
+                        ),
+                      ),
                     ),
                   ),
                 if (downloading) ...[

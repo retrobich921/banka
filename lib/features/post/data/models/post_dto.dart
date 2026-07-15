@@ -19,6 +19,9 @@ abstract final class PostDto {
   static const String fBrandName = 'brandName';
   static const String fFlavorId = 'flavorId';
   static const String fFlavorName = 'flavorName';
+  static const String fDrinkId = 'drinkId';
+  static const String fStore = 'store';
+  static const String fPrice = 'price';
   static const String fDrinkName = 'drinkName';
   static const String fPhotos = 'photos';
   static const String fFoundDate = 'foundDate';
@@ -52,6 +55,9 @@ abstract final class PostDto {
       brandName: data[fBrandName] as String?,
       flavorId: data[fFlavorId] as String?,
       flavorName: data[fFlavorName] as String?,
+      drinkId: data[fDrinkId] as String?,
+      store: data[fStore] as String?,
+      price: (data[fPrice] as num?)?.toDouble(),
       drinkName: (data[fDrinkName] as String?) ?? '',
       photos: _photoList(data[fPhotos]),
       foundDate: _timestampToDate(data[fFoundDate]),
@@ -81,6 +87,9 @@ abstract final class PostDto {
       if (post.brandName != null) fBrandName: post.brandName,
       if (post.flavorId != null) fFlavorId: post.flavorId,
       if (post.flavorName != null) fFlavorName: post.flavorName,
+      if (post.drinkId != null) fDrinkId: post.drinkId,
+      if (post.store != null) fStore: post.store,
+      if (post.price != null) fPrice: post.price,
       fDrinkName: post.drinkName,
       fPhotos: post.photos.map(PostPhotoDto.toMap).toList(growable: false),
       if (post.foundDate != null)

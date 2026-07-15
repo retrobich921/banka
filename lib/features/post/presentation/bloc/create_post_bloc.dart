@@ -68,6 +68,8 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     on<CreatePostDrinkTypeChanged>(_onDrinkTypeChanged);
     on<CreatePostTagsChanged>(_onTagsChanged);
     on<CreatePostDescriptionChanged>(_onDescriptionChanged);
+    on<CreatePostStoreChanged>(_onStoreChanged);
+    on<CreatePostPriceChanged>(_onPriceChanged);
     on<CreatePostGroupChanged>(_onGroupChanged);
     on<CreatePostSubmitted>(_onSubmitted);
     on<CreatePostCreationAcknowledged>(_onCreationAcknowledged);
@@ -307,6 +309,20 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     Emitter<CreatePostState> emit,
   ) => emit(state.copyWith(description: event.value));
 
+  void _onStoreChanged(
+    CreatePostStoreChanged event,
+    Emitter<CreatePostState> emit,
+  ) => emit(state.copyWith(store: event.value));
+
+  void _onPriceChanged(
+    CreatePostPriceChanged event,
+    Emitter<CreatePostState> emit,
+  ) => emit(
+    event.value == null
+        ? state.copyWith(clearPrice: true)
+        : state.copyWith(price: event.value),
+  );
+
   void _onGroupChanged(
     CreatePostGroupChanged event,
     Emitter<CreatePostState> emit,
@@ -414,6 +430,8 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
         drinkType: state.drinkType,
         description: state.description.trim(),
         tags: state.tags,
+        store: state.store.trim().isEmpty ? null : state.store.trim(),
+        price: state.price,
       ),
     );
 

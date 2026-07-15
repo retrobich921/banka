@@ -16,6 +16,8 @@ abstract final class GroupDto {
   static const String fPostsCount = 'postsCount';
   static const String fTags = 'tags';
   static const String fMembersUids = 'membersUids';
+  static const String fPostingPolicy = 'postingPolicy';
+  static const String fAdminsUids = 'adminsUids';
   static const String fCreatedAt = 'createdAt';
   static const String fUpdatedAt = 'updatedAt';
 
@@ -37,6 +39,11 @@ abstract final class GroupDto {
       postsCount: (data[fPostsCount] as num?)?.toInt() ?? 0,
       tags: _stringList(data[fTags]),
       membersUids: _stringList(data[fMembersUids]),
+      // Старые документы без поля читаются как `all` — поведение не меняется.
+      postingPolicy: GroupPostingPolicy.fromKey(
+        data[fPostingPolicy] as String?,
+      ),
+      adminsUids: _stringList(data[fAdminsUids]),
       createdAt: _timestampToDate(data[fCreatedAt]),
       updatedAt: _timestampToDate(data[fUpdatedAt]),
     );
@@ -54,6 +61,8 @@ abstract final class GroupDto {
       fPostsCount: group.postsCount,
       fTags: group.tags,
       fMembersUids: group.membersUids,
+      fPostingPolicy: group.postingPolicy.key,
+      fAdminsUids: group.adminsUids,
       if (group.createdAt != null)
         fCreatedAt: Timestamp.fromDate(group.createdAt!),
       if (group.updatedAt != null)

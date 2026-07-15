@@ -16,6 +16,7 @@ import '../../features/group/presentation/pages/group_detail_page.dart';
 import '../../features/group/presentation/pages/groups_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/like/presentation/pages/who_liked_page.dart';
+import '../../features/post/presentation/pages/archived_posts_page.dart';
 import '../../features/post/presentation/pages/create_post_page.dart';
 import '../../features/post/presentation/pages/post_detail_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
@@ -104,6 +105,11 @@ final class AppRouter {
         path: AppRoutes.tops,
         name: AppRoutes.topsName,
         builder: (_, _) => const TopsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.archive,
+        name: AppRoutes.archiveName,
+        builder: (_, _) => const ArchivedPostsPage(),
       ),
       GoRoute(
         path: AppRoutes.brands,

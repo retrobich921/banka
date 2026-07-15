@@ -1,3 +1,4 @@
+import 'package:dartz/dartz.dart' hide State;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,8 +7,11 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../../core/error/failures.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
 import '../../../post/presentation/widgets/post_card.dart';
+import '../../../user/domain/entities/user_profile.dart';
+import '../../../user/domain/usecases/watch_user.dart';
 import '../../domain/entities/group.dart';
 import '../bloc/group_detail_bloc.dart';
 import 'join_requests_page.dart';
@@ -88,10 +92,13 @@ class _GroupDetailViewState extends State<_GroupDetailView> {
         final isLoading =
             state.status == GroupDetailStatus.initial ||
             (state.status == GroupDetailStatus.loading && group == null);
+        final userId = context.read<AuthBloc>().state.user?.id;
+        final canPost =
+            group != null && userId != null && group.canPost(userId);
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          floatingActionButton: state.isMember && group != null
+          floatingActionButton: state.isMember && group != null && canPost
               ? FloatingActionButton.extended(
                   onPressed: () => context.pushNamed(
                     AppRoutes.postCreateName,
@@ -191,9 +198,8 @@ class _GroupBody extends StatelessWidget {
                 errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
-          Text(group.name, style: theme.textTheme.titleLarge),
+          // Название группы уже в AppBar — здесь не дублируем.
           if (group.description.isNotEmpty) ...[
-            const SizedBox(height: 8),
             Text(
               group.description,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -211,6 +217,25 @@ class _GroupBody extends StatelessWidget {
               _Privacy(isPublic: group.isPublic),
             ],
           ),
+          if (group.postingPolicy == GroupPostingPolicy.admins) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.campaign_outlined,
+                  size: 16,
+                  color: AppColors.onSurfaceMuted,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Публикуют только владелец и админы',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
           _MembershipButton(state: state),
           const SizedBox(height: 32),
@@ -219,12 +244,48 @@ class _GroupBody extends StatelessWidget {
           ...state.members.map(
             (m) => ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(
-                Icons.person_outline,
-                color: AppColors.onSurfaceMuted,
+              leading: Icon(
+                switch (m.role) {
+                  GroupRole.owner => Icons.shield_outlined,
+                  GroupRole.admin => Icons.verified_user_outlined,
+                  GroupRole.member => Icons.person_outline,
+                },
+                color: m.role == GroupRole.member
+                    ? AppColors.onSurfaceMuted
+                    : AppColors.primary,
               ),
-              title: Text(m.displayName.isNotEmpty ? m.displayName : m.userId),
+              title: _MemberName(member: m),
               subtitle: Text(_roleLabel(m.role)),
+              // Владелец управляет ролями остальных участников.
+              trailing: state.isOwner && m.role != GroupRole.owner
+                  ? PopupMenuButton<GroupRole>(
+                      tooltip: 'Роль участника',
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: AppColors.onSurfaceMuted,
+                      ),
+                      onSelected: state.isMutating
+                          ? null
+                          : (role) => context.read<GroupDetailBloc>().add(
+                              GroupDetailSetRoleRequested(
+                                userId: m.userId,
+                                role: role,
+                              ),
+                            ),
+                      itemBuilder: (_) => [
+                        if (m.role != GroupRole.admin)
+                          const PopupMenuItem(
+                            value: GroupRole.admin,
+                            child: Text('Сделать админом'),
+                          )
+                        else
+                          const PopupMenuItem(
+                            value: GroupRole.member,
+                            child: Text('Снять админа'),
+                          ),
+                      ],
+                    )
+                  : null,
             ),
           ),
           const SizedBox(height: 32),
@@ -242,6 +303,35 @@ class _GroupBody extends StatelessWidget {
     GroupRole.admin => 'админ',
     GroupRole.member => 'участник',
   };
+}
+
+/// Имя участника. В легаси member-документах `displayName` пустой (или туда
+/// попадал uid) — тогда резолвим имя из профиля `users/{uid}`.
+class _MemberName extends StatelessWidget {
+  const _MemberName({required this.member});
+
+  final GroupMember member;
+
+  @override
+  Widget build(BuildContext context) {
+    final denormalized = member.displayName.trim();
+    // Не показываем uid, даже если он записан в displayName.
+    final hasRealName =
+        denormalized.isNotEmpty && denormalized != member.userId;
+    if (hasRealName) return Text(denormalized);
+
+    return StreamBuilder<Either<Failure, UserProfile?>>(
+      stream: sl<WatchUser>().call(member.userId),
+      builder: (context, snapshot) {
+        final profile = snapshot.data?.fold<UserProfile?>(
+          (_) => null,
+          (p) => p,
+        );
+        final name = profile?.displayName.trim() ?? '';
+        return Text(name.isNotEmpty ? name : 'Коллекционер');
+      },
+    );
+  }
 }
 
 class _GroupPostsSection extends StatelessWidget {

@@ -201,6 +201,39 @@ final class PostRepositoryImpl implements PostRepository {
   }
 
   @override
+  ResultFuture<void> setArchived({
+    required String postId,
+    required bool archived,
+  }) async {
+    try {
+      await _remote.setArchived(postId: postId, archived: archived);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultFuture<List<Post>> archivedPosts({
+    required String authorId,
+    int limit = 50,
+  }) async {
+    try {
+      final posts = await _remote.fetchArchivedPosts(
+        authorId: authorId,
+        limit: limit,
+      );
+      return Right(posts);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
   ResultFuture<List<Post>> subscriptionsFeed({
     required List<String> authorIds,
     required List<String> groupIds,

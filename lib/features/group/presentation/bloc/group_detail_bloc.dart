@@ -12,6 +12,7 @@ import '../../domain/usecases/get_join_request.dart';
 import '../../domain/usecases/join_group.dart';
 import '../../domain/usecases/leave_group.dart';
 import '../../domain/usecases/request_join_group.dart';
+import '../../domain/usecases/set_member_role.dart';
 import '../../domain/usecases/watch_group.dart';
 import '../../domain/usecases/watch_group_members.dart';
 
@@ -30,10 +31,12 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
     this._leaveGroup,
     this._deleteGroup,
     this._getJoinRequest,
+    this._setMemberRole,
   ) : super(const GroupDetailState.initial()) {
     on<GroupDetailSubscribeRequested>(_onSubscribeRequested);
     on<GroupDetailJoinRequested>(_onJoinRequested);
     on<GroupDetailLeaveRequested>(_onLeaveRequested);
+    on<GroupDetailSetRoleRequested>(_onSetRoleRequested);
     on<GroupDetailDeleteRequested>(_onDeleteRequested);
     on<GroupDetailResetRequested>(_onResetRequested);
     on<_GroupDetailGroupReceived>(_onGroupReceived);
@@ -47,6 +50,7 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
   final LeaveGroup _leaveGroup;
   final DeleteGroup _deleteGroup;
   final GetJoinRequest _getJoinRequest;
+  final SetMemberRole _setMemberRole;
 
   StreamSubscription<Either<Failure, Group?>>? _groupSub;
   StreamSubscription<Either<Failure, List<GroupMember>>>? _membersSub;
@@ -153,11 +157,11 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
 
     emit(state.copyWith(status: GroupDetailStatus.mutating, clearError: true));
 
+    // Пустое имя лучше uid: UI подставит имя из профиля пользователя.
     final params = GroupMembershipParams(
       groupId: groupId,
       userId: userId,
-      displayName:
-          displayName ?? userId, // Fallback to userId if displayName is null
+      displayName: displayName ?? '',
     );
 
     // Если группа закрытая, создаём запрос на вступление
@@ -221,6 +225,35 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
           errorMessage: failure.message ?? 'Не удалось выйти из группы',
         ),
       ),
+      (_) => emit(state.copyWith(status: GroupDetailStatus.ready)),
+    );
+  }
+
+  Future<void> _onSetRoleRequested(
+    GroupDetailSetRoleRequested event,
+    Emitter<GroupDetailState> emit,
+  ) async {
+    final groupId = _currentGroupId;
+    if (groupId == null) return;
+
+    emit(state.copyWith(status: GroupDetailStatus.mutating, clearError: true));
+
+    final result = await _setMemberRole(
+      SetMemberRoleParams(
+        groupId: groupId,
+        userId: event.userId,
+        role: event.role,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: GroupDetailStatus.error,
+          errorMessage: failure.message ?? 'Не удалось изменить роль',
+        ),
+      ),
+      // Обновлённый список ролей придёт сам через watchGroupMembers.
       (_) => emit(state.copyWith(status: GroupDetailStatus.ready)),
     );
   }

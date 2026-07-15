@@ -1,6 +1,7 @@
 import 'package:banka/core/error/failures.dart';
 import 'package:banka/features/post/domain/entities/post.dart';
 import 'package:banka/features/post/domain/usecases/delete_post.dart';
+import 'package:banka/features/post/domain/usecases/set_post_archived.dart';
 import 'package:banka/features/post/domain/usecases/watch_post.dart';
 import 'package:banka/features/post/presentation/bloc/post_detail_bloc.dart';
 import 'package:bloc_test/bloc_test.dart';
@@ -12,16 +13,21 @@ class _MockWatchPost extends Mock implements WatchPost {}
 
 class _MockDeletePost extends Mock implements DeletePost {}
 
+class _MockSetPostArchived extends Mock implements SetPostArchived {}
+
 void main() {
   late _MockWatchPost watchPost;
   late _MockDeletePost deletePost;
+  late _MockSetPostArchived setPostArchived;
 
   setUp(() {
     watchPost = _MockWatchPost();
     deletePost = _MockDeletePost();
+    setPostArchived = _MockSetPostArchived();
   });
 
-  PostDetailBloc buildBloc() => PostDetailBloc(watchPost, deletePost);
+  PostDetailBloc buildBloc() =>
+      PostDetailBloc(watchPost, deletePost, setPostArchived);
 
   group('PostDetailSubscribeRequested', () {
     blocTest<PostDetailBloc, PostDetailState>(
@@ -191,6 +197,65 @@ void main() {
       act: (b) => b.add(const PostDetailDeleteRequested()),
       expect: () => const <PostDetailState>[],
       verify: (_) => verifyNever(() => deletePost(any())),
+    );
+  });
+
+  group('PostDetailArchiveToggleRequested', () {
+    const post = Post(id: 'p1', authorId: 'a', drinkName: 'Red Bull');
+
+    setUp(() {
+      registerFallbackValue(
+        const SetPostArchivedParams(postId: '', archived: true),
+      );
+    });
+
+    blocTest<PostDetailBloc, PostDetailState>(
+      'успех — только вызов usecase, состояние обновит стрим',
+      setUp: () {
+        when(
+          () => watchPost('p1'),
+        ).thenAnswer((_) => Stream.value(const Right<Failure, Post?>(post)));
+        when(
+          () => setPostArchived(any()),
+        ).thenAnswer((_) async => const Right(null));
+      },
+      build: buildBloc,
+      act: (b) async {
+        b.add(const PostDetailSubscribeRequested('p1'));
+        await Future<void>.delayed(Duration.zero);
+        b.add(const PostDetailArchiveToggleRequested(archived: true));
+      },
+      skip: 2, // loading, ready
+      expect: () => const <PostDetailState>[],
+      verify: (_) => verify(
+        () => setPostArchived(
+          const SetPostArchivedParams(postId: 'p1', archived: true),
+        ),
+      ).called(1),
+    );
+
+    blocTest<PostDetailBloc, PostDetailState>(
+      'ошибка — emit error с сообщением',
+      setUp: () {
+        when(
+          () => watchPost('p1'),
+        ).thenAnswer((_) => Stream.value(const Right<Failure, Post?>(post)));
+        when(() => setPostArchived(any())).thenAnswer(
+          (_) async => const Left(ServerFailure(message: 'нет сети')),
+        );
+      },
+      build: buildBloc,
+      act: (b) async {
+        b.add(const PostDetailSubscribeRequested('p1'));
+        await Future<void>.delayed(Duration.zero);
+        b.add(const PostDetailArchiveToggleRequested(archived: true));
+      },
+      skip: 2, // loading, ready
+      expect: () => [
+        isA<PostDetailState>()
+            .having((s) => s.status, 'status', PostDetailStatus.error)
+            .having((s) => s.errorMessage, 'msg', 'нет сети'),
+      ],
     );
   });
 }

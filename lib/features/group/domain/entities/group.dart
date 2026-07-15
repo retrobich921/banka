@@ -24,9 +24,44 @@ sealed class Group with _$Group {
     @Default(0) int postsCount,
     @Default(<String>[]) List<String> tags,
     @Default(<String>[]) List<String> membersUids,
+
+    /// Кто может публиковать посты в группу.
+    @Default(GroupPostingPolicy.all) GroupPostingPolicy postingPolicy,
+
+    /// Денорм-список uid админов (владелец сюда не входит — он проверяется
+    /// по `ownerId`). Нужен для дешёвой проверки «могу ли постить» без
+    /// чтения member-документа.
+    @Default(<String>[]) List<String> adminsUids,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _Group;
+}
+
+/// Политика публикации постов в группе.
+enum GroupPostingPolicy {
+  /// Постить может любой участник (поведение по умолчанию, как раньше).
+  all,
+
+  /// Постить могут только владелец и админы; остальные — подписчики.
+  admins;
+
+  static GroupPostingPolicy fromKey(String? key) => switch (key) {
+    'admins' => GroupPostingPolicy.admins,
+    _ => GroupPostingPolicy.all,
+  };
+
+  String get key => switch (this) {
+    GroupPostingPolicy.all => 'all',
+    GroupPostingPolicy.admins => 'admins',
+  };
+}
+
+extension GroupPermissions on Group {
+  /// Может ли [userId] публиковать посты в эту группу.
+  bool canPost(String userId) =>
+      postingPolicy == GroupPostingPolicy.all ||
+      ownerId == userId ||
+      adminsUids.contains(userId);
 }
 
 enum GroupRole { owner, admin, member }

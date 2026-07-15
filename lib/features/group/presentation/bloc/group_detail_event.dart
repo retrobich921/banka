@@ -34,6 +34,17 @@ final class GroupDetailDeleteRequested extends GroupDetailEvent {
   const GroupDetailDeleteRequested();
 }
 
+/// Владелец назначает/снимает админа у участника [userId].
+final class GroupDetailSetRoleRequested extends GroupDetailEvent {
+  const GroupDetailSetRoleRequested({required this.userId, required this.role});
+
+  final String userId;
+  final GroupRole role;
+
+  @override
+  List<Object?> get props => [userId, role];
+}
+
 final class GroupDetailResetRequested extends GroupDetailEvent {
   const GroupDetailResetRequested();
 }

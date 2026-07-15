@@ -39,6 +39,10 @@ sealed class Post with _$Post {
     @Default(<String>[]) List<String> tags,
     @Default(0) int likesCount,
     @Default(0) int commentsCount,
+
+    /// Пост в архиве: скрыт из всех лент, автор может вернуть его
+    /// из раздела «Архив» (мягкая альтернатива удалению).
+    @Default(false) bool archived,
     @Default(<String>[]) List<String> searchKeywords,
     DateTime? createdAt,
     DateTime? updatedAt,

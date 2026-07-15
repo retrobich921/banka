@@ -5,6 +5,7 @@ import 'package:banka/features/group/domain/usecases/get_join_request.dart';
 import 'package:banka/features/group/domain/usecases/join_group.dart';
 import 'package:banka/features/group/domain/usecases/leave_group.dart';
 import 'package:banka/features/group/domain/usecases/request_join_group.dart';
+import 'package:banka/features/group/domain/usecases/set_member_role.dart';
 import 'package:banka/features/group/domain/usecases/watch_group.dart';
 import 'package:banka/features/group/domain/usecases/watch_group_members.dart';
 import 'package:banka/features/group/presentation/bloc/group_detail_bloc.dart';
@@ -27,6 +28,8 @@ class _MockDeleteGroup extends Mock implements DeleteGroup {}
 
 class _MockGetJoinRequest extends Mock implements GetJoinRequest {}
 
+class _MockSetMemberRole extends Mock implements SetMemberRole {}
+
 void main() {
   late _MockWatchGroup watchGroup;
   late _MockWatchGroupMembers watchGroupMembers;
@@ -35,6 +38,7 @@ void main() {
   late _MockLeaveGroup leaveGroup;
   late _MockDeleteGroup deleteGroup;
   late _MockGetJoinRequest getJoinRequest;
+  late _MockSetMemberRole setMemberRole;
 
   const groupId = 'grp-1';
   const userId = 'uid-1';
@@ -57,6 +61,7 @@ void main() {
     leaveGroup = _MockLeaveGroup();
     deleteGroup = _MockDeleteGroup();
     getJoinRequest = _MockGetJoinRequest();
+    setMemberRole = _MockSetMemberRole();
 
     registerFallbackValue(
       const GroupMembershipParams(groupId: '', userId: '', displayName: ''),
@@ -71,6 +76,7 @@ void main() {
     leaveGroup,
     deleteGroup,
     getJoinRequest,
+    setMemberRole,
   );
 
   group('subscribe', () {

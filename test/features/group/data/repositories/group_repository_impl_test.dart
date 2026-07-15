@@ -27,6 +27,10 @@ void main() {
     updatedAt: DateTime(2025, 1, 1),
   );
 
+  setUpAll(() {
+    registerFallbackValue(GroupPostingPolicy.all);
+  });
+
   setUp(() {
     remote = _MockRemote();
     repository = GroupRepositoryImpl(remote);
@@ -42,6 +46,8 @@ void main() {
           isPublic: any(named: 'isPublic'),
           tags: any(named: 'tags'),
           coverUrl: any(named: 'coverUrl'),
+          postingPolicy: any(named: 'postingPolicy'),
+          ownerDisplayName: any(named: 'ownerDisplayName'),
         ),
       ).thenAnswer((_) async => group);
 
@@ -62,6 +68,8 @@ void main() {
           isPublic: any(named: 'isPublic'),
           tags: any(named: 'tags'),
           coverUrl: any(named: 'coverUrl'),
+          postingPolicy: any(named: 'postingPolicy'),
+          ownerDisplayName: any(named: 'ownerDisplayName'),
         ),
       ).thenThrow(const ServerException(message: 'denied'));
 

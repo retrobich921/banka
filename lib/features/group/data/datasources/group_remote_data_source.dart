@@ -17,6 +17,8 @@ abstract interface class GroupRemoteDataSource {
     required bool isPublic,
     required List<String> tags,
     String? coverUrl,
+    GroupPostingPolicy postingPolicy,
+    String ownerDisplayName,
   });
 
   Future<Group?> getGroup(String groupId);
@@ -51,6 +53,13 @@ abstract interface class GroupRemoteDataSource {
   Future<GroupMember?> getMembership({
     required String groupId,
     required String userId,
+  });
+
+  /// Назначить/снять админа: роль в member-документе + денорм `adminsUids`.
+  Future<void> setMemberRole({
+    required String groupId,
+    required String userId,
+    required GroupRole role,
   });
 
   /// Создать запрос на вступление в закрытую группу
@@ -112,6 +121,8 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
     required bool isPublic,
     required List<String> tags,
     String? coverUrl,
+    GroupPostingPolicy postingPolicy = GroupPostingPolicy.all,
+    String ownerDisplayName = '',
   }) async {
     try {
       final doc = _groupsCol.doc();
@@ -127,6 +138,7 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
         postsCount: 0,
         tags: tags,
         membersUids: [ownerId],
+        postingPolicy: postingPolicy,
         createdAt: now,
         updatedAt: now,
       );
@@ -134,7 +146,7 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
         userId: ownerId,
         groupId: doc.id,
         role: GroupRole.owner,
-        displayName: '', // TODO: передавать displayName владельца
+        displayName: ownerDisplayName,
         joinedAt: now,
       );
       final batch = _firestore.batch()
@@ -326,6 +338,29 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
       final snap = await _membersCol(groupId).doc(userId).get();
       if (!snap.exists) return null;
       return GroupMemberDto.fromSnapshot(groupId: groupId, snapshot: snap);
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
+  Future<void> setMemberRole({
+    required String groupId,
+    required String userId,
+    required GroupRole role,
+  }) async {
+    try {
+      final batch = _firestore.batch()
+        ..update(_membersCol(groupId).doc(userId), <String, dynamic>{
+          GroupMemberDto.fRole: role == GroupRole.admin ? 'admin' : 'member',
+        })
+        ..update(_groupsCol.doc(groupId), <String, dynamic>{
+          GroupDto.fAdminsUids: role == GroupRole.admin
+              ? FieldValue.arrayUnion(<String>[userId])
+              : FieldValue.arrayRemove(<String>[userId]),
+          GroupDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
+        });
+      await batch.commit();
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }

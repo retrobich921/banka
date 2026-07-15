@@ -56,6 +56,11 @@ class _ProfilePageState extends State<ProfilePage> {
           title: const Text('Профиль'),
           actions: [
             IconButton(
+              icon: const Icon(Icons.archive_outlined),
+              tooltip: 'Архив',
+              onPressed: () => context.pushNamed(AppRoutes.archiveName),
+            ),
+            IconButton(
               icon: const Icon(Icons.edit_outlined),
               tooltip: 'Редактировать',
               onPressed: () => context.pushNamed(AppRoutes.profileEditName),

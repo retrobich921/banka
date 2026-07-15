@@ -81,6 +81,19 @@ abstract interface class PostRepository {
 
   ResultFuture<void> deletePost(String postId);
 
+  /// Архивирование/восстановление поста — мягкая альтернатива удалению:
+  /// пост скрывается из всех лент, но остаётся в «Архиве» автора.
+  ResultFuture<void> setArchived({
+    required String postId,
+    required bool archived,
+  });
+
+  /// Архив автора (посты с `archived == true`), свежие сверху.
+  ResultFuture<List<Post>> archivedPosts({
+    required String authorId,
+    int limit = 50,
+  });
+
   /// Лента подписок: свежие посты от людей [authorIds] и групп [groupIds],
   /// слитые по `createdAt desc`. Пост, попавший в оба источника (подписан и
   /// на автора, и на его группу), возвращается один раз.

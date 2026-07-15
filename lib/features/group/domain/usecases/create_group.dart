@@ -21,6 +21,7 @@ class CreateGroup implements UseCase<Group, CreateGroupParams> {
       isPublic: params.isPublic,
       tags: params.tags,
       coverUrl: params.coverUrl,
+      postingPolicy: params.postingPolicy,
     );
   }
 }
@@ -33,6 +34,7 @@ class CreateGroupParams extends Equatable {
     this.isPublic = true,
     this.tags = const <String>[],
     this.coverUrl,
+    this.postingPolicy = GroupPostingPolicy.all,
   });
 
   final String ownerId;
@@ -41,6 +43,7 @@ class CreateGroupParams extends Equatable {
   final bool isPublic;
   final List<String> tags;
   final String? coverUrl;
+  final GroupPostingPolicy postingPolicy;
 
   @override
   List<Object?> get props => [
@@ -50,5 +53,6 @@ class CreateGroupParams extends Equatable {
     isPublic,
     tags,
     coverUrl,
+    postingPolicy,
   ];
 }

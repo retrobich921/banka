@@ -88,10 +88,13 @@ class _GroupDetailViewState extends State<_GroupDetailView> {
         final isLoading =
             state.status == GroupDetailStatus.initial ||
             (state.status == GroupDetailStatus.loading && group == null);
+        final userId = context.read<AuthBloc>().state.user?.id;
+        final canPost =
+            group != null && userId != null && group.canPost(userId);
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          floatingActionButton: state.isMember && group != null
+          floatingActionButton: state.isMember && group != null && canPost
               ? FloatingActionButton.extended(
                   onPressed: () => context.pushNamed(
                     AppRoutes.postCreateName,
@@ -211,6 +214,25 @@ class _GroupBody extends StatelessWidget {
               _Privacy(isPublic: group.isPublic),
             ],
           ),
+          if (group.postingPolicy == GroupPostingPolicy.admins) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.campaign_outlined,
+                  size: 16,
+                  color: AppColors.onSurfaceMuted,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Публикуют только владелец и админы',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
           _MembershipButton(state: state),
           const SizedBox(height: 32),
@@ -219,12 +241,48 @@ class _GroupBody extends StatelessWidget {
           ...state.members.map(
             (m) => ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(
-                Icons.person_outline,
-                color: AppColors.onSurfaceMuted,
+              leading: Icon(
+                switch (m.role) {
+                  GroupRole.owner => Icons.shield_outlined,
+                  GroupRole.admin => Icons.verified_user_outlined,
+                  GroupRole.member => Icons.person_outline,
+                },
+                color: m.role == GroupRole.member
+                    ? AppColors.onSurfaceMuted
+                    : AppColors.primary,
               ),
               title: Text(m.displayName.isNotEmpty ? m.displayName : m.userId),
               subtitle: Text(_roleLabel(m.role)),
+              // Владелец управляет ролями остальных участников.
+              trailing: state.isOwner && m.role != GroupRole.owner
+                  ? PopupMenuButton<GroupRole>(
+                      tooltip: 'Роль участника',
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: AppColors.onSurfaceMuted,
+                      ),
+                      onSelected: state.isMutating
+                          ? null
+                          : (role) => context.read<GroupDetailBloc>().add(
+                              GroupDetailSetRoleRequested(
+                                userId: m.userId,
+                                role: role,
+                              ),
+                            ),
+                      itemBuilder: (_) => [
+                        if (m.role != GroupRole.admin)
+                          const PopupMenuItem(
+                            value: GroupRole.admin,
+                            child: Text('Сделать админом'),
+                          )
+                        else
+                          const PopupMenuItem(
+                            value: GroupRole.member,
+                            child: Text('Снять админа'),
+                          ),
+                      ],
+                    )
+                  : null,
             ),
           ),
           const SizedBox(height: 32),

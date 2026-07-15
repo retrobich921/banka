@@ -947,10 +947,12 @@ class _GroupPickerSheet extends StatelessWidget {
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          final groups = snap.data!.fold<List<Group>>(
-            (_) => const <Group>[],
-            (g) => g,
-          );
+          // Предлагаем только группы, куда пользователь МОЖЕТ постить:
+          // с политикой «только админы» обычный участник группу не выберет.
+          final groups = snap.data!
+              .fold<List<Group>>((_) => const <Group>[], (g) => g)
+              .where((g) => g.canPost(userId))
+              .toList(growable: false);
           return ListView(
             shrinkWrap: true,
             children: [

@@ -17,6 +17,15 @@ service cloud.firestore {
     function isGroupOwner(groupId) {
       return isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
     }
+    // Может ли текущий пользователь публиковать посты в группу: политика
+    // `all` (или отсутствует — легаси-группы) разрешает всем участникам,
+    // `admins` — только владельцу и админам из денорм-массива adminsUids.
+    function canPostToGroup(groupId) {
+      let g = get(/databases/$(database)/documents/groups/$(groupId)).data;
+      return g.get('postingPolicy', 'all') != 'admins'
+        || g.ownerId == request.auth.uid
+        || request.auth.uid in g.get('adminsUids', []);
+    }
 
     // ---- users/{uid} (Sprint 3) ---------------------------------------------
     match /users/{userId} {
@@ -114,7 +123,10 @@ service cloud.firestore {
         && request.resource.data.drinkType is string
         // Оценка необязательна; если есть — это map с числовым ratingScore.
         && (!('rating' in request.resource.data)
-            || request.resource.data.rating is map);
+            || request.resource.data.rating is map)
+        // Пост в группу — только если политика группы это разрешает.
+        && (!('groupId' in request.resource.data)
+            || canPostToGroup(request.resource.data.groupId));
 
       // Редактирование текстовых полей — только автор.
       // Счётчики (likesCount, commentsCount) могут обновляться любым авторизованным

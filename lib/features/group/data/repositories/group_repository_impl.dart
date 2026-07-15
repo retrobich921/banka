@@ -22,6 +22,7 @@ final class GroupRepositoryImpl implements GroupRepository {
     bool isPublic = true,
     List<String> tags = const <String>[],
     String? coverUrl,
+    GroupPostingPolicy postingPolicy = GroupPostingPolicy.all,
   }) async {
     try {
       final group = await _remote.createGroup(
@@ -31,6 +32,7 @@ final class GroupRepositoryImpl implements GroupRepository {
         isPublic: isPublic,
         tags: tags,
         coverUrl: coverUrl,
+        postingPolicy: postingPolicy,
       );
       return Right(group);
     } on ServerException catch (e) {
@@ -209,6 +211,22 @@ final class GroupRepositoryImpl implements GroupRepository {
         userId: userId,
       );
       return Right(member);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultFuture<void> setMemberRole({
+    required String groupId,
+    required String userId,
+    required GroupRole role,
+  }) async {
+    try {
+      await _remote.setMemberRole(groupId: groupId, userId: userId, role: role);
+      return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, cause: e.cause));
     } catch (e) {

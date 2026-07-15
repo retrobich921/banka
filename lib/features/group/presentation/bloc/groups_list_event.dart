@@ -28,15 +28,17 @@ final class GroupsListCreateRequested extends GroupsListEvent {
     this.description = '',
     this.isPublic = true,
     this.tags = const <String>[],
+    this.postingPolicy = GroupPostingPolicy.all,
   });
 
   final String name;
   final String description;
   final bool isPublic;
   final List<String> tags;
+  final GroupPostingPolicy postingPolicy;
 
   @override
-  List<Object?> get props => [name, description, isPublic, tags];
+  List<Object?> get props => [name, description, isPublic, tags, postingPolicy];
 }
 
 /// Сбросить хвост `created` после того, как UI обработал переход.

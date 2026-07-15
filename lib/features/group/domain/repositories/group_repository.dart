@@ -13,6 +13,7 @@ abstract interface class GroupRepository {
     bool isPublic,
     List<String> tags,
     String? coverUrl,
+    GroupPostingPolicy postingPolicy,
   });
 
   ResultFuture<Group?> getGroup(String groupId);
@@ -60,6 +61,15 @@ abstract interface class GroupRepository {
   ResultFuture<GroupMember?> getMembership({
     required String groupId,
     required String userId,
+  });
+
+  /// Назначить/снять админа (только владелец, проверка в Security Rules).
+  /// Атомарно обновляет роль в member-документе и денорм-массив
+  /// `adminsUids` на группе.
+  ResultFuture<void> setMemberRole({
+    required String groupId,
+    required String userId,
+    required GroupRole role,
   });
 
   /// Создать запрос на вступление в закрытую группу

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../domain/entities/group.dart';
 import '../bloc/groups_list_bloc.dart';
 
 /// Экран создания группы. После `GroupsListStatus.created` экран сам
@@ -19,6 +20,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _isPublic = true;
+  bool _adminsOnlyPosting = false;
 
   @override
   void dispose() {
@@ -34,6 +36,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         name: _nameController.text,
         description: _descriptionController.text,
         isPublic: _isPublic,
+        postingPolicy: _adminsOnlyPosting
+            ? GroupPostingPolicy.admins
+            : GroupPostingPolicy.all,
       ),
     );
   }
@@ -116,6 +121,24 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       onChanged: isSubmitting
                           ? null
                           : (value) => setState(() => _isPublic = value),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Публикуют только админы'),
+                      subtitle: Text(
+                        _adminsOnlyPosting
+                            ? 'Участники подписываются и читают; постят '
+                                  'владелец и назначенные им админы'
+                            : 'Постить может любой участник группы',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.onSurfaceMuted,
+                        ),
+                      ),
+                      value: _adminsOnlyPosting,
+                      onChanged: isSubmitting
+                          ? null
+                          : (value) =>
+                                setState(() => _adminsOnlyPosting = value),
                     ),
                     const SizedBox(height: 24),
                     FilledButton(

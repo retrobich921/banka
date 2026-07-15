@@ -9,9 +9,8 @@ import 'rating_widgets.dart';
 
 /// Карточка-«банка» в ленте.
 ///
-/// Показывает шапку (аватар автора + имя + дата), карусель фото с
-/// `Hero(tag: 'post-photo-{id}')` на первом кадре, заголовок (название
-/// напитка), бейдж редкости, опциональный чип группы и теги.
+/// Показывает шапку (аватар автора + имя + дата), карусель фото,
+/// заголовок (название напитка), опциональный чип группы и теги.
 class PostCard extends StatefulWidget {
   const PostCard({
     super.key,
@@ -287,9 +286,9 @@ class _PhotoCarousel extends StatelessWidget {
                   color: AppColors.onSurfaceFaint,
                 ),
               );
-              if (i == 0) {
-                return Hero(tag: 'post-photo-${post.id}', child: image);
-              }
+              // Hero здесь сознательно не используем: карточка может жить в
+              // скрытой вкладке IndexedStack, и при возврате с детального
+              // экрана фото «улетало» в невидимый таб поверх текущего.
               return image;
             },
           ),

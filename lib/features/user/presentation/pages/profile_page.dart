@@ -60,6 +60,12 @@ class _ProfilePageState extends State<ProfilePage> {
               tooltip: 'Редактировать',
               onPressed: () => context.pushNamed(AppRoutes.profileEditName),
             ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Выйти',
+              onPressed: () =>
+                  context.read<AuthBloc>().add(const AuthSignOutRequested()),
+            ),
           ],
         ),
         body: BlocBuilder<ProfileBloc, ProfileState>(

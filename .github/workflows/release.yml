@@ -1,9 +1,15 @@
 name: Release APK
 
-# Пушим тег вида v0.2.0 → собирается подписанный APK и публикуется
-# GitHub Release с этим APK.
+# Два триггера:
+# 1. Любой пуш в main → если релиза vX.Y.Z (версия из pubspec.yaml) ещё нет,
+#    собирается APK и публикуется Release с этим тегом. То есть: поднял
+#    version в pubspec → смержил в main → релиз (и обновление в приложении)
+#    выходит сам. Если версию не поднимали — job завершается за секунды.
+# 2. Ручной пуш тега v* — работает как раньше.
+# (paths-фильтр не используем сознательно: он конфликтует с tag-пушами.)
 on:
   push:
+    branches: [main]
     tags:
       - 'v*'
 
@@ -16,21 +22,53 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Определяем тег релиза: из пуша тега либо из version в pubspec.yaml.
+      - name: Resolve release tag
+        id: ver
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            VERSION=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # На пуше в main выходим, если релиз с этим тегом уже существует
+      # (version в pubspec не подняли) — билд не нужен.
+      - name: Check release does not exist yet
+        id: exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.ver.outputs.tag }}" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if already released
+        if: steps.exists.outputs.skip == 'true'
+        run: echo "Release ${{ steps.ver.outputs.tag }} already exists, skipping."
+
       - uses: actions/setup-java@v4
+        if: steps.exists.outputs.skip != 'true'
         with:
           distribution: temurin
           java-version: '17'
 
       - uses: subosito/flutter-action@v2
+        if: steps.exists.outputs.skip != 'true'
         with:
           channel: stable
 
       - name: Restore keystore
+        if: steps.exists.outputs.skip != 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE_BASE64" | base64 -d > android/app/banka-release.jks
 
       - name: Create key.properties
+        if: steps.exists.outputs.skip != 'true'
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -44,21 +82,29 @@ jobs:
           EOF
 
       - name: Pub get
+        if: steps.exists.outputs.skip != 'true'
         run: flutter pub get
 
       - name: Codegen (build_runner)
+        if: steps.exists.outputs.skip != 'true'
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build release APK
+        if: steps.exists.outputs.skip != 'true'
         run: flutter build apk --release
 
       - name: Rename APK
+        if: steps.exists.outputs.skip != 'true'
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/banka-${{ github.ref_name }}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/banka-${{ steps.ver.outputs.tag }}.apk"
 
+      # tag_name создаёт тег на текущем коммите, если его ещё нет
+      # (сценарий пуша в main); при пуше тега просто использует его.
       - name: Publish GitHub Release
+        if: steps.exists.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/banka-${{ github.ref_name }}.apk
+          tag_name: ${{ steps.ver.outputs.tag }}
+          files: dist/banka-${{ steps.ver.outputs.tag }}.apk
           generate_release_notes: true

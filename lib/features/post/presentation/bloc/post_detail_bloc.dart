@@ -7,6 +7,7 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/usecases/delete_post.dart';
 import '../../domain/usecases/watch_post.dart';
 
 part 'post_detail_event.dart';
@@ -19,12 +20,15 @@ part 'post_detail_state.dart';
 /// автор правит описание (Sprint 9 не редактирует).
 @injectable
 class PostDetailBloc extends Bloc<PostDetailEvent, PostDetailState> {
-  PostDetailBloc(this._watchPost) : super(const PostDetailState.initial()) {
+  PostDetailBloc(this._watchPost, this._deletePost)
+    : super(const PostDetailState.initial()) {
     on<PostDetailSubscribeRequested>(_onSubscribe);
+    on<PostDetailDeleteRequested>(_onDeleteRequested);
     on<_PostDetailReceived>(_onReceived);
   }
 
   final WatchPost _watchPost;
+  final DeletePost _deletePost;
 
   StreamSubscription<Either<Failure, Post?>>? _sub;
   String? _currentPostId;
@@ -40,6 +44,31 @@ class PostDetailBloc extends Bloc<PostDetailEvent, PostDetailState> {
 
     await _sub?.cancel();
     _sub = _watchPost(event.postId).listen((r) => add(_PostDetailReceived(r)));
+  }
+
+  Future<void> _onDeleteRequested(
+    PostDetailDeleteRequested event,
+    Emitter<PostDetailState> emit,
+  ) async {
+    final postId = _currentPostId;
+    if (postId == null || state.status == PostDetailStatus.deleting) return;
+
+    emit(state.copyWith(status: PostDetailStatus.deleting, clearError: true));
+    // Отписываемся до удаления, чтобы стрим не перевёл экран в notFound.
+    await _sub?.cancel();
+    _sub = null;
+
+    final result = await _deletePost(postId);
+    result.fold((failure) {
+      emit(
+        state.copyWith(
+          status: PostDetailStatus.error,
+          errorMessage: failure.message ?? 'Не удалось удалить пост',
+        ),
+      );
+      // Возвращаем live-подписку, пост всё ещё существует.
+      _sub = _watchPost(postId).listen((r) => add(_PostDetailReceived(r)));
+    }, (_) => emit(state.copyWith(status: PostDetailStatus.deleted)));
   }
 
   void _onReceived(_PostDetailReceived event, Emitter<PostDetailState> emit) {

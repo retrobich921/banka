@@ -7,9 +7,6 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../brand/domain/entities/brand.dart';
-import '../../../brand/domain/usecases/watch_brands.dart';
-import '../../../brand/presentation/widgets/brand_tile.dart';
 import '../../../post/domain/entities/post.dart';
 import '../../../post/domain/entities/post_ranking.dart';
 import '../../../post/domain/usecases/top_posts.dart';
@@ -24,20 +21,19 @@ class TopsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Вкладки «Бренды» здесь нет намеренно — каталог брендов доступен
+    // с главного экрана (иконка в AppBar ленты).
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text('Топы'),
           bottom: const TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: '🏆 Лучшие'),
               Tab(text: '❤️ Популярные'),
               Tab(text: '👤 Коллекционеры'),
-              Tab(text: '🥤 Бренды'),
             ],
           ),
         ),
@@ -46,7 +42,6 @@ class TopsPage extends StatelessWidget {
             _TopPostsTab(ranking: PostRanking.topRated),
             _TopPostsTab(ranking: PostRanking.mostLiked),
             _TopCollectorsTab(),
-            _TopBrandsTab(),
           ],
         ),
       ),
@@ -235,39 +230,6 @@ class _TopCollectorsTabState extends State<_TopCollectorsTab> {
             style: theme.textTheme.bodyMedium?.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.w700,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ============================== Бренды ==============================
-
-class _TopBrandsTab extends StatelessWidget {
-  const _TopBrandsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<Either<Failure, List<Brand>>>(
-      stream: sl<WatchBrands>()(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final brands = snapshot.data!.fold((_) => <Brand>[], (b) => b);
-        if (brands.isEmpty) {
-          return const _CenteredHint(text: 'Пока нет брендов.');
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: brands.length,
-          itemBuilder: (context, i) => BrandTile(
-            brand: brands[i],
-            onTap: () => context.pushNamed(
-              AppRoutes.brandDetailName,
-              pathParameters: {'id': brands[i].id},
             ),
           ),
         );

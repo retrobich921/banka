@@ -37,7 +37,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "brandId", "order": "ASCENDING" },
-        { "fieldPath": "rarity", "order": "DESCENDING" }
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {

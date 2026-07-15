@@ -1,5 +1,6 @@
 import 'package:banka/core/error/failures.dart';
 import 'package:banka/features/post/domain/entities/post.dart';
+import 'package:banka/features/post/domain/usecases/delete_post.dart';
 import 'package:banka/features/post/domain/usecases/watch_post.dart';
 import 'package:banka/features/post/presentation/bloc/post_detail_bloc.dart';
 import 'package:bloc_test/bloc_test.dart';
@@ -9,14 +10,18 @@ import 'package:mocktail/mocktail.dart';
 
 class _MockWatchPost extends Mock implements WatchPost {}
 
+class _MockDeletePost extends Mock implements DeletePost {}
+
 void main() {
   late _MockWatchPost watchPost;
+  late _MockDeletePost deletePost;
 
   setUp(() {
     watchPost = _MockWatchPost();
+    deletePost = _MockDeletePost();
   });
 
-  PostDetailBloc buildBloc() => PostDetailBloc(watchPost);
+  PostDetailBloc buildBloc() => PostDetailBloc(watchPost, deletePost);
 
   group('PostDetailSubscribeRequested', () {
     blocTest<PostDetailBloc, PostDetailState>(
@@ -109,6 +114,83 @@ void main() {
       verify: (_) {
         verify(() => watchPost('p1')).called(1);
       },
+    );
+  });
+
+  group('PostDetailDeleteRequested', () {
+    const post = Post(id: 'p1', authorId: 'a', drinkName: 'Red Bull');
+
+    blocTest<PostDetailBloc, PostDetailState>(
+      'deleting → deleted при успехе',
+      setUp: () {
+        when(
+          () => watchPost('p1'),
+        ).thenAnswer((_) => Stream.value(const Right<Failure, Post?>(post)));
+        when(() => deletePost('p1')).thenAnswer((_) async => const Right(null));
+      },
+      build: buildBloc,
+      act: (b) async {
+        b.add(const PostDetailSubscribeRequested('p1'));
+        await Future<void>.delayed(Duration.zero);
+        b.add(const PostDetailDeleteRequested());
+      },
+      skip: 2, // loading, ready
+      expect: () => [
+        isA<PostDetailState>().having(
+          (s) => s.status,
+          'status',
+          PostDetailStatus.deleting,
+        ),
+        isA<PostDetailState>().having(
+          (s) => s.status,
+          'status',
+          PostDetailStatus.deleted,
+        ),
+      ],
+    );
+
+    blocTest<PostDetailBloc, PostDetailState>(
+      'deleting → error при Failure, пост остаётся в state',
+      setUp: () {
+        when(
+          () => watchPost('p1'),
+        ).thenAnswer((_) => Stream.value(const Right<Failure, Post?>(post)));
+        when(() => deletePost('p1')).thenAnswer(
+          (_) async => const Left(ServerFailure(message: 'нет прав')),
+        );
+      },
+      build: buildBloc,
+      act: (b) async {
+        b.add(const PostDetailSubscribeRequested('p1'));
+        await Future<void>.delayed(Duration.zero);
+        b.add(const PostDetailDeleteRequested());
+      },
+      skip: 2, // loading, ready
+      expect: () => [
+        isA<PostDetailState>().having(
+          (s) => s.status,
+          'status',
+          PostDetailStatus.deleting,
+        ),
+        isA<PostDetailState>()
+            .having((s) => s.status, 'status', PostDetailStatus.error)
+            .having((s) => s.errorMessage, 'msg', 'нет прав')
+            .having((s) => s.post?.id, 'post.id', 'p1'),
+        // Возобновлённая подписка снова приносит пост → ready.
+        isA<PostDetailState>().having(
+          (s) => s.status,
+          'status',
+          PostDetailStatus.ready,
+        ),
+      ],
+    );
+
+    blocTest<PostDetailBloc, PostDetailState>(
+      'без подписки (нет postId) — ничего не делает',
+      build: buildBloc,
+      act: (b) => b.add(const PostDetailDeleteRequested()),
+      expect: () => const <PostDetailState>[],
+      verify: (_) => verifyNever(() => deletePost(any())),
     );
   });
 }

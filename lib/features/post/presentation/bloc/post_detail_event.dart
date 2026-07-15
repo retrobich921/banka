@@ -15,6 +15,11 @@ final class PostDetailSubscribeRequested extends PostDetailEvent {
   List<Object?> get props => [postId];
 }
 
+/// Автор запросил удаление своего поста (после подтверждения в UI).
+final class PostDetailDeleteRequested extends PostDetailEvent {
+  const PostDetailDeleteRequested();
+}
+
 final class _PostDetailReceived extends PostDetailEvent {
   const _PostDetailReceived(this.result);
   final Either<Failure, Post?> result;

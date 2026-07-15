@@ -240,6 +240,15 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // ---- users/{uid}/following/{targetUid} — подписки на людей ------------
+    // Документ-маркер «userId подписан на targetUid». Управляет только сам
+    // подписчик; читать может любой авторизованный (счётчики/списки подписок).
+    match /users/{userId}/following/{targetUid} {
+      allow read: if isSignedIn();
+      allow create, delete: if isSelf(userId);
+      allow update: if false;
+    }
+
     // ---- Fallback: по умолчанию всё, что не описано выше — закрыто.
     match /{document=**} {
       allow read, write: if false;

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../comment/presentation/widgets/comments_section.dart';
 import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/drink_rating.dart';
@@ -17,9 +18,7 @@ import '../widgets/rating_widgets.dart';
 /// Детальный экран поста-«банки».
 ///
 /// Подписывается на стрим конкретного поста через `PostDetailBloc`,
-/// чтобы реагировать на live-обновления (лайки/комменты придут в
-/// Sprint 10/11). Первая фотография оборачивается в `Hero` с тем же
-/// `tag`, что и в `PostCard` ленты.
+/// чтобы реагировать на live-обновления лайков/комментов.
 class PostDetailPage extends StatelessWidget {
   const PostDetailPage({super.key, required this.postId});
 
@@ -54,46 +53,112 @@ class _PostDetailViewState extends State<_PostDetailView> {
     super.dispose();
   }
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удалить банку?'),
+        content: const Text(
+          'Пост будет удалён безвозвратно вместе с лайками и комментариями.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      context.read<PostDetailBloc>().add(const PostDetailDeleteRequested());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Банка')),
-      body: BlocBuilder<PostDetailBloc, PostDetailState>(
-        builder: (context, state) {
-          if (state.status == PostDetailStatus.error &&
-              state.errorMessage != null) {
-            return _CenteredText(text: state.errorMessage!);
-          }
-          if (state.status == PostDetailStatus.notFound) {
-            return const _CenteredText(text: 'Пост не найден или удалён');
-          }
-          final post = state.post;
-          if (post == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (post.photos.isNotEmpty)
-                  _Carousel(
-                    post: post,
-                    pageController: _pageController,
-                    currentPage: _currentPage,
-                    onPageChanged: (i) => setState(() => _currentPage = i),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-                  child: _PostBody(post: post),
+    return BlocConsumer<PostDetailBloc, PostDetailState>(
+      listenWhen: (prev, curr) => prev.status != curr.status,
+      listener: (context, state) {
+        if (state.status == PostDetailStatus.deleted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Пост удалён')));
+          context.canPop()
+              ? context.pop()
+              : context.goNamed(AppRoutes.homeName);
+          return;
+        }
+        if (state.status == PostDetailStatus.error &&
+            state.errorMessage != null &&
+            state.post != null) {
+          // Ошибка при удалении: пост на экране остаётся, показываем снекбар.
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+        }
+      },
+      builder: (context, state) {
+        final post = state.post;
+        final currentUserId = context.read<AuthBloc>().state.user?.id;
+        final isAuthor =
+            post != null &&
+            currentUserId != null &&
+            post.authorId == currentUserId;
+        final isDeleting = state.status == PostDetailStatus.deleting;
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            title: const Text('Банка'),
+            actions: [
+              if (isAuthor)
+                IconButton(
+                  tooltip: 'Удалить пост',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: isDeleting ? null : () => _confirmDelete(context),
                 ),
-                const Divider(color: AppColors.outline, height: 1),
-                CommentsSection(postId: post.id),
-                const SizedBox(height: 24),
-              ],
+            ],
+          ),
+          body: _buildBody(state, post, isDeleting),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(PostDetailState state, Post? post, bool isDeleting) {
+    if (state.status == PostDetailStatus.error &&
+        state.errorMessage != null &&
+        post == null) {
+      return _CenteredText(text: state.errorMessage!);
+    }
+    if (state.status == PostDetailStatus.notFound) {
+      return const _CenteredText(text: 'Пост не найден или удалён');
+    }
+    if (post == null || isDeleting) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (post.photos.isNotEmpty)
+            _Carousel(
+              post: post,
+              pageController: _pageController,
+              currentPage: _currentPage,
+              onPageChanged: (i) => setState(() => _currentPage = i),
             ),
-          );
-        },
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+            child: _PostBody(post: post),
+          ),
+          const Divider(color: AppColors.outline, height: 1),
+          CommentsSection(postId: post.id),
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }
@@ -134,9 +199,6 @@ class _Carousel extends StatelessWidget {
                   color: AppColors.onSurfaceFaint,
                 ),
               );
-              if (i == 0) {
-                return Hero(tag: 'post-photo-${post.id}', child: image);
-              }
               return image;
             },
           ),

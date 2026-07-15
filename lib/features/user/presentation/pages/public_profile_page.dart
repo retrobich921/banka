@@ -7,6 +7,7 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../follow/presentation/widgets/follow_button.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
 import '../../../post/presentation/widgets/post_card.dart';
 import '../../domain/entities/user_profile.dart';
@@ -164,7 +165,9 @@ class _Header extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ],
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
+          FollowButton(targetUserId: profile.id),
+          const SizedBox(height: 16),
           _StatsGrid(stats: profile.stats),
         ],
       ),

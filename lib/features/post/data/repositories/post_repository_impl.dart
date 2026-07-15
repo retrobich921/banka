@@ -35,6 +35,8 @@ final class PostRepositoryImpl implements PostRepository {
     DrinkType drinkType = DrinkType.energy,
     String description = '',
     List<String> tags = const <String>[],
+    String? store,
+    double? price,
   }) async {
     try {
       final post = await _remote.createPost(
@@ -54,6 +56,8 @@ final class PostRepositoryImpl implements PostRepository {
         drinkType: drinkType,
         description: description,
         tags: tags,
+        store: store,
+        price: price,
       );
       return Right(post);
     } on ServerException catch (e) {

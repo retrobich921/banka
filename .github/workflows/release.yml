@@ -99,6 +99,24 @@ jobs:
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk "dist/banka-${{ steps.ver.outputs.tag }}.apk"
 
+      # Release notes берём из CHANGELOG.md (раздел ## X.Y.Z) — этот же
+      # текст видят пользователи в диалоге обновления внутри приложения.
+      # Если раздела нет — генерим заглушку, чтобы не показывать сырой
+      # список PR.
+      - name: Extract release notes from CHANGELOG.md
+        if: steps.exists.outputs.skip != 'true'
+        run: |
+          VER="${{ steps.ver.outputs.tag }}"
+          VER="${VER#v}"
+          awk -v ver="$VER" '
+            /^## /{ if (found) exit; if ($2 == ver) { found=1; next } }
+            found { print }
+          ' CHANGELOG.md | sed '/^\s*$/d' > notes.md || true
+          if [ ! -s notes.md ]; then
+            echo "Обновление ${{ steps.ver.outputs.tag }}" > notes.md
+          fi
+          cat notes.md
+
       # tag_name создаёт тег на текущем коммите, если его ещё нет
       # (сценарий пуша в main); при пуше тега просто использует его.
       - name: Publish GitHub Release
@@ -107,4 +125,4 @@ jobs:
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           files: dist/banka-${{ steps.ver.outputs.tag }}.apk
-          generate_release_notes: true
+          body_path: notes.md

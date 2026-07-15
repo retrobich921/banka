@@ -140,6 +140,13 @@ service cloud.firestore {
             .affectedKeys()
             .hasOnly(['likesCount', 'commentsCount'])
         )
+        // Или это бэкфилл-миграция: проставление drinkId старым постам
+        // (см. DrinkBackfill). Меняется только это поле.
+        || (
+          request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['drinkId'])
+        )
       );
 
       // Удалять — только автор. Каскадное удаление подколлекций
@@ -250,6 +257,24 @@ service cloud.firestore {
       allow read: if isSelf(userId);
       allow create, delete: if isSelf(userId);
       allow update: if false;
+    }
+
+    // ---- drinks/{drinkId} — карточки напитков (агрегаты) -------------------
+    // Денорм-агрегат: создаётся/обновляется клиентом в батче вместе с
+    // созданием/удалением поста (инкременты счётчиков, средняя оценка).
+    // Пишет любой авторизованный — данные вычислимы из постов, злоумышленник
+    // максимум испортит счётчики, не чужой контент.
+    match /drinks/{drinkId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && request.resource.data.name is string;
+      // Delete нужен клиентской миграции (пересборка карточек).
+      allow delete: if isSignedIn();
+    }
+
+    // ---- meta/{docId} — служебные claim-документы клиентских миграций -----
+    match /meta/{docId} {
+      allow read, write: if isSignedIn();
     }
 
     // ---- users/{uid}/following/{targetUid} — подписки на людей ------------

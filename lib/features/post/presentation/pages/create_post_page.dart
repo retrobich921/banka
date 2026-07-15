@@ -62,6 +62,8 @@ class _CreatePostViewState extends State<_CreatePostView> {
   final _drinkNameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _tagsController = TextEditingController();
+  final _storeController = TextEditingController();
+  final _priceController = TextEditingController();
 
   @override
   void initState() {
@@ -87,6 +89,8 @@ class _CreatePostViewState extends State<_CreatePostView> {
     _drinkNameController.dispose();
     _descriptionController.dispose();
     _tagsController.dispose();
+    _storeController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
 
@@ -359,6 +363,12 @@ class _CreatePostViewState extends State<_CreatePostView> {
                     _FoundDateField(
                       date: foundDate,
                       onTap: () => _pickFoundDate(foundDate),
+                    ),
+                    const SizedBox(height: 16),
+                    _StorePriceFields(
+                      storeController: _storeController,
+                      priceController: _priceController,
+                      enabled: !isBusy,
                     ),
                     const SizedBox(height: 24),
                     RatingEditor(
@@ -877,6 +887,98 @@ class _TagsField extends StatelessWidget {
             ],
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// «Где купил» + «Цена» — опциональные поля, питающие карточку напитка
+/// (статистика магазинов и средняя цена).
+class _StorePriceFields extends StatelessWidget {
+  const _StorePriceFields({
+    required this.storeController,
+    required this.priceController,
+    required this.enabled,
+  });
+
+  final TextEditingController storeController;
+  final TextEditingController priceController;
+  final bool enabled;
+
+  static const List<String> _suggestions = [
+    'Пятёрочка',
+    'Магнит',
+    'Лента',
+    'Красное&Белое',
+    'ВкусВилл',
+    'Ozon',
+    'WB',
+    'Из-за границы',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final bloc = context.read<CreatePostBloc>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: TextFormField(
+                controller: storeController,
+                enabled: enabled,
+                decoration: const InputDecoration(
+                  labelText: 'Где купил (опц.)',
+                  prefixIcon: Icon(Icons.storefront_outlined, size: 18),
+                ),
+                onChanged: (v) => bloc.add(CreatePostStoreChanged(v)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: TextFormField(
+                controller: priceController,
+                enabled: enabled,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(labelText: 'Цена, ₽ (опц.)'),
+                onChanged: (v) => bloc.add(
+                  CreatePostPriceChanged(
+                    double.tryParse(v.replaceAll(',', '.')),
+                  ),
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return null;
+                  final parsed = double.tryParse(v.replaceAll(',', '.'));
+                  if (parsed == null || parsed <= 0) return 'Число';
+                  return null;
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final s in _suggestions)
+              ActionChip(
+                label: Text(s, style: const TextStyle(fontSize: 12)),
+                visualDensity: VisualDensity.compact,
+                onPressed: enabled
+                    ? () {
+                        storeController.text = s;
+                        bloc.add(CreatePostStoreChanged(s));
+                      }
+                    : null,
+              ),
+          ],
+        ),
       ],
     );
   }

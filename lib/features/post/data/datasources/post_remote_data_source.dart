@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../../../core/error/exceptions.dart';
+import '../../../drink/data/models/drink_dto.dart';
+import '../../../drink/domain/entities/drink.dart';
 import '../../domain/entities/drink_rating.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
@@ -28,6 +30,8 @@ abstract interface class PostRemoteDataSource {
     DrinkType drinkType,
     required String description,
     required List<String> tags,
+    String? store,
+    double? price,
   });
 
   Future<Post?> getPost(String postId);
@@ -139,10 +143,13 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     DrinkType drinkType = DrinkType.energy,
     required String description,
     required List<String> tags,
+    String? store,
+    double? price,
   }) async {
     try {
       final doc = _postsCol.doc();
       final now = DateTime.now();
+      final drinkId = drinkKeyOf(brandId: brandId, flavorId: flavorId);
       final post = Post(
         id: doc.id,
         authorId: authorId,
@@ -155,6 +162,9 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
         brandName: brandName,
         flavorId: flavorId,
         flavorName: flavorName,
+        drinkId: drinkId,
+        store: (store == null || store.trim().isEmpty) ? null : store.trim(),
+        price: price,
         photos: photos,
         foundDate: foundDate,
         rating: rating,
@@ -188,6 +198,39 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
         _firestore.collection('users').doc(authorId),
         <String, dynamic>{'stats.cansCount': FieldValue.increment(1)},
       );
+
+      // Карточка напитка (drinks/{drinkId}) — агрегат «РЗТ-стиля»:
+      // средняя оценка, счётчик постов, статистика магазинов и цен.
+      // Заводится только для постов с выбранными брендом И вкусом —
+      // название поста свободное и напиток не идентифицирует.
+      if (drinkId != null) {
+        final cleanStore = post.store;
+        batch.set(
+          _firestore.collection('drinks').doc(drinkId),
+          <String, dynamic>{
+            DrinkDto.fName: drinkDisplayName(
+              brandName: brandName,
+              flavorName: flavorName,
+            ),
+            DrinkDto.fBrandId: ?brandId,
+            DrinkDto.fBrandName: ?brandName,
+            if (photos.isNotEmpty) DrinkDto.fThumbUrl: photos.first.thumbUrl,
+            DrinkDto.fPostsCount: FieldValue.increment(1),
+            if (rating != null) ...{
+              DrinkDto.fRatingSum: FieldValue.increment(rating.score),
+              DrinkDto.fRatingCount: FieldValue.increment(1),
+            },
+            if (price != null) ...{
+              DrinkDto.fPricesSum: FieldValue.increment(price),
+              DrinkDto.fPricesCount: FieldValue.increment(1),
+            },
+            if (cleanStore != null)
+              DrinkDto.fStores: {cleanStore: FieldValue.increment(1)},
+            DrinkDto.fUpdatedAt: Timestamp.fromDate(now),
+          },
+          SetOptions(merge: true),
+        );
+      }
 
       await batch.commit();
       return post;
@@ -367,10 +410,15 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
       final data = snap.data()!;
       final groupId = data[PostDto.fGroupId] as String?;
       final authorId = data[PostDto.fAuthorId] as String?;
+      final post = PostDto.fromMap(postId, data);
 
       // Зеркально createPost: удаляем пост и откатываем denorm-счётчики
-      // группы и автора одним батчем.
+      // группы, автора и карточки напитка одним батчем. Вклад архивного
+      // поста в карточку уже был откачен при архивировании — не дублируем.
       final batch = _firestore.batch()..delete(docRef);
+      if (!post.archived) {
+        _adjustDrinkAggregates(batch, post, sign: -1);
+      }
       if (groupId != null) {
         batch.update(
           _firestore.collection(_groups).doc(groupId),
@@ -509,13 +557,50 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     required bool archived,
   }) async {
     try {
-      await _postsCol.doc(postId).update(<String, dynamic>{
-        PostDto.fArchived: archived,
-        PostDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
-      });
+      final docRef = _postsCol.doc(postId);
+      final snap = await docRef.get();
+      if (!snap.exists) return;
+      final post = PostDto.fromMap(postId, snap.data()!);
+      // Идемпотентность: повторный запрос того же состояния не должен
+      // дважды сдвинуть счётчики карточки напитка.
+      if (post.archived == archived) return;
+
+      final batch = _firestore.batch()
+        ..update(docRef, <String, dynamic>{
+          PostDto.fArchived: archived,
+          PostDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
+        });
+      // Архивный пост скрыт из лент и рецензий — его вклад в карточку
+      // напитка откатываем (возврат из архива возвращает вклад).
+      _adjustDrinkAggregates(batch, post, sign: archived ? -1 : 1);
+      await batch.commit();
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }
+  }
+
+  /// Вклад поста в агрегаты карточки напитка со знаком [sign] (+1/-1).
+  void _adjustDrinkAggregates(
+    WriteBatch batch,
+    Post post, {
+    required int sign,
+  }) {
+    final drinkId = post.drinkId;
+    if (drinkId == null || drinkId.isEmpty) return;
+    batch.set(_firestore.collection('drinks').doc(drinkId), <String, dynamic>{
+      DrinkDto.fPostsCount: FieldValue.increment(sign),
+      if (post.rating != null) ...{
+        DrinkDto.fRatingSum: FieldValue.increment(sign * post.rating!.score),
+        DrinkDto.fRatingCount: FieldValue.increment(sign),
+      },
+      if (post.price != null) ...{
+        DrinkDto.fPricesSum: FieldValue.increment(sign * post.price!),
+        DrinkDto.fPricesCount: FieldValue.increment(sign),
+      },
+      if (post.store != null)
+        DrinkDto.fStores: {post.store!: FieldValue.increment(sign)},
+      DrinkDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
+    }, SetOptions(merge: true));
   }
 
   @override

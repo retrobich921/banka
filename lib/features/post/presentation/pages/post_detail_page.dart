@@ -359,8 +359,27 @@ class _PostBody extends StatelessWidget {
               _Chip(icon: Icons.local_bar_outlined, label: post.brandName!),
             if (post.groupName != null)
               _Chip(icon: Icons.group_outlined, label: post.groupName!),
+            if (post.store != null && post.store!.isNotEmpty)
+              _Chip(icon: Icons.storefront_outlined, label: post.store!),
+            if (post.price != null)
+              _Chip(
+                icon: Icons.sell_outlined,
+                label: '${post.price!.toStringAsFixed(0)} ₽',
+              ),
           ],
         ),
+        if (post.drinkId != null && post.drinkId!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          // Мост в «каталог»: агрегированная карточка этого напитка.
+          OutlinedButton.icon(
+            onPressed: () => context.pushNamed(
+              AppRoutes.drinkDetailName,
+              pathParameters: {'id': post.drinkId!},
+            ),
+            icon: const Icon(Icons.local_drink_outlined, size: 18),
+            label: const Text('Карточка напитка'),
+          ),
+        ],
         if (post.description.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text(

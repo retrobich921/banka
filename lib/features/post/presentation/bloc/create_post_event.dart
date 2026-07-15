@@ -153,6 +153,24 @@ final class CreatePostDescriptionChanged extends CreatePostEvent {
   List<Object?> get props => [value];
 }
 
+/// Изменение магазина покупки (пустая строка = не указан).
+final class CreatePostStoreChanged extends CreatePostEvent {
+  const CreatePostStoreChanged(this.value);
+  final String value;
+
+  @override
+  List<Object?> get props => [value];
+}
+
+/// Изменение цены покупки (null = не указана).
+final class CreatePostPriceChanged extends CreatePostEvent {
+  const CreatePostPriceChanged(this.value);
+  final double? value;
+
+  @override
+  List<Object?> get props => [value];
+}
+
 final class CreatePostGroupChanged extends CreatePostEvent {
   const CreatePostGroupChanged({this.groupId, this.groupName});
   final String? groupId;

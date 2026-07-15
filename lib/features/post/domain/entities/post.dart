@@ -27,6 +27,16 @@ sealed class Post with _$Post {
     String? brandName,
     String? flavorId,
     String? flavorName,
+
+    /// Ключ карточки напитка (`drinks/{drinkId}`), в которую агрегируется
+    /// этот пост. Детерминированно строится из названия + бренда.
+    String? drinkId,
+
+    /// Где купили (опционально): «Пятёрочка», «Из-за границы» и т.п.
+    String? store,
+
+    /// Цена покупки в рублях (опционально).
+    double? price,
     @Default(<PostPhoto>[]) List<PostPhoto> photos,
     DateTime? foundDate,
 

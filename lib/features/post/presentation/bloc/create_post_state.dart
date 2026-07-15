@@ -38,6 +38,8 @@ final class CreatePostState extends Equatable {
     this.createdPostId,
     this.barcode,
     this.barcodeContribute = false,
+    this.store = '',
+    this.price,
   });
 
   const CreatePostState.initial() : this();
@@ -73,6 +75,12 @@ final class CreatePostState extends Equatable {
   /// `SaveBarcode` (contribute-back).
   final bool barcodeContribute;
 
+  /// Где купили (опционально, свободный ввод/чип-подсказка).
+  final String store;
+
+  /// Цена в рублях (опционально).
+  final double? price;
+
   bool get isUploading => status == CreatePostStatus.uploading;
   bool get isCreating => status == CreatePostStatus.creating;
   bool get isBusy => isUploading || isCreating;
@@ -105,6 +113,9 @@ final class CreatePostState extends Equatable {
     String? createdPostId,
     String? barcode,
     bool? barcodeContribute,
+    String? store,
+    double? price,
+    bool clearPrice = false,
     bool clearError = false,
     bool clearCreatedId = false,
     bool clearGroup = false,
@@ -140,6 +151,8 @@ final class CreatePostState extends Equatable {
       barcodeContribute: clearBarcode
           ? false
           : (barcodeContribute ?? this.barcodeContribute),
+      store: store ?? this.store,
+      price: clearPrice ? null : (price ?? this.price),
     );
   }
 
@@ -168,5 +181,7 @@ final class CreatePostState extends Equatable {
     createdPostId,
     barcode,
     barcodeContribute,
+    store,
+    price,
   ];
 }

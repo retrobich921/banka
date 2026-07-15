@@ -14,6 +14,8 @@ abstract interface class DrinkRemoteDataSource {
 
   /// Топ карточек: берём самые обсуждаемые (postsCount desc), сортировку
   /// по средней оценке делает клиент (avg нельзя посчитать инкрементами).
+  /// Лимит щедрый: чарт должен вмещать всю коллекцию, пока напитков
+  /// меньше ~500; дальше понадобится пагинация.
   Future<List<Drink>> fetchTopDrinks({int limit});
 
   /// Посты-«рецензии» напитка, свежие сверху (без архивных).
@@ -37,7 +39,7 @@ final class FirestoreDrinkRemoteDataSource implements DrinkRemoteDataSource {
       .map(DrinkDto.fromSnapshot);
 
   @override
-  Future<List<Drink>> fetchTopDrinks({int limit = 100}) async {
+  Future<List<Drink>> fetchTopDrinks({int limit = 500}) async {
     try {
       final snap = await _firestore
           .collection(_drinks)

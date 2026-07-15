@@ -7,7 +7,7 @@ import '../entities/drink.dart';
 abstract interface class DrinkRepository {
   ResultStream<Drink?> watchDrink(String drinkId);
 
-  ResultFuture<List<Drink>> topDrinks({int limit = 100});
+  ResultFuture<List<Drink>> topDrinks({int limit = 500});
 
   ResultFuture<List<Post>> drinkPosts({
     required String drinkId,

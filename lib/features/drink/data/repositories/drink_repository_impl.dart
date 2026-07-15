@@ -33,7 +33,7 @@ final class DrinkRepositoryImpl implements DrinkRepository {
   }
 
   @override
-  ResultFuture<List<Drink>> topDrinks({int limit = 100}) async {
+  ResultFuture<List<Drink>> topDrinks({int limit = 500}) async {
     try {
       return Right(await _remote.fetchTopDrinks(limit: limit));
     } on ServerException catch (e) {

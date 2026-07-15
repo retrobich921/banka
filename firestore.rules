@@ -140,6 +140,13 @@ service cloud.firestore {
             .affectedKeys()
             .hasOnly(['likesCount', 'commentsCount'])
         )
+        // Или это бэкфилл-миграция: проставление drinkId старым постам
+        // (см. DrinkBackfill). Меняется только это поле.
+        || (
+          request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['drinkId'])
+        )
       );
 
       // Удалять — только автор. Каскадное удаление подколлекций
@@ -262,6 +269,11 @@ service cloud.firestore {
       allow create, update: if isSignedIn()
         && request.resource.data.name is string;
       allow delete: if false;
+    }
+
+    // ---- meta/{docId} — служебные claim-документы клиентских миграций -----
+    match /meta/{docId} {
+      allow read, write: if isSignedIn();
     }
 
     // ---- users/{uid}/following/{targetUid} — подписки на людей ------------

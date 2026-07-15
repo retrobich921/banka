@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/update/app_updater.dart';
 import '../../../activity/presentation/widgets/activity_bell.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../drink/data/drink_backfill.dart';
 import '../../../group/presentation/bloc/groups_list_bloc.dart';
 import '../../../group/presentation/pages/groups_page.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
@@ -38,6 +39,9 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) maybePromptUpdate(context);
     });
+    // Одноразовая миграция старых постов в карточки напитков
+    // (защищена claim-документом — реально выполнится один раз).
+    sl<DrinkBackfill>().runIfNeeded();
   }
 
   @override

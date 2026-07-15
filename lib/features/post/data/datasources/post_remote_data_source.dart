@@ -413,27 +413,11 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
       final post = PostDto.fromMap(postId, data);
 
       // Зеркально createPost: удаляем пост и откатываем denorm-счётчики
-      // группы, автора и карточки напитка одним батчем.
+      // группы, автора и карточки напитка одним батчем. Вклад архивного
+      // поста в карточку уже был откачен при архивировании — не дублируем.
       final batch = _firestore.batch()..delete(docRef);
-      if (post.drinkId != null && post.drinkId!.isNotEmpty) {
-        batch.set(
-          _firestore.collection('drinks').doc(post.drinkId),
-          <String, dynamic>{
-            DrinkDto.fPostsCount: FieldValue.increment(-1),
-            if (post.rating != null) ...{
-              DrinkDto.fRatingSum: FieldValue.increment(-post.rating!.score),
-              DrinkDto.fRatingCount: FieldValue.increment(-1),
-            },
-            if (post.price != null) ...{
-              DrinkDto.fPricesSum: FieldValue.increment(-post.price!),
-              DrinkDto.fPricesCount: FieldValue.increment(-1),
-            },
-            if (post.store != null)
-              DrinkDto.fStores: {post.store!: FieldValue.increment(-1)},
-            DrinkDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
-          },
-          SetOptions(merge: true),
-        );
+      if (!post.archived) {
+        _adjustDrinkAggregates(batch, post, sign: -1);
       }
       if (groupId != null) {
         batch.update(
@@ -573,13 +557,50 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     required bool archived,
   }) async {
     try {
-      await _postsCol.doc(postId).update(<String, dynamic>{
-        PostDto.fArchived: archived,
-        PostDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
-      });
+      final docRef = _postsCol.doc(postId);
+      final snap = await docRef.get();
+      if (!snap.exists) return;
+      final post = PostDto.fromMap(postId, snap.data()!);
+      // Идемпотентность: повторный запрос того же состояния не должен
+      // дважды сдвинуть счётчики карточки напитка.
+      if (post.archived == archived) return;
+
+      final batch = _firestore.batch()
+        ..update(docRef, <String, dynamic>{
+          PostDto.fArchived: archived,
+          PostDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
+        });
+      // Архивный пост скрыт из лент и рецензий — его вклад в карточку
+      // напитка откатываем (возврат из архива возвращает вклад).
+      _adjustDrinkAggregates(batch, post, sign: archived ? -1 : 1);
+      await batch.commit();
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }
+  }
+
+  /// Вклад поста в агрегаты карточки напитка со знаком [sign] (+1/-1).
+  void _adjustDrinkAggregates(
+    WriteBatch batch,
+    Post post, {
+    required int sign,
+  }) {
+    final drinkId = post.drinkId;
+    if (drinkId == null || drinkId.isEmpty) return;
+    batch.set(_firestore.collection('drinks').doc(drinkId), <String, dynamic>{
+      DrinkDto.fPostsCount: FieldValue.increment(sign),
+      if (post.rating != null) ...{
+        DrinkDto.fRatingSum: FieldValue.increment(sign * post.rating!.score),
+        DrinkDto.fRatingCount: FieldValue.increment(sign),
+      },
+      if (post.price != null) ...{
+        DrinkDto.fPricesSum: FieldValue.increment(sign * post.price!),
+        DrinkDto.fPricesCount: FieldValue.increment(sign),
+      },
+      if (post.store != null)
+        DrinkDto.fStores: {post.store!: FieldValue.increment(sign)},
+      DrinkDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
+    }, SetOptions(merge: true));
   }
 
   @override

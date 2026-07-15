@@ -26,8 +26,10 @@ class DrinkBackfill {
 
   static const int _chunkSize = 150;
 
+  // v3: как v2, но архивные посты не учитываются в агрегатах
+  // (drinkId им всё равно проставляется — нужен для возврата из архива).
   DocumentReference<Map<String, dynamic>> get _meta =>
-      _firestore.collection('meta').doc('drink_backfill_v2');
+      _firestore.collection('meta').doc('drink_backfill_v3');
 
   /// Безопасно вызывать при каждом старте: если миграция уже выполнена
   /// или выполняется другим клиентом — сразу выходит.
@@ -101,6 +103,9 @@ class DrinkBackfill {
               PostDto.fDrinkId: drinkId,
             });
           }
+          // Архивные посты скрыты из рецензий — в агрегаты не входят
+          // (вклад вернётся при разархивировании).
+          if (post.archived) continue;
           final agg = drinkUpdates.putIfAbsent(
             drinkId,
             () => _DrinkAgg(

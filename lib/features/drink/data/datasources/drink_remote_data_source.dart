@@ -49,6 +49,9 @@ final class FirestoreDrinkRemoteDataSource implements DrinkRemoteDataSource {
       return snap.docs
           .map(DrinkDto.fromSnapshot)
           .whereType<Drink>()
+          // Опустевшие карточки (все посты в архиве/удалены) в чарте
+          // не показываем.
+          .where((d) => d.postsCount > 0)
           .toList(growable: false);
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);

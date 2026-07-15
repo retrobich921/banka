@@ -8,8 +8,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
 import '../../../post/presentation/widgets/post_card.dart';
+import '../../../post/presentation/widgets/posts_shelf_grid.dart';
 import '../../domain/entities/user_profile.dart';
 import '../bloc/profile_bloc.dart';
+import '../widgets/achievements_row.dart';
 
 /// Экран профиля текущего пользователя.
 ///
@@ -97,10 +99,18 @@ class _ProfilePageState extends State<ProfilePage> {
 ///
 /// Используем единый `CustomScrollView`, чтобы шапка и список скроллились
 /// вместе, а у списка работала догрузка следующих страниц.
-class _ProfileContent extends StatelessWidget {
+class _ProfileContent extends StatefulWidget {
   const _ProfileContent({required this.profile});
 
   final UserProfile profile;
+
+  @override
+  State<_ProfileContent> createState() => _ProfileContentState();
+}
+
+class _ProfileContentState extends State<_ProfileContent> {
+  // Полка (сетка) — вид коллекции по умолчанию.
+  bool _shelf = true;
 
   @override
   Widget build(BuildContext context) {
@@ -118,8 +128,34 @@ class _ProfileContent extends StatelessWidget {
       },
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _Header(profile: profile)),
-          const SliverToBoxAdapter(child: _SectionTitle('Мои банки')),
+          SliverToBoxAdapter(child: _Header(profile: widget.profile)),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: AchievementsRow(cansCount: widget.profile.stats.cansCount),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Моя полка',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  ShelfViewToggle(
+                    shelf: _shelf,
+                    onChanged: (v) => setState(() => _shelf = v),
+                  ),
+                ],
+              ),
+            ),
+          ),
           ..._buildBanks(context, feedState),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
@@ -160,6 +196,19 @@ class _ProfileContent extends StatelessWidget {
     }
 
     final posts = state.posts;
+    if (_shelf) {
+      return [
+        PostsShelfSliver(posts: posts),
+        if (state.isLoadingMore)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+      ];
+    }
+
     final itemCount = posts.length + (state.isLoadingMore ? 1 : 0);
     return [
       SliverPadding(
@@ -227,28 +276,6 @@ class _Header extends StatelessWidget {
           const SizedBox(height: 32),
           _StatsGrid(stats: profile.stats),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          text,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
       ),
     );
   }

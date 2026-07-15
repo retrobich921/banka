@@ -21,6 +21,7 @@ abstract final class AppRoutes {
   static const String userProfile = '/users/:id';
   static const String tops = '/tops';
   static const String archive = '/archive';
+  static const String activity = '/activity';
 
   // Names (используем при навигации `goNamed` / `pushNamed`).
   static const String splashName = 'splash';
@@ -40,4 +41,5 @@ abstract final class AppRoutes {
   static const String userProfileName = 'userProfile';
   static const String topsName = 'tops';
   static const String archiveName = 'archive';
+  static const String activityName = 'activity';
 }

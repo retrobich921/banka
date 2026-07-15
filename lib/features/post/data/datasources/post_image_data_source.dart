@@ -6,6 +6,7 @@ import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../../core/error/exceptions.dart';
+import '../../../../core/utils/cloudinary.dart';
 import '../../domain/entities/post.dart';
 import '../services/image_compressor.dart';
 
@@ -95,10 +96,7 @@ final class CloudinaryPostImageDataSource implements PostImageDataSource {
 
       return PostPhoto(
         url: secureUrl,
-        // До спринта с трансформациями thumbUrl == url. Когда подключим
-        // Cloudinary transformations, можно будет генерировать
-        // `c_fill,w_400,h_400,f_auto,q_auto` поверх public_id.
-        thumbUrl: secureUrl,
+        thumbUrl: cloudinaryThumb(secureUrl),
         width: width,
         height: height,
       );

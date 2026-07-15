@@ -139,7 +139,11 @@ class _CreatePostViewState extends State<_CreatePostView> {
     final barcode_entity.Barcode? matched = lookup.fold((_) => null, (b) => b);
 
     if (matched != null) {
-      _drinkNameController.text = matched.drinkName;
+      // Заполняем только пустое поле: введённое пользователем не трогаем
+      // (тот же напиток может продаваться под разными кодами в разных
+      // странах — код просто привязывается к посту).
+      final hadName = _drinkNameController.text.trim().isNotEmpty;
+      if (!hadName) _drinkNameController.text = matched.drinkName;
       context.read<CreatePostBloc>().add(
         CreatePostBarcodeMatched(
           code: normalized,
@@ -150,7 +154,11 @@ class _CreatePostViewState extends State<_CreatePostView> {
       );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Узнал банку: ${matched.drinkName}'),
+          content: Text(
+            hadName
+                ? 'Код привязан. В базе он значится как «${matched.drinkName}»'
+                : 'Узнал банку: ${matched.drinkName}',
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -287,6 +295,18 @@ class _CreatePostViewState extends State<_CreatePostView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Скан — первый шаг: идентифицируем банку, дальше
+                    // всё заполнится само (если код уже есть в базе).
+                    _BarcodeField(
+                      barcode: state.barcode,
+                      contributePending: state.barcodeContribute,
+                      enabled: !isBusy,
+                      onScan: _scanBarcode,
+                      onClear: () => context.read<CreatePostBloc>().add(
+                        const CreatePostBarcodeCleared(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     _PhotoGrid(
                       files: state.pickedFiles,
                       onAdd: _pickPhotos,
@@ -356,16 +376,6 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       value: state.drinkType,
                       onChanged: (t) => context.read<CreatePostBloc>().add(
                         CreatePostDrinkTypeChanged(t),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _BarcodeField(
-                      barcode: state.barcode,
-                      contributePending: state.barcodeContribute,
-                      enabled: !isBusy,
-                      onScan: _scanBarcode,
-                      onClear: () => context.read<CreatePostBloc>().add(
-                        const CreatePostBarcodeCleared(),
                       ),
                     ),
                     const SizedBox(height: 24),

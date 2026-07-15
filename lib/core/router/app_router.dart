@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../features/activity/presentation/pages/activity_page.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
@@ -110,6 +111,11 @@ final class AppRouter {
         path: AppRoutes.archive,
         name: AppRoutes.archiveName,
         builder: (_, _) => const ArchivedPostsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.activity,
+        name: AppRoutes.activityName,
+        builder: (_, _) => const ActivityPage(),
       ),
       GoRoute(
         path: AppRoutes.brands,

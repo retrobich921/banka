@@ -6,6 +6,7 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/update/app_updater.dart';
+import '../../../activity/presentation/widgets/activity_bell.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../group/presentation/bloc/groups_list_bloc.dart';
 import '../../../group/presentation/pages/groups_page.dart';
@@ -136,6 +137,7 @@ class FeedTabView extends StatelessWidget {
         appBar: AppBar(
           title: const Text('banka'),
           actions: [
+            const ActivityBell(),
             IconButton(
               tooltip: 'Поиск',
               icon: const Icon(Icons.search),

@@ -29,6 +29,7 @@ abstract final class PostDto {
   static const String fTags = 'tags';
   static const String fLikesCount = 'likesCount';
   static const String fCommentsCount = 'commentsCount';
+  static const String fArchived = 'archived';
   static const String fSearchKeywords = 'searchKeywords';
   static const String fCreatedAt = 'createdAt';
   static const String fUpdatedAt = 'updatedAt';
@@ -60,6 +61,8 @@ abstract final class PostDto {
       tags: _stringList(data[fTags]),
       likesCount: (data[fLikesCount] as num?)?.toInt() ?? 0,
       commentsCount: (data[fCommentsCount] as num?)?.toInt() ?? 0,
+      // Легаси-документы без поля — не в архиве.
+      archived: (data[fArchived] as bool?) ?? false,
       searchKeywords: _stringList(data[fSearchKeywords]),
       createdAt: _timestampToDate(data[fCreatedAt]),
       updatedAt: _timestampToDate(data[fUpdatedAt]),
@@ -89,6 +92,7 @@ abstract final class PostDto {
       fTags: post.tags,
       fLikesCount: post.likesCount,
       fCommentsCount: post.commentsCount,
+      fArchived: post.archived,
       fSearchKeywords: post.searchKeywords,
       if (post.createdAt != null)
         fCreatedAt: Timestamp.fromDate(post.createdAt!),

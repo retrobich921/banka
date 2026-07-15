@@ -14,6 +14,7 @@ abstract interface class GroupRepository {
     List<String> tags,
     String? coverUrl,
     GroupPostingPolicy postingPolicy,
+    String ownerDisplayName,
   });
 
   ResultFuture<Group?> getGroup(String groupId);

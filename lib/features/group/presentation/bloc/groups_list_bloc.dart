@@ -135,6 +135,7 @@ class GroupsListBloc extends Bloc<GroupsListEvent, GroupsListState> {
         isPublic: event.isPublic,
         tags: event.tags,
         postingPolicy: event.postingPolicy,
+        ownerDisplayName: event.ownerDisplayName,
       ),
     );
 

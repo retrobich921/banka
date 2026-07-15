@@ -23,6 +23,7 @@ final class GroupRepositoryImpl implements GroupRepository {
     List<String> tags = const <String>[],
     String? coverUrl,
     GroupPostingPolicy postingPolicy = GroupPostingPolicy.all,
+    String ownerDisplayName = '',
   }) async {
     try {
       final group = await _remote.createGroup(
@@ -33,6 +34,7 @@ final class GroupRepositoryImpl implements GroupRepository {
         tags: tags,
         coverUrl: coverUrl,
         postingPolicy: postingPolicy,
+        ownerDisplayName: ownerDisplayName,
       );
       return Right(group);
     } on ServerException catch (e) {

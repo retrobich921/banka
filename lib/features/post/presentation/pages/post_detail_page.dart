@@ -116,6 +116,24 @@ class _PostDetailViewState extends State<_PostDetailView> {
             actions: [
               if (isAuthor)
                 IconButton(
+                  tooltip: post.archived
+                      ? 'Вернуть из архива'
+                      : 'В архив (можно вернуть)',
+                  icon: Icon(
+                    post.archived
+                        ? Icons.unarchive_outlined
+                        : Icons.archive_outlined,
+                  ),
+                  onPressed: isDeleting
+                      ? null
+                      : () => context.read<PostDetailBloc>().add(
+                          PostDetailArchiveToggleRequested(
+                            archived: !post.archived,
+                          ),
+                        ),
+                ),
+              if (isAuthor)
+                IconButton(
                   tooltip: 'Удалить пост',
                   icon: const Icon(Icons.delete_outline),
                   onPressed: isDeleting ? null : () => _confirmDelete(context),
@@ -144,6 +162,28 @@ class _PostDetailViewState extends State<_PostDetailView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (post.archived)
+            Container(
+              width: double.infinity,
+              color: AppColors.surfaceVariant,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.archive_outlined,
+                    size: 18,
+                    color: AppColors.onSurfaceMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Пост в архиве — скрыт из лент',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (post.photos.isNotEmpty)
             _Carousel(
               post: post,

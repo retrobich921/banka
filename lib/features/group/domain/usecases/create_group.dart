@@ -22,6 +22,7 @@ class CreateGroup implements UseCase<Group, CreateGroupParams> {
       tags: params.tags,
       coverUrl: params.coverUrl,
       postingPolicy: params.postingPolicy,
+      ownerDisplayName: params.ownerDisplayName,
     );
   }
 }
@@ -35,6 +36,7 @@ class CreateGroupParams extends Equatable {
     this.tags = const <String>[],
     this.coverUrl,
     this.postingPolicy = GroupPostingPolicy.all,
+    this.ownerDisplayName = '',
   });
 
   final String ownerId;
@@ -44,6 +46,7 @@ class CreateGroupParams extends Equatable {
   final List<String> tags;
   final String? coverUrl;
   final GroupPostingPolicy postingPolicy;
+  final String ownerDisplayName;
 
   @override
   List<Object?> get props => [
@@ -54,5 +57,6 @@ class CreateGroupParams extends Equatable {
     tags,
     coverUrl,
     postingPolicy,
+    ownerDisplayName,
   ];
 }

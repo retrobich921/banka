@@ -8,6 +8,7 @@ import 'package:injectable/injectable.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/delete_post.dart';
+import '../../domain/usecases/set_post_archived.dart';
 import '../../domain/usecases/watch_post.dart';
 
 part 'post_detail_event.dart';
@@ -20,15 +21,17 @@ part 'post_detail_state.dart';
 /// автор правит описание (Sprint 9 не редактирует).
 @injectable
 class PostDetailBloc extends Bloc<PostDetailEvent, PostDetailState> {
-  PostDetailBloc(this._watchPost, this._deletePost)
+  PostDetailBloc(this._watchPost, this._deletePost, this._setPostArchived)
     : super(const PostDetailState.initial()) {
     on<PostDetailSubscribeRequested>(_onSubscribe);
+    on<PostDetailArchiveToggleRequested>(_onArchiveToggleRequested);
     on<PostDetailDeleteRequested>(_onDeleteRequested);
     on<_PostDetailReceived>(_onReceived);
   }
 
   final WatchPost _watchPost;
   final DeletePost _deletePost;
+  final SetPostArchived _setPostArchived;
 
   StreamSubscription<Either<Failure, Post?>>? _sub;
   String? _currentPostId;
@@ -44,6 +47,33 @@ class PostDetailBloc extends Bloc<PostDetailEvent, PostDetailState> {
 
     await _sub?.cancel();
     _sub = _watchPost(event.postId).listen((r) => add(_PostDetailReceived(r)));
+  }
+
+  Future<void> _onArchiveToggleRequested(
+    PostDetailArchiveToggleRequested event,
+    Emitter<PostDetailState> emit,
+  ) async {
+    final postId = _currentPostId;
+    if (postId == null) return;
+
+    final result = await _setPostArchived(
+      SetPostArchivedParams(postId: postId, archived: event.archived),
+    );
+    // Успех придёт сам через watchPost (пост обновится в стриме);
+    // здесь обрабатываем только ошибку.
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: PostDetailStatus.error,
+          errorMessage:
+              failure.message ??
+              (event.archived
+                  ? 'Не удалось архивировать пост'
+                  : 'Не удалось вернуть пост из архива'),
+        ),
+      ),
+      (_) {},
+    );
   }
 
   Future<void> _onDeleteRequested(

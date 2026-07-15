@@ -18,6 +18,7 @@ abstract interface class GroupRemoteDataSource {
     required List<String> tags,
     String? coverUrl,
     GroupPostingPolicy postingPolicy,
+    String ownerDisplayName,
   });
 
   Future<Group?> getGroup(String groupId);
@@ -121,6 +122,7 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
     required List<String> tags,
     String? coverUrl,
     GroupPostingPolicy postingPolicy = GroupPostingPolicy.all,
+    String ownerDisplayName = '',
   }) async {
     try {
       final doc = _groupsCol.doc();
@@ -144,7 +146,7 @@ final class FirestoreGroupRemoteDataSource implements GroupRemoteDataSource {
         userId: ownerId,
         groupId: doc.id,
         role: GroupRole.owner,
-        displayName: '', // TODO: передавать displayName владельца
+        displayName: ownerDisplayName,
         joinedAt: now,
       );
       final batch = _firestore.batch()

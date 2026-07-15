@@ -80,6 +80,12 @@ abstract interface class PostRemoteDataSource {
 
   Future<void> deletePost(String postId);
 
+  /// Архивирование/восстановление поста (мягкое скрытие из лент).
+  Future<void> setArchived({required String postId, required bool archived});
+
+  /// Архив автора: его посты с `archived == true`, свежие сверху.
+  Future<List<Post>> fetchArchivedPosts({required String authorId, int limit});
+
   /// Лента подписок: посты авторов [authorIds] + посты групп [groupIds],
   /// объединённые по `createdAt desc`, без дублей.
   Future<List<Post>> fetchSubscriptionsFeed({
@@ -497,12 +503,58 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     }
   }
 
+  @override
+  Future<void> setArchived({
+    required String postId,
+    required bool archived,
+  }) async {
+    try {
+      await _postsCol.doc(postId).update(<String, dynamic>{
+        PostDto.fArchived: archived,
+        PostDto.fUpdatedAt: Timestamp.fromDate(DateTime.now()),
+      });
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
+  Future<List<Post>> fetchArchivedPosts({
+    required String authorId,
+    int limit = 50,
+  }) async {
+    try {
+      // Два equality-фильтра — композитный индекс не нужен (merge join);
+      // сортируем на клиенте, чтобы не заводить индекс под редкий экран.
+      final snap = await _postsCol
+          .where(PostDto.fAuthorId, isEqualTo: authorId)
+          .where(PostDto.fArchived, isEqualTo: true)
+          .limit(limit)
+          .get();
+      final posts =
+          snap.docs.map(PostDto.fromSnapshot).whereType<Post>().toList()
+            ..sort((a, b) {
+              final ad = a.createdAt;
+              final bd = b.createdAt;
+              if (ad == null || bd == null) return ad == null ? 1 : -1;
+              return bd.compareTo(ad);
+            });
+      return posts;
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  /// Общая распаковка списков постов. Архивные посты отфильтровываются
+  /// здесь (единая точка для всех лент/топов/поиска); отдельный экран
+  /// архива ходит через [fetchArchivedPosts].
   static List<Post> _postListFromSnapshot(
     QuerySnapshot<Map<String, dynamic>> snap,
   ) {
     return snap.docs
         .map(PostDto.fromSnapshot)
         .whereType<Post>()
+        .where((p) => !p.archived)
         .toList(growable: false);
   }
 }

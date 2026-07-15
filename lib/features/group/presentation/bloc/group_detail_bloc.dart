@@ -157,11 +157,11 @@ class GroupDetailBloc extends Bloc<GroupDetailEvent, GroupDetailState> {
 
     emit(state.copyWith(status: GroupDetailStatus.mutating, clearError: true));
 
+    // Пустое имя лучше uid: UI подставит имя из профиля пользователя.
     final params = GroupMembershipParams(
       groupId: groupId,
       userId: userId,
-      displayName:
-          displayName ?? userId, // Fallback to userId if displayName is null
+      displayName: displayName ?? '',
     );
 
     // Если группа закрытая, создаём запрос на вступление

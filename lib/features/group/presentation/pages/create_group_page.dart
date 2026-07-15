@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/group.dart';
 import '../bloc/groups_list_bloc.dart';
 
@@ -31,6 +32,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+    final user = context.read<AuthBloc>().state.user;
     context.read<GroupsListBloc>().add(
       GroupsListCreateRequested(
         name: _nameController.text,
@@ -39,6 +41,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         postingPolicy: _adminsOnlyPosting
             ? GroupPostingPolicy.admins
             : GroupPostingPolicy.all,
+        ownerDisplayName: user?.displayName ?? '',
       ),
     );
   }

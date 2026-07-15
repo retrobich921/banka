@@ -1,3 +1,4 @@
+import 'package:dartz/dartz.dart' hide State;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,8 +7,11 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../../core/error/failures.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
 import '../../../post/presentation/widgets/post_card.dart';
+import '../../../user/domain/entities/user_profile.dart';
+import '../../../user/domain/usecases/watch_user.dart';
 import '../../domain/entities/group.dart';
 import '../bloc/group_detail_bloc.dart';
 import 'join_requests_page.dart';
@@ -194,9 +198,8 @@ class _GroupBody extends StatelessWidget {
                 errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
-          Text(group.name, style: theme.textTheme.titleLarge),
+          // Название группы уже в AppBar — здесь не дублируем.
           if (group.description.isNotEmpty) ...[
-            const SizedBox(height: 8),
             Text(
               group.description,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -251,7 +254,7 @@ class _GroupBody extends StatelessWidget {
                     ? AppColors.onSurfaceMuted
                     : AppColors.primary,
               ),
-              title: Text(m.displayName.isNotEmpty ? m.displayName : m.userId),
+              title: _MemberName(member: m),
               subtitle: Text(_roleLabel(m.role)),
               // Владелец управляет ролями остальных участников.
               trailing: state.isOwner && m.role != GroupRole.owner
@@ -300,6 +303,35 @@ class _GroupBody extends StatelessWidget {
     GroupRole.admin => 'админ',
     GroupRole.member => 'участник',
   };
+}
+
+/// Имя участника. В легаси member-документах `displayName` пустой (или туда
+/// попадал uid) — тогда резолвим имя из профиля `users/{uid}`.
+class _MemberName extends StatelessWidget {
+  const _MemberName({required this.member});
+
+  final GroupMember member;
+
+  @override
+  Widget build(BuildContext context) {
+    final denormalized = member.displayName.trim();
+    // Не показываем uid, даже если он записан в displayName.
+    final hasRealName =
+        denormalized.isNotEmpty && denormalized != member.userId;
+    if (hasRealName) return Text(denormalized);
+
+    return StreamBuilder<Either<Failure, UserProfile?>>(
+      stream: sl<WatchUser>().call(member.userId),
+      builder: (context, snapshot) {
+        final profile = snapshot.data?.fold<UserProfile?>(
+          (_) => null,
+          (p) => p,
+        );
+        final name = profile?.displayName.trim() ?? '';
+        return Text(name.isNotEmpty ? name : 'Коллекционер');
+      },
+    );
+  }
 }
 
 class _GroupPostsSection extends StatelessWidget {

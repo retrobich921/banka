@@ -47,6 +47,7 @@ void main() {
           tags: any(named: 'tags'),
           coverUrl: any(named: 'coverUrl'),
           postingPolicy: any(named: 'postingPolicy'),
+          ownerDisplayName: any(named: 'ownerDisplayName'),
         ),
       ).thenAnswer((_) async => group);
 
@@ -68,6 +69,7 @@ void main() {
           tags: any(named: 'tags'),
           coverUrl: any(named: 'coverUrl'),
           postingPolicy: any(named: 'postingPolicy'),
+          ownerDisplayName: any(named: 'ownerDisplayName'),
         ),
       ).thenThrow(const ServerException(message: 'denied'));
 

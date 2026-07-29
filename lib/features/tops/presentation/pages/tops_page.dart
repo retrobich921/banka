@@ -32,12 +32,14 @@ class TopsPage extends StatelessWidget {
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text('Топы'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: '🥤 Напитки'),
-              Tab(text: '❤️ Популярные'),
-              Tab(text: '👤 Коллекционеры'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(52),
+            child: Builder(
+              builder: (context) => _SegmentedTabs(
+                controller: DefaultTabController.of(context),
+                labels: const ['Напитки', 'Популярные', 'Коллекционеры'],
+              ),
+            ),
           ),
         ),
         body: const TabBarView(
@@ -46,6 +48,79 @@ class TopsPage extends StatelessWidget {
             _TopPostsTab(ranking: PostRanking.mostLiked),
             _TopCollectorsTab(),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Переключатель разделов «Топов» — сегмент-контрол в одну строку.
+///
+/// Обычный `TabBar` делит ширину поровну и на узких экранах рвёт длинные
+/// подписи («Коллекционеры») на две строки либо режет их многоточием.
+/// Здесь каждый сегмент — `FittedBox(scaleDown)`, поэтому текст всегда
+/// остаётся в одну строку на любой ширине и в любой ориентации.
+class _SegmentedTabs extends StatelessWidget {
+  const _SegmentedTabs({required this.controller, required this.labels});
+
+  final TabController controller;
+  final List<String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: AnimatedBuilder(
+          animation: controller.animation ?? controller,
+          builder: (context, _) {
+            return Row(
+              children: [
+                for (int i = 0; i < labels.length; i++)
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => controller.animateTo(i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: controller.index == i
+                              ? AppColors.primary.withValues(alpha: 0.16)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            labels[i],
+                            maxLines: 1,
+                            softWrap: false,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: controller.index == i
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: controller.index == i
+                                  ? AppColors.primary
+                                  : AppColors.onSurfaceMuted,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );

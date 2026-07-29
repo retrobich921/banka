@@ -61,6 +61,24 @@
 - **Денорм-счётчики (likes/comments/postsCount):** Cloud Functions на Spark НЕ
   выполняются. Считать на клиенте — инкремент в батче при создании, либо агрегатный
   `count()` (см. `watchBrands`/`watchBrand`). Не полагаться на функции.
+  Поля `users/{uid}.stats.groupsCount` и `.likesReceived` НИКТО не обновляет —
+  в профиле они не используются: счётчики подписок/подписчиков/групп считает
+  живьём `ProfileStatsRow` (стримы `WatchFollowingIds`/`WatchFollowerIds`/
+  `WatchMyGroups`).
+- **Списки постов:** `PostCard` в любом списке ОБЯЗАН иметь `key: ValueKey(post.id)`,
+  а `LikeButton` создаёт cubit c `ValueKey(postId)`. Без ключей элементы
+  переиспользуются между постами: лайк «уходит» в чужой пост, счётчик не
+  обновляется, карусель показывает не тот кадр.
+- **Оптимистичный лайк:** поправку `optimisticDelta` снимает только новый
+  `likesCount` от родителя (`syncLikesCount`), а не подтверждение из стрима
+  `watchHasLiked` — догруженные пагинацией страницы не realtime, там свежий
+  счётчик не придёт никогда.
+- **Превью фото:** в UI не брать `photo.thumbUrl` напрямую — он «запечён» с
+  шириной, актуальной на момент постинга. Строить от `photo.url`:
+  `cloudinaryThumb(photo.url, width: cloudinaryWidthFor(ширина, DPR))`.
+- **Подписки:** `users/{uid}/following/{targetId}` + зеркало
+  `users/{targetId}/followers/{uid}` пишутся одним батчем — без зеркала список
+  подписчиков потребовал бы collection group query.
 - **Лента:** первая страница realtime (`Watch*Feed`), догрузка — курсором
   (`FetchFeedPage`, `startAfter`, без перечитывания). Скоупы — `PostsFeedScope`
   (`global/group/brand/author`). Переиспользуй `PostsFeedView`/`PostsFeedBloc`.
@@ -87,6 +105,24 @@
 - Сборка: `flutter build apk` (debug) / `flutter build apk --release`.
 - Установка: `flutter install -d 3B1F65E9CEQU0N7R` (по умолчанию ставит **release**),
   либо `adb install -r build\app\outputs\flutter-apk\app-release.apk`.
+
+## Push-уведомления
+- Клиент: `lib/core/notifications/push_notifications_service.dart` — разрешение,
+  FCM-токен в `users/{uid}.fcmTokens` (arrayUnion после логина, arrayRemove
+  перед выходом), канал `banka_default`, показ баннера в foreground через
+  `flutter_local_notifications`, навигация по `data.postId`.
+- Сервер: `functions/notifications.js` — триггеры `onLikeNotify`,
+  `onCommentNotify`, `onPostNotify` (подписчики автора + участники группы).
+  Мёртвые токены чистятся при отправке.
+- **Отправка работает только на Blaze-плане** (Cloud Functions на Spark не
+  выполняются). Клиентская часть при этом безвредна — токены просто копятся.
+- Android: `POST_NOTIFICATIONS`, `firebase_messaging_auto_init_enabled=true`,
+  desugaring в `android/app/build.gradle.kts` (требование плагина).
+
+## Иконка приложения
+`dart run tool/generate_app_icon.dart` рисует `assets/icon/*.png`, затем
+`dart run flutter_launcher_icons` раскладывает их по `mipmap-*`. Меняем
+рисунок — правим скрипт, не PNG.
 
 ## UI / тема
 - Тема **только тёмная**: `AppColors` (#000000 фон, #FFB300 акцент), `AppTypography`,

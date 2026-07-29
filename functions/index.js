@@ -28,6 +28,14 @@ const sharp = require('sharp');
 
 initializeApp();
 
+// Push-уведомления вынесены в отдельный модуль (триггеры на те же
+// документы, но независимые от счётчиков).
+const notifications = require('./notifications');
+
+exports.onLikeNotify = notifications.onLikeNotify;
+exports.onCommentNotify = notifications.onCommentNotify;
+exports.onPostNotify = notifications.onPostNotify;
+
 // Функция для очистки старых запросов на вступление без groupOwnerId
 exports.cleanupJoinRequests = onRequest(
   { region: 'europe-west3' },

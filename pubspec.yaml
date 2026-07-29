@@ -1,7 +1,7 @@
 name: banka
 description: Социальное приложение и каталог для коллекционеров энергетических напитков.
 publish_to: 'none'
-version: 0.7.0+10
+version: 0.7.1+11
 
 environment:
   sdk: ^3.11.5

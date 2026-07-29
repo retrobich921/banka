@@ -14,6 +14,7 @@ import '../../../post/presentation/widgets/posts_shelf_grid.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/usecases/watch_user.dart';
 import '../widgets/achievements_row.dart';
+import '../widgets/profile_stats_row.dart';
 
 /// Просмотр профиля другого пользователя (read-only): аватар, имя,
 /// @username, био, статистика и лента его банок. Открывается по тапу на
@@ -83,7 +84,10 @@ class _ContentState extends State<_Content> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: AchievementsRow(cansCount: widget.profile.stats.cansCount),
+              child: AchievementsRow(
+                cansCount: widget.profile.stats.cansCount,
+                pinnedIds: widget.profile.pinnedAchievements,
+              ),
             ),
           ),
           SliverToBoxAdapter(
@@ -162,6 +166,7 @@ class _ContentState extends State<_Content> {
               );
             }
             return PostCard(
+              key: ValueKey(posts[i].id),
               post: posts[i],
               onTap: () => context.pushNamed(
                 AppRoutes.postDetailName,
@@ -217,7 +222,10 @@ class _Header extends StatelessWidget {
           const SizedBox(height: 16),
           FollowButton(targetUserId: profile.id),
           const SizedBox(height: 16),
-          _StatsGrid(stats: profile.stats),
+          ProfileStatsRow(
+            userId: profile.id,
+            cansCount: profile.stats.cansCount,
+          ),
         ],
       ),
     );
@@ -268,54 +276,6 @@ class _Avatar extends StatelessWidget {
         size: 72,
         color: AppColors.onSurfaceMuted,
       ),
-    );
-  }
-}
-
-class _StatsGrid extends StatelessWidget {
-  const _StatsGrid({required this.stats});
-
-  final UserStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _StatCell(label: 'Банок', value: stats.cansCount.toString()),
-        _StatCell(label: 'Лайков', value: stats.likesReceived.toString()),
-        _StatCell(label: 'Групп', value: stats.groupsCount.toString()),
-      ],
-    );
-  }
-}
-
-class _StatCell extends StatelessWidget {
-  const _StatCell({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceFaint),
-        ),
-      ],
     );
   }
 }

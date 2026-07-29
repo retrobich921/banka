@@ -68,6 +68,32 @@ final class FollowRepositoryImpl implements FollowRepository {
   }
 
   @override
+  ResultStream<List<String>> watchFollowingIds(String userId) =>
+      _watchIds(_remote.watchFollowingIds(userId));
+
+  @override
+  ResultStream<List<String>> watchFollowerIds(String userId) =>
+      _watchIds(_remote.watchFollowerIds(userId));
+
+  Stream<Either<Failure, List<String>>> _watchIds(
+    Stream<List<String>> source,
+  ) async* {
+    try {
+      await for (final ids in source) {
+        yield Right<Failure, List<String>>(ids);
+      }
+    } on ServerException catch (e) {
+      yield Left<Failure, List<String>>(
+        ServerFailure(message: e.message, cause: e.cause),
+      );
+    } catch (e) {
+      yield Left<Failure, List<String>>(
+        ServerFailure(message: e.toString(), cause: e),
+      );
+    }
+  }
+
+  @override
   ResultFuture<List<String>> getFollowingIds(String followerId) async {
     try {
       return Right(await _remote.getFollowingIds(followerId));

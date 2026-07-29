@@ -19,6 +19,10 @@ abstract final class AppRoutes {
   static const String brands = '/brands';
   static const String brandDetail = '/brands/:id';
   static const String userProfile = '/users/:id';
+  static const String userFollowing = '/users/:id/following';
+  static const String userFollowers = '/users/:id/followers';
+  static const String userGroups = '/users/:id/groups';
+  static const String achievements = '/profile/achievements';
   static const String tops = '/tops';
   static const String archive = '/archive';
   static const String activity = '/activity';
@@ -40,6 +44,10 @@ abstract final class AppRoutes {
   static const String brandsName = 'brands';
   static const String brandDetailName = 'brandDetail';
   static const String userProfileName = 'userProfile';
+  static const String userFollowingName = 'userFollowing';
+  static const String userFollowersName = 'userFollowers';
+  static const String userGroupsName = 'userGroups';
+  static const String achievementsName = 'achievements';
   static const String topsName = 'tops';
   static const String archiveName = 'archive';
   static const String activityName = 'activity';

@@ -1,7 +1,7 @@
 name: banka
 description: Социальное приложение и каталог для коллекционеров энергетических напитков.
 publish_to: 'none'
-version: 0.6.0+9
+version: 0.7.0+10
 
 environment:
   sdk: ^3.11.5
@@ -70,6 +70,10 @@ dependencies:
   open_filex: ^4.7.0
   share_plus: ^13.2.0
 
+  # Push: показ уведомлений, когда приложение открыто (в фоне баннер
+  # рисует сама система по notification-payload от FCM).
+  flutter_local_notifications: ^22.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -86,5 +90,19 @@ dev_dependencies:
   bloc_test: ^10.0.0
   mocktail: ^1.0.4
 
+  # Генерация launcher-иконок из assets/icon (исходник рисует
+  # tool/generate_app_icon.dart)
+  flutter_launcher_icons: ^0.14.4
+
 flutter:
   uses-material-design: true
+
+# Иконка приложения: `dart run tool/generate_app_icon.dart` рисует PNG,
+# затем `dart run flutter_launcher_icons` раскладывает их по mipmap-*.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/icon/app_icon.png
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: assets/icon/app_icon_foreground.png
+  min_sdk_android: 23

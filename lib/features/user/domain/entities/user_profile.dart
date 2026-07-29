@@ -25,6 +25,10 @@ sealed class UserProfile with _$UserProfile {
     /// Timestamp последнего изменения username (для cooldown 30 дней)
     DateTime? usernameLastChangedAt,
     @Default(UserStats()) UserStats stats,
+
+    /// Id ачивок, которые пользователь выбрал показывать в профиле.
+    /// Пусто — показываем последние полученные.
+    @Default(<String>[]) List<String> pinnedAchievements,
     @Default(<String>[]) List<String> fcmTokens,
     DateTime? createdAt,
     DateTime? updatedAt,

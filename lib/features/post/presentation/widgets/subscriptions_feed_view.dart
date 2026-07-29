@@ -66,6 +66,7 @@ class SubscriptionsFeedView extends StatelessWidget {
             itemCount: posts.length,
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, i) => PostCard(
+              key: ValueKey(posts[i].id),
               post: posts[i],
               onTap: () => context.pushNamed(
                 AppRoutes.postDetailName,

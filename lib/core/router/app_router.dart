@@ -12,10 +12,12 @@ import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/brand/presentation/pages/brand_detail_page.dart';
 import '../../features/brand/presentation/pages/brands_page.dart';
 import '../../features/drink/presentation/pages/drink_detail_page.dart';
+import '../../features/follow/presentation/pages/follow_list_page.dart';
 import '../../features/group/presentation/bloc/groups_list_bloc.dart';
 import '../../features/group/presentation/pages/create_group_page.dart';
 import '../../features/group/presentation/pages/group_detail_page.dart';
 import '../../features/group/presentation/pages/groups_page.dart';
+import '../../features/group/presentation/pages/user_groups_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/like/presentation/pages/who_liked_page.dart';
 import '../../features/post/presentation/pages/archived_posts_page.dart';
@@ -24,6 +26,7 @@ import '../../features/post/presentation/pages/post_detail_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/tops/presentation/pages/tops_page.dart';
 import '../../features/user/presentation/bloc/profile_bloc.dart';
+import '../../features/user/presentation/pages/achievements_page.dart';
 import '../../features/user/presentation/pages/edit_profile_page.dart';
 import '../../features/user/presentation/pages/profile_page.dart';
 import '../../features/user/presentation/pages/public_profile_page.dart';
@@ -85,6 +88,30 @@ final class AppRouter {
         name: AppRoutes.userProfileName,
         builder: (_, state) =>
             PublicProfilePage(userId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: AppRoutes.userFollowing,
+        name: AppRoutes.userFollowingName,
+        builder: (_, state) => FollowListPage(
+          userId: state.pathParameters['id']!,
+          mode: FollowListMode.following,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.userFollowers,
+        name: AppRoutes.userFollowersName,
+        builder: (_, state) => FollowListPage(
+          userId: state.pathParameters['id']!,
+          mode: FollowListMode.followers,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.userGroups,
+        name: AppRoutes.userGroupsName,
+        builder: (_, state) => UserGroupsPage(
+          userId: state.pathParameters['id']!,
+          isSelf: state.uri.queryParameters['self'] == '1',
+        ),
       ),
       GoRoute(
         path: AppRoutes.postDetail,
@@ -152,6 +179,11 @@ final class AppRouter {
             path: AppRoutes.profileEdit,
             name: AppRoutes.profileEditName,
             builder: (_, _) => const EditProfilePage(),
+          ),
+          GoRoute(
+            path: AppRoutes.achievements,
+            name: AppRoutes.achievementsName,
+            builder: (_, _) => const AchievementsPage(),
           ),
         ],
       ),

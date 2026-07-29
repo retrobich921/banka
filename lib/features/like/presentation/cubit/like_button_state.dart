@@ -8,6 +8,7 @@ final class LikeButtonState extends Equatable {
     this.hasLiked = false,
     this.optimisticHasLiked,
     this.optimisticDelta = 0,
+    this.baseCount = 0,
     this.errorMessage,
   });
 
@@ -15,6 +16,9 @@ final class LikeButtonState extends Equatable {
 
   final LikeButtonStatus status;
   final bool hasLiked;
+
+  /// Счётчик лайков поста, пришедший из родителя (ленты/детального экрана).
+  final int baseCount;
 
   /// Желаемое значение, заявленное локальным тапом. Сбрасывается, как
   /// только стрим догоняет (или при ошибке).
@@ -27,6 +31,13 @@ final class LikeButtonState extends Equatable {
   final String? errorMessage;
 
   bool get displayedHasLiked => optimisticHasLiked ?? hasLiked;
+
+  /// Что показываем рядом с сердечком: серверный счётчик + локальная поправка.
+  int get displayedCount {
+    final total = baseCount + optimisticDelta;
+    return total < 0 ? 0 : total;
+  }
+
   bool get isMutating => status == LikeButtonStatus.mutating;
   bool get isReady => status == LikeButtonStatus.ready;
 
@@ -35,6 +46,7 @@ final class LikeButtonState extends Equatable {
     bool? hasLiked,
     bool? optimisticHasLiked,
     int? optimisticDelta,
+    int? baseCount,
     String? errorMessage,
     bool clearOptimistic = false,
     bool clearError = false,
@@ -46,6 +58,7 @@ final class LikeButtonState extends Equatable {
           ? null
           : optimisticHasLiked ?? this.optimisticHasLiked,
       optimisticDelta: optimisticDelta ?? this.optimisticDelta,
+      baseCount: baseCount ?? this.baseCount,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }
@@ -56,6 +69,7 @@ final class LikeButtonState extends Equatable {
     hasLiked,
     optimisticHasLiked,
     optimisticDelta,
+    baseCount,
     errorMessage,
   ];
 }

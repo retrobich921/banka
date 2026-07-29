@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Push-уведомления (Android 13+ требует runtime-разрешение). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:label="banka"
@@ -43,16 +45,23 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- Sprint 17 (push) пока не используется. Отключаем авто-инициализацию
-             FCM/FIS, чтобы не сыпать FIS_AUTH_ERROR в лог при старте. Когда
-             понадобится push — снимаем эти флаги и вызываем
-             FirebaseMessaging.instance.setAutoInitEnabled(true). -->
+        <!-- Push включён: токен регистрируется после логина
+             (PushNotificationsService). -->
         <meta-data
             android:name="firebase_messaging_auto_init_enabled"
-            android:value="false" />
+            android:value="true" />
         <meta-data
             android:name="firebase_analytics_collection_enabled"
             android:value="false" />
+
+        <!-- Канал по умолчанию для уведомлений, пришедших в фоне: без него
+             Android кладёт их в «Разное» и часть настроек звука теряется. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="banka_default" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

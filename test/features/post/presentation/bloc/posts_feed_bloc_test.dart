@@ -171,6 +171,42 @@ void main() {
     );
   });
 
+  group('PostsFeedPostHidden (архивация)', () {
+    test(
+      'убирает пост сразу и возвращает, когда стрим его отфильтровал',
+      () async {
+        final controller = StreamController<Either<Failure, List<Post>>>();
+        when(() => watchFeed(any())).thenAnswer((_) => controller.stream);
+
+        final bloc = buildBloc();
+        bloc.add(const PostsFeedSubscribeRequested(PostsFeedScope.global()));
+        controller.add(Right(<Post>[makePost('p1'), makePost('p2')]));
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state.posts.length, 2);
+
+        bloc.add(const PostsFeedPostHidden('p1'));
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state.posts.map((p) => p.id), ['p2']);
+
+        // Стрим ещё не догнал (пост приходит неархивированным) — держим скрытым.
+        controller.add(Right(<Post>[makePost('p1'), makePost('p2')]));
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state.posts.map((p) => p.id), ['p2']);
+
+        // Сервер отфильтровал архив — фильтр снимаем.
+        controller.add(Right(<Post>[makePost('p2')]));
+        await Future<void>.delayed(Duration.zero);
+        // Возврат из архива снова показывает банку.
+        controller.add(Right(<Post>[makePost('p1'), makePost('p2')]));
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state.posts.map((p) => p.id), ['p1', 'p2']);
+
+        await controller.close();
+        await bloc.close();
+      },
+    );
+  });
+
   group('PostsFeedLoadMoreRequested', () {
     blocTest<PostsFeedBloc, PostsFeedState>(
       'дочитывает следующую страницу и дописывает её в конец',

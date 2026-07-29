@@ -3,15 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/notifications/push_notifications_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../post/presentation/bloc/posts_feed_bloc.dart';
+import '../../../post/presentation/pages/post_detail_page.dart';
+import '../../../post/presentation/widgets/collapsible_item.dart';
 import '../../../post/presentation/widgets/post_card.dart';
 import '../../../post/presentation/widgets/posts_shelf_grid.dart';
 import '../../domain/entities/user_profile.dart';
 import '../bloc/profile_bloc.dart';
 import '../widgets/achievements_row.dart';
+import '../widgets/profile_stats_row.dart';
 
 /// Экран профиля текущего пользователя.
 ///
@@ -70,8 +74,14 @@ class _ProfilePageState extends State<ProfilePage> {
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'Выйти',
-              onPressed: () =>
-                  context.read<AuthBloc>().add(const AuthSignOutRequested()),
+              onPressed: () async {
+                // Токен отвязываем до logout: после него запись в
+                // `users/{uid}` запрещена правилами, и пуши продолжили бы
+                // приходить на это устройство.
+                await sl<PushNotificationsService>().unregister();
+                if (!context.mounted) return;
+                context.read<AuthBloc>().add(const AuthSignOutRequested());
+              },
             ),
           ],
         ),
@@ -112,6 +122,9 @@ class _ProfileContentState extends State<_ProfileContent> {
   // Полка (сетка) — вид коллекции по умолчанию.
   bool _shelf = true;
 
+  /// Посты, которые «схлопываются» после архивации.
+  final Set<String> _collapsing = <String>{};
+
   @override
   Widget build(BuildContext context) {
     final feedState = context.watch<PostsFeedBloc>().state;
@@ -132,7 +145,11 @@ class _ProfileContentState extends State<_ProfileContent> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: AchievementsRow(cansCount: widget.profile.stats.cansCount),
+              child: AchievementsRow(
+                cansCount: widget.profile.stats.cansCount,
+                pinnedIds: widget.profile.pinnedAchievements,
+                onOpen: () => context.pushNamed(AppRoutes.achievementsName),
+              ),
             ),
           ),
           SliverToBoxAdapter(
@@ -198,7 +215,11 @@ class _ProfileContentState extends State<_ProfileContent> {
     final posts = state.posts;
     if (_shelf) {
       return [
-        PostsShelfSliver(posts: posts),
+        PostsShelfSliver(
+          posts: posts,
+          onArchived: (postId) =>
+              context.read<PostsFeedBloc>().add(PostsFeedPostHidden(postId)),
+        ),
         if (state.isLoadingMore)
           const SliverToBoxAdapter(
             child: Padding(
@@ -223,11 +244,26 @@ class _ProfileContentState extends State<_ProfileContent> {
                 child: Center(child: CircularProgressIndicator()),
               );
             }
-            return PostCard(
-              post: posts[i],
-              onTap: () => context.pushNamed(
-                AppRoutes.postDetailName,
-                pathParameters: {'id': posts[i].id},
+            final post = posts[i];
+            return CollapsibleItem(
+              key: ValueKey('collapsible-${post.id}'),
+              collapsed: _collapsing.contains(post.id),
+              onCollapsed: () {
+                context.read<PostsFeedBloc>().add(PostsFeedPostHidden(post.id));
+                _collapsing.remove(post.id);
+              },
+              child: PostCard(
+                key: ValueKey(post.id),
+                post: post,
+                onTap: () async {
+                  final result = await context.pushNamed<Object?>(
+                    AppRoutes.postDetailName,
+                    pathParameters: {'id': post.id},
+                  );
+                  if (result == kPostArchivedResult && mounted) {
+                    setState(() => _collapsing.add(post.id));
+                  }
+                },
               ),
             );
           },
@@ -274,7 +310,11 @@ class _Header extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 32),
-          _StatsGrid(stats: profile.stats),
+          ProfileStatsRow(
+            userId: profile.id,
+            cansCount: profile.stats.cansCount,
+            isSelf: true,
+          ),
         ],
       ),
     );
@@ -323,54 +363,6 @@ class _Avatar extends StatelessWidget {
         size: 72,
         color: AppColors.onSurfaceMuted,
       ),
-    );
-  }
-}
-
-class _StatsGrid extends StatelessWidget {
-  const _StatsGrid({required this.stats});
-
-  final UserStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _StatCell(label: 'Банок', value: stats.cansCount.toString()),
-        _StatCell(label: 'Лайков', value: stats.likesReceived.toString()),
-        _StatCell(label: 'Групп', value: stats.groupsCount.toString()),
-      ],
-    );
-  }
-}
-
-class _StatCell extends StatelessWidget {
-  const _StatCell({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceFaint),
-        ),
-      ],
     );
   }
 }

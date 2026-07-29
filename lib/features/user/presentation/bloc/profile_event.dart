@@ -80,6 +80,16 @@ final class ProfileSaveRequested extends ProfileEvent {
   List<Object?> get props => [displayName, bio, photoUrl, username];
 }
 
+/// Пользователь выбрал, какие ачивки показывать в профиле.
+final class ProfilePinnedAchievementsChanged extends ProfileEvent {
+  const ProfilePinnedAchievementsChanged(this.achievementIds);
+
+  final List<String> achievementIds;
+
+  @override
+  List<Object?> get props => [achievementIds];
+}
+
 /// Логически очистить блок (например, при logout) и отписаться от стрима.
 final class ProfileResetRequested extends ProfileEvent {
   const ProfileResetRequested();

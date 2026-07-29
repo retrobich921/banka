@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/cloudinary.dart';
 import '../../../like/presentation/widgets/like_button.dart';
 import '../../domain/entities/post.dart';
 import 'rating_widgets.dart';
@@ -268,28 +269,41 @@ class _PhotoCarousel extends StatelessWidget {
       children: [
         AspectRatio(
           aspectRatio: 1,
-          child: PageView.builder(
-            controller: controller,
-            itemCount: post.photos.length,
-            onPageChanged: onPageChanged,
-            itemBuilder: (context, i) {
-              final photo = post.photos[i];
-              final image = CachedNetworkImage(
-                imageUrl: photo.thumbUrl.isNotEmpty
-                    ? photo.thumbUrl
-                    : photo.url,
-                fit: BoxFit.cover,
-                placeholder: (_, _) =>
-                    const ColoredBox(color: AppColors.surfaceVariant),
-                errorWidget: (_, _, _) => const Icon(
-                  Icons.broken_image_outlined,
-                  color: AppColors.onSurfaceFaint,
-                ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Превью запрашиваем под реальный размер карточки на этом
+              // экране (ширина × DPR), а не фиксированные 400 px — иначе на
+              // 3x-экранах фото выглядит мылом.
+              final width = cloudinaryWidthFor(
+                constraints.maxWidth,
+                MediaQuery.devicePixelRatioOf(context),
               );
-              // Hero здесь сознательно не используем: карточка может жить в
-              // скрытой вкладке IndexedStack, и при возврате с детального
-              // экрана фото «улетало» в невидимый таб поверх текущего.
-              return image;
+              return PageView.builder(
+                controller: controller,
+                itemCount: post.photos.length,
+                onPageChanged: onPageChanged,
+                itemBuilder: (context, i) {
+                  final photo = post.photos[i];
+                  final source = photo.url.isNotEmpty
+                      ? cloudinaryThumb(photo.url, width: width)
+                      : photo.thumbUrl;
+                  // Hero здесь сознательно не используем: карточка может жить
+                  // в скрытой вкладке IndexedStack, и при возврате с
+                  // детального экрана фото «улетало» в невидимый таб поверх
+                  // текущего.
+                  return CachedNetworkImage(
+                    imageUrl: source,
+                    fit: BoxFit.cover,
+                    memCacheWidth: width,
+                    placeholder: (_, _) =>
+                        const ColoredBox(color: AppColors.surfaceVariant),
+                    errorWidget: (_, _, _) => const Icon(
+                      Icons.broken_image_outlined,
+                      color: AppColors.onSurfaceFaint,
+                    ),
+                  );
+                },
+              );
             },
           ),
         ),

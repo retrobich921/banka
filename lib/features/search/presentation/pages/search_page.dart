@@ -107,6 +107,7 @@ class _SearchViewState extends State<_SearchView> {
             itemBuilder: (_, i) {
               final post = state.results[i];
               return PostCard(
+                key: ValueKey(post.id),
                 post: post,
                 onTap: () => context.pushNamed(
                   AppRoutes.postDetailName,

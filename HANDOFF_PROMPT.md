@@ -49,7 +49,11 @@
 
 - **Sprint 15** — Profile stats & Achievements: Cloud Function пересчёта `users.{uid}.stats` (cansCount, likesReceived, avgRarity, topBrandId), бейджи (entity + правила, экран на профиле).
 - **Sprint 16** — Wishlist + Following: подколлекции `users/{uid}/wishlist/{postId}` и `users/{uid}/following/{otherUserId}`, вкладка «Подписки» в ленте.
-- **Sprint 17** — Push notifications: FCM-токены в `users.fcmTokens`, Cloud Functions триггеры на новый коммент / лайк / подписчика.
+- **Sprint 17** — Push notifications: клиент готов (`PushNotificationsService`: токены в
+  `users.fcmTokens`, канал `banka_default`, foreground-баннер, переход по `data.postId`),
+  триггеры написаны (`functions/notifications.js`: лайк / коммент / новая банка подписчикам
+  и участникам группы). **Осталось**: перевести проект на Blaze и задеплоить функции —
+  на Spark они не выполняются.
 - **Sprint 18** — Polish & Release: empty/error/skeleton states, `firebase_analytics`, Crashlytics, иконки, splash, Firebase App Distribution / Play Internal CD.
 
 Полные требования по каждому спринту — в `PROJECT_PLAN.md § Блок 3`.

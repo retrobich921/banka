@@ -12,6 +12,10 @@ import '../cubit/like_button_cubit.dart';
 /// `watchHasLiked(postId, currentUid)` и показывает суммарный счётчик =
 /// `baseLikesCount + cubit.optimisticDelta`. На каждый пост — свой инстанс
 /// (cubit живёт пока виджет в дереве).
+///
+/// `ValueKey(postId)` на провайдере обязателен: списки переиспользуют
+/// элементы, и без ключа cubit остался бы подписанным на старый пост —
+/// лайк уходил бы «не туда», а счётчик не обновлялся.
 class LikeButton extends StatelessWidget {
   const LikeButton({
     super.key,
@@ -42,12 +46,14 @@ class LikeButton extends StatelessWidget {
     }
 
     return BlocProvider<LikeButtonCubit>(
+      key: ValueKey(postId),
       create: (_) => sl<LikeButtonCubit>()
         ..subscribe(
           postId: postId,
           userId: user.id,
           userName: user.displayName ?? user.email,
           userPhotoUrl: user.photoUrl,
+          likesCount: likesCount,
         ),
       child: _LikeButtonInner(
         likesCount: likesCount,
@@ -58,7 +64,7 @@ class LikeButton extends StatelessWidget {
   }
 }
 
-class _LikeButtonInner extends StatelessWidget {
+class _LikeButtonInner extends StatefulWidget {
   const _LikeButtonInner({
     required this.likesCount,
     required this.compact,
@@ -68,6 +74,20 @@ class _LikeButtonInner extends StatelessWidget {
   final int likesCount;
   final bool compact;
   final double iconSize;
+
+  @override
+  State<_LikeButtonInner> createState() => _LikeButtonInnerState();
+}
+
+class _LikeButtonInnerState extends State<_LikeButtonInner> {
+  @override
+  void didUpdateWidget(covariant _LikeButtonInner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Родитель отдал свежий серверный счётчик — снимаем локальную поправку.
+    if (oldWidget.likesCount != widget.likesCount) {
+      context.read<LikeButtonCubit>().syncLikesCount(widget.likesCount);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,13 +102,11 @@ class _LikeButtonInner extends StatelessWidget {
         ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
       },
       builder: (context, state) {
-        final displayed = state.displayedHasLiked;
-        final count = likesCount + state.optimisticDelta;
         return _LikeButtonView(
-          compact: compact,
-          iconSize: iconSize,
-          hasLiked: displayed,
-          count: count,
+          compact: widget.compact,
+          iconSize: widget.iconSize,
+          hasLiked: state.displayedHasLiked,
+          count: state.displayedCount,
           onTap: state.isMutating
               ? null
               : () => context.read<LikeButtonCubit>().toggle(),

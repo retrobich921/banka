@@ -42,7 +42,11 @@ abstract interface class UserRepository {
     String? displayName,
     String? bio,
     String? photoUrl,
+    List<String>? pinnedAchievements,
   });
+
+  /// Профили по списку id — для экранов подписок/подписчиков.
+  ResultFuture<List<UserProfile>> getUsersByIds(List<String> ids);
 
   // ========== Username-specific methods ==========
 

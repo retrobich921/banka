@@ -25,6 +25,19 @@ final class PostsFeedResetRequested extends PostsFeedEvent {
   const PostsFeedResetRequested();
 }
 
+/// Убрать пост из ленты локально — например, после архивации.
+///
+/// Realtime-стрим отдаёт только первую страницу, поэтому у догруженных
+/// пагинацией постов «archived» сам собой не приедет; плюс так карточка
+/// исчезает сразу, без ожидания round-trip.
+final class PostsFeedPostHidden extends PostsFeedEvent {
+  const PostsFeedPostHidden(this.postId);
+  final String postId;
+
+  @override
+  List<Object?> get props => [postId];
+}
+
 /// Внутреннее событие — приходит из стрима репозитория.
 final class _PostsFeedReceived extends PostsFeedEvent {
   const _PostsFeedReceived(this.result);

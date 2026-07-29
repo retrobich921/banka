@@ -93,6 +93,7 @@ final class UserRepositoryImpl implements UserRepository {
     String? displayName,
     String? bio,
     String? photoUrl,
+    List<String>? pinnedAchievements,
   }) async {
     try {
       await _remote.updateProfile(
@@ -100,8 +101,20 @@ final class UserRepositoryImpl implements UserRepository {
         displayName: displayName,
         bio: bio,
         photoUrl: photoUrl,
+        pinnedAchievements: pinnedAchievements,
       );
       return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, cause: e.cause));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString(), cause: e));
+    }
+  }
+
+  @override
+  ResultFuture<List<UserProfile>> getUsersByIds(List<String> ids) async {
+    try {
+      return Right(await _remote.getUsersByIds(ids));
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, cause: e.cause));
     } catch (e) {

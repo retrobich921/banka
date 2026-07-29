@@ -37,6 +37,7 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
     on<PostsFeedLoadMoreRequested>(_onLoadMore);
     on<_PostsFeedReceived>(_onReceived);
     on<PostsFeedResetRequested>(_onReset);
+    on<PostsFeedPostHidden>(_onPostHidden);
   }
 
   final WatchFeed _watchFeed;
@@ -51,6 +52,10 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
   List<Post> _firstPage = const [];
   List<Post> _more = const [];
   bool _reachedEnd = false;
+
+  /// Посты, скрытые локально (архивация) — не показываем, даже если стрим
+  /// ещё не успел их отфильтровать.
+  final Set<String> _hidden = <String>{};
 
   StreamSubscription<Either<Failure, List<Post>>>? _sub;
   PostsFeedScope? _currentScope;
@@ -77,7 +82,19 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
   /// Склейка realtime-первой страницы и дочитанных страниц без дублей.
   List<Post> _combined() {
     final ids = _firstPage.map((p) => p.id).toSet();
-    return [..._firstPage, ..._more.where((p) => !ids.contains(p.id))];
+    return [
+      ..._firstPage,
+      ..._more.where((p) => !ids.contains(p.id)),
+    ].where((p) => !_hidden.contains(p.id)).toList(growable: false);
+  }
+
+  void _onPostHidden(PostsFeedPostHidden event, Emitter<PostsFeedState> emit) {
+    if (!_hidden.add(event.postId)) return;
+    // Из уже загруженных страниц убираем сразу; id держим в `_hidden`, пока
+    // realtime-стрим не догонит (он ещё отдаёт пост неархивированным).
+    _firstPage = _firstPage.where((p) => p.id != event.postId).toList();
+    _more = _more.where((p) => p.id != event.postId).toList();
+    emit(state.copyWith(posts: _combined()));
   }
 
   Future<void> _onSubscribe(
@@ -89,6 +106,7 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
     _firstPage = const [];
     _more = const [];
     _reachedEnd = false;
+    _hidden.clear();
 
     emit(
       state.copyWith(
@@ -154,6 +172,10 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
       ),
       (posts) {
         _firstPage = posts;
+        // Сервер уже не отдаёт скрытый пост — снимаем локальный фильтр,
+        // иначе возврат из архива не показал бы банку обратно в ленте.
+        final incoming = posts.map((p) => p.id).toSet();
+        _hidden.removeWhere((id) => !incoming.contains(id));
         // Если первая страница неполная — постов всего меньше страницы,
         // дочитывать нечего.
         if (posts.length < _pageSize && _more.isEmpty) _reachedEnd = true;
@@ -179,6 +201,7 @@ class PostsFeedBloc extends Bloc<PostsFeedEvent, PostsFeedState> {
     _firstPage = const [];
     _more = const [];
     _reachedEnd = false;
+    _hidden.clear();
     emit(const PostsFeedState.initial());
   }
 

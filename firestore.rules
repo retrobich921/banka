@@ -286,6 +286,16 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // ---- users/{uid}/followers/{followerUid} — зеркало подписок ----------
+    // Пишет сам подписчик (id документа = его uid) в одном батче с
+    // `following`. Нужно, чтобы список подписчиков читался одним запросом,
+    // без collection group query. Читать может любой авторизованный.
+    match /users/{userId}/followers/{followerUid} {
+      allow read: if isSignedIn();
+      allow create, delete: if isSelf(followerUid);
+      allow update: if false;
+    }
+
     // ---- Fallback: по умолчанию всё, что не описано выше — закрыто.
     match /{document=**} {
       allow read, write: if false;

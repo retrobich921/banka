@@ -2,18 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/achievement.dart';
 import '../bloc/profile_bloc.dart';
+import '../widgets/achievement_icon_view.dart';
 
 /// Экран «Достижения» текущего пользователя.
 ///
 /// Полученные ачивки можно закрепить (до [_maxPinned] штук) — именно они
 /// показываются в шапке профиля. Невыполненные видны только здесь и без
 /// порогов: у ближайшей цели — полоса прогресса, остальные закрыты.
-class AchievementsPage extends StatelessWidget {
+class AchievementsPage extends StatefulWidget {
   const AchievementsPage({super.key});
 
+  @override
+  State<AchievementsPage> createState() => _AchievementsPageState();
+}
+
+class _AchievementsPageState extends State<AchievementsPage> {
   static const int _maxPinned = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    // Экран открывается пушем маршрута, и go_router поднимает для него
+    // собственный ProfileBloc — тот, что живёт во вкладке профиля, сюда не
+    // достаёт. Без этой подписки экран висел бы на бесконечном спиннере.
+    final bloc = context.read<ProfileBloc>();
+    if (bloc.state.profile == null) {
+      final user = context.read<AuthBloc>().state.user;
+      if (user != null) bloc.add(ProfileSubscribeRequested(user));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,13 +134,7 @@ class _AchievementTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Opacity(
-            opacity: earned ? 1 : 0.3,
-            child: Text(
-              achievement.emoji,
-              style: const TextStyle(fontSize: 22),
-            ),
-          ),
+          AchievementIconView(icon: achievement.icon, earned: earned, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

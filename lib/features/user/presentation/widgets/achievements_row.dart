@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/achievement.dart';
+import 'achievement_icon_view.dart';
 
 /// Блок ачивок в профиле.
 ///
@@ -10,6 +11,9 @@ import '../../domain/entities/achievement.dart';
 /// цели (`/100`, `/150`) сознательно не показываем — только текущее число
 /// банок и полоса: как только цель взята, она уходит в витрину, а на её
 /// месте появляется следующая.
+///
+/// Символы — иконки, а не эмодзи: эмодзи выбиваются из тёмной темы и
+/// по-разному рисуются на разных прошивках.
 class AchievementsRow extends StatelessWidget {
   const AchievementsRow({
     super.key,
@@ -116,7 +120,7 @@ class _EarnedChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(achievement.emoji, style: const TextStyle(fontSize: 15)),
+          AchievementIconView(icon: achievement.icon, earned: true, size: 16),
           const SizedBox(width: 6),
           Text(
             achievement.title,
@@ -131,7 +135,7 @@ class _EarnedChip extends StatelessWidget {
   }
 }
 
-/// Ближайшая цель: эмодзи, название и полоса прогресса. Конечное число
+/// Ближайшая цель: иконка, название и полоса прогресса. Конечное число
 /// (порог) не показываем — только текущее количество банок.
 class _NextGoal extends StatelessWidget {
   const _NextGoal({
@@ -152,12 +156,10 @@ class _NextGoal extends StatelessWidget {
       children: [
         Row(
           children: [
-            Opacity(
-              opacity: 0.5,
-              child: Text(
-                achievement.emoji,
-                style: const TextStyle(fontSize: 15),
-              ),
+            AchievementIconView(
+              icon: achievement.icon,
+              earned: false,
+              size: 16,
             ),
             const SizedBox(width: 6),
             Expanded(

@@ -212,26 +212,60 @@ void main() {
       ],
     );
 
-    test('стрим, догнавший optimistic, сбрасывает optimisticDelta', () async {
-      final controller = StreamController<Either<Failure, bool>>();
-      when(() => watchHasLiked(any())).thenAnswer((_) => controller.stream);
+    test(
+      'стрим, догнавший optimistic, снимает флаг, но НЕ трогает счётчик',
+      () async {
+        final controller = StreamController<Either<Failure, bool>>();
+        when(() => watchHasLiked(any())).thenAnswer((_) => controller.stream);
+        when(
+          () => likePost(any()),
+        ).thenAnswer((_) async => const Right<Failure, void>(null));
+
+        final cubit = buildCubit();
+        await cubit.subscribe(
+          postId: 'p',
+          userId: 'u',
+          userName: 'Alice',
+          likesCount: 5,
+        );
+        controller.add(const Right<Failure, bool>(false));
+        await Future<void>.delayed(Duration.zero);
+        await cubit.toggle();
+        // Стрим догоняет наш оптимизм — но родитель ещё не прислал новый
+        // likesCount, поэтому поправку держим (иначе счётчик отскочит).
+        controller.add(const Right<Failure, bool>(true));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(cubit.state.hasLiked, true);
+        expect(cubit.state.optimisticHasLiked, isNull);
+        expect(cubit.state.optimisticDelta, 1);
+        expect(cubit.state.displayedCount, 6);
+
+        // Родитель отдал серверный счётчик — поправка больше не нужна.
+        cubit.syncLikesCount(6);
+        expect(cubit.state.optimisticDelta, 0);
+        expect(cubit.state.displayedCount, 6);
+
+        await controller.close();
+        await cubit.close();
+      },
+    );
+
+    test('счётчик не уходит в минус', () async {
       when(
-        () => likePost(any()),
+        () => watchHasLiked(any()),
+      ).thenAnswer((_) => Stream.value(const Right<Failure, bool>(true)));
+      when(
+        () => unlikePost(any()),
       ).thenAnswer((_) async => const Right<Failure, void>(null));
 
       final cubit = buildCubit();
       await doSubscribe(cubit);
-      controller.add(const Right<Failure, bool>(false));
       await Future<void>.delayed(Duration.zero);
       await cubit.toggle();
-      // Стрим догоняет наш оптимизм.
-      controller.add(const Right<Failure, bool>(true));
-      await Future<void>.delayed(Duration.zero);
 
-      expect(cubit.state.hasLiked, true);
-      expect(cubit.state.optimisticHasLiked, isNull);
-      expect(cubit.state.optimisticDelta, 0);
-      await controller.close();
+      expect(cubit.state.optimisticDelta, -1);
+      expect(cubit.state.displayedCount, 0);
       await cubit.close();
     });
 

@@ -16,6 +16,10 @@ import '../bloc/post_detail_bloc.dart';
 import '../widgets/rating_widgets.dart';
 import '../widgets/share_post_card.dart';
 
+/// Результат, с которым детальный экран закрывается после архивации —
+/// ленте по нему нужно убрать карточку.
+const String kPostArchivedResult = 'post-archived';
+
 /// Детальный экран поста-«банки».
 ///
 /// Подписывается на стрим конкретного поста через `PostDetailBloc`,
@@ -47,6 +51,10 @@ class _PostDetailView extends StatefulWidget {
 class _PostDetailViewState extends State<_PostDetailView> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+
+  /// Пользователь нажал «в архив» на этом экране — ждём подтверждения из
+  /// стрима, чтобы закрыть экран и убрать пост из ленты.
+  bool _archivePending = false;
 
   @override
   void dispose() {
@@ -82,8 +90,29 @@ class _PostDetailViewState extends State<_PostDetailView> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PostDetailBloc, PostDetailState>(
-      listenWhen: (prev, curr) => prev.status != curr.status,
+      listenWhen: (prev, curr) =>
+          prev.status != curr.status ||
+          prev.post?.archived != curr.post?.archived,
       listener: (context, state) {
+        if (_archivePending && state.post?.archived == true) {
+          _archivePending = false;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: const Text('Банка убрана в архив'),
+                action: SnackBarAction(
+                  label: 'Архив',
+                  onPressed: () => context.pushNamed(AppRoutes.archiveName),
+                ),
+              ),
+            );
+          context.canPop()
+              ? context.pop(kPostArchivedResult)
+              : context.goNamed(AppRoutes.homeName);
+          return;
+        }
+        if (state.status == PostDetailStatus.error) _archivePending = false;
         if (state.status == PostDetailStatus.deleted) {
           ScaffoldMessenger.of(
             context,
@@ -133,11 +162,16 @@ class _PostDetailViewState extends State<_PostDetailView> {
                   ),
                   onPressed: isDeleting
                       ? null
-                      : () => context.read<PostDetailBloc>().add(
-                          PostDetailArchiveToggleRequested(
-                            archived: !post.archived,
-                          ),
-                        ),
+                      : () {
+                          // При архивации закрываем экран, как только стрим
+                          // подтвердит флаг (см. listener выше).
+                          _archivePending = !post.archived;
+                          context.read<PostDetailBloc>().add(
+                            PostDetailArchiveToggleRequested(
+                              archived: !post.archived,
+                            ),
+                          );
+                        },
                 ),
               if (isAuthor)
                 IconButton(

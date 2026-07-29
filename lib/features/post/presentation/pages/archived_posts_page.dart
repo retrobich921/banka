@@ -102,6 +102,7 @@ class _ArchivedPostsPageState extends State<ArchivedPostsPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PostCard(
+                key: ValueKey(post.id),
                 post: post,
                 onTap: () => context.pushNamed(
                   AppRoutes.postDetailName,

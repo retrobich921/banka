@@ -368,6 +368,7 @@ class _GroupPostsSection extends StatelessWidget {
           children: [
             for (final post in state.posts) ...[
               PostCard(
+                key: ValueKey(post.id),
                 post: post,
                 onTap: () => context.pushNamed(
                   AppRoutes.postDetailName,

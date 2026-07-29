@@ -4,14 +4,20 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/cloudinary.dart';
 import '../../domain/entities/post.dart';
+import '../pages/post_detail_page.dart';
 
 /// «Полка» — сетка квадратных превью банок (3 в ряд), как галерея
 /// коллекции. Тап по банке открывает детальный экран поста.
 class PostsShelfSliver extends StatelessWidget {
-  const PostsShelfSliver({super.key, required this.posts});
+  const PostsShelfSliver({super.key, required this.posts, this.onArchived});
 
   final List<Post> posts;
+
+  /// Пост убрали в архив на детальном экране — владелец списка должен
+  /// убрать его из выдачи.
+  final ValueChanged<String>? onArchived;
 
   @override
   Widget build(BuildContext context) {
@@ -24,28 +30,42 @@ class PostsShelfSliver extends StatelessWidget {
           crossAxisSpacing: 4,
         ),
         itemCount: posts.length,
-        itemBuilder: (context, i) => _ShelfTile(post: posts[i]),
+        itemBuilder: (context, i) =>
+            _ShelfTile(post: posts[i], onArchived: onArchived),
       ),
     );
   }
 }
 
 class _ShelfTile extends StatelessWidget {
-  const _ShelfTile({required this.post});
+  const _ShelfTile({required this.post, this.onArchived});
 
   final Post post;
+  final ValueChanged<String>? onArchived;
 
   @override
   Widget build(BuildContext context) {
     final photo = post.photos.isNotEmpty ? post.photos.first : null;
+    // Плитка полки — треть ширины экрана; берём превью под её реальный
+    // размер в пикселях.
+    final tileWidth = MediaQuery.sizeOf(context).width / 3;
+    final width = cloudinaryWidthFor(
+      tileWidth,
+      MediaQuery.devicePixelRatioOf(context),
+    );
     final thumb = photo == null
         ? null
-        : (photo.thumbUrl.isNotEmpty ? photo.thumbUrl : photo.url);
+        : (photo.url.isNotEmpty
+              ? cloudinaryThumb(photo.url, width: width)
+              : photo.thumbUrl);
     return InkWell(
-      onTap: () => context.pushNamed(
-        AppRoutes.postDetailName,
-        pathParameters: {'id': post.id},
-      ),
+      onTap: () async {
+        final result = await context.pushNamed<Object?>(
+          AppRoutes.postDetailName,
+          pathParameters: {'id': post.id},
+        );
+        if (result == kPostArchivedResult) onArchived?.call(post.id);
+      },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Stack(
@@ -63,6 +83,7 @@ class _ShelfTile extends StatelessWidget {
               CachedNetworkImage(
                 imageUrl: thumb,
                 fit: BoxFit.cover,
+                memCacheWidth: width,
                 placeholder: (_, _) =>
                     const ColoredBox(color: AppColors.surfaceVariant),
                 errorWidget: (_, _, _) => const ColoredBox(

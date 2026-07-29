@@ -8,8 +8,9 @@ import 'package:path_provider/path_provider.dart';
 /// Сервис компрессии фото перед загрузкой в Firebase Storage.
 ///
 /// Цель — снизить нагрузку на Storage и трафик ленты. Параметры:
-///  - длинная сторона ≤ 1600 px,
-///  - JPEG, качество 85,
+///  - длинная сторона ≤ 2048 px (превью в ленте режет Cloudinary, а
+///    оригинал должен пережить зум на детальном экране),
+///  - JPEG, качество 90,
 ///  - сохраняется во временный каталог (по умолчанию
 ///    `getTemporaryDirectory()`), оригинал не трогаем.
 ///
@@ -17,8 +18,8 @@ import 'package:path_provider/path_provider.dart';
 @lazySingleton
 class ImageCompressor {
   const ImageCompressor({
-    @Named('maxLongSide') this.maxLongSide = 1600,
-    @Named('jpegQuality') this.jpegQuality = 85,
+    @Named('maxLongSide') this.maxLongSide = 2048,
+    @Named('jpegQuality') this.jpegQuality = 90,
   });
 
   final int maxLongSide;

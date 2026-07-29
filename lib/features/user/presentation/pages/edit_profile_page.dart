@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../domain/entities/user_profile.dart';
 import '../../domain/entities/username_validation_result.dart';
 import '../bloc/profile_bloc.dart';
 
@@ -25,17 +27,43 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   String? _initialUsername;
 
+  /// Поля уже заполнены данными профиля — повторно не перетираем ввод.
+  bool _hydrated = false;
+
   @override
   void initState() {
     super.initState();
-    final profile = context.read<ProfileBloc>().state.profile;
+    final bloc = context.read<ProfileBloc>();
+    final profile = bloc.state.profile;
     _nameController = TextEditingController(text: profile?.displayName ?? '');
     _bioController = TextEditingController(text: profile?.bio ?? '');
     _usernameController = TextEditingController(text: profile?.username ?? '');
     _initialUsername = profile?.username;
+    _hydrated = profile != null;
+
+    // Экран открывается пушем маршрута, и у него может оказаться свой
+    // ProfileBloc (тот, что во вкладке профиля, сюда не достаёт) — тогда
+    // подписываемся сами, иначе поля останутся пустыми, а сохранение
+    // молча ничего не сделает: блок не знает userId.
+    if (profile == null) {
+      final user = context.read<AuthBloc>().state.user;
+      if (user != null) bloc.add(ProfileSubscribeRequested(user));
+    }
 
     // Слушаем изменения username для debounced валидации
     _usernameController.addListener(_onUsernameChanged);
+  }
+
+  /// Заполняет поля, когда профиль приехал из стрима.
+  void _hydrate(UserProfile profile) {
+    if (_hydrated) return;
+    _hydrated = true;
+    _nameController.text = profile.displayName;
+    _bioController.text = profile.bio ?? '';
+    _usernameController.removeListener(_onUsernameChanged);
+    _usernameController.text = profile.username;
+    _usernameController.addListener(_onUsernameChanged);
+    _initialUsername = profile.username;
   }
 
   @override
@@ -102,8 +130,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
       body: BlocListener<ProfileBloc, ProfileState>(
         listenWhen: (prev, curr) =>
             (prev.isSaving && curr.isReady) ||
-            (prev.isSaving && curr.status == ProfileStatus.error),
+            (prev.isSaving && curr.status == ProfileStatus.error) ||
+            (prev.profile == null && curr.profile != null),
         listener: (context, state) {
+          final profile = state.profile;
+          if (!_hydrated && profile != null) {
+            _hydrate(profile);
+            return;
+          }
           if (state.isReady) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()

@@ -9,13 +9,16 @@ class Achievement {
   const Achievement({
     required this.id,
     required this.title,
-    required this.emoji,
+    required this.icon,
     required this.threshold,
   });
 
   final String id;
   final String title;
-  final String emoji;
+
+  /// Символ ачивки. Домен не знает про Flutter, поэтому здесь семантика,
+  /// а конкретную `IconData` подбирает presentation (`achievementIconData`).
+  final AchievementIcon icon;
 
   /// Нужное число банок в коллекции.
   final int threshold;
@@ -23,20 +26,63 @@ class Achievement {
   bool earnedBy(int cansCount) => cansCount >= threshold;
 }
 
+/// Набор символов для ачивок.
+enum AchievementIcon { drink, shelf, medal, star, gem, crown, trophy }
+
 /// Базовый набор: вехи размера коллекции.
 const List<Achievement> kCollectionAchievements = [
-  Achievement(id: 'cans1', title: 'Первая банка', emoji: '🥤', threshold: 1),
-  Achievement(id: 'cans10', title: 'Десятка', emoji: '🔟', threshold: 10),
-  Achievement(id: 'cans25', title: 'Полка растёт', emoji: '📦', threshold: 25),
-  Achievement(id: 'cans50', title: 'Полтинник', emoji: '🥉', threshold: 50),
-  Achievement(id: 'cans100', title: 'Сотка', emoji: '🥈', threshold: 100),
-  Achievement(id: 'cans150', title: 'Полторашка', emoji: '🥇', threshold: 150),
-  Achievement(id: 'cans200', title: 'Две сотни', emoji: '💎', threshold: 200),
-  Achievement(id: 'cans250', title: 'Четвертак', emoji: '👑', threshold: 250),
+  Achievement(
+    id: 'cans1',
+    title: 'Первая банка',
+    icon: AchievementIcon.drink,
+    threshold: 1,
+  ),
+  Achievement(
+    id: 'cans10',
+    title: 'Десятка',
+    icon: AchievementIcon.shelf,
+    threshold: 10,
+  ),
+  Achievement(
+    id: 'cans25',
+    title: 'Полка растёт',
+    icon: AchievementIcon.shelf,
+    threshold: 25,
+  ),
+  Achievement(
+    id: 'cans50',
+    title: 'Полтинник',
+    icon: AchievementIcon.medal,
+    threshold: 50,
+  ),
+  Achievement(
+    id: 'cans100',
+    title: 'Сотка',
+    icon: AchievementIcon.star,
+    threshold: 100,
+  ),
+  Achievement(
+    id: 'cans150',
+    title: 'Полторашка',
+    icon: AchievementIcon.medal,
+    threshold: 150,
+  ),
+  Achievement(
+    id: 'cans200',
+    title: 'Две сотни',
+    icon: AchievementIcon.gem,
+    threshold: 200,
+  ),
+  Achievement(
+    id: 'cans250',
+    title: 'Четвертак',
+    icon: AchievementIcon.crown,
+    threshold: 250,
+  ),
   Achievement(
     id: 'cans300',
     title: 'Легенда полки',
-    emoji: '🏆',
+    icon: AchievementIcon.trophy,
     threshold: 300,
   ),
 ];

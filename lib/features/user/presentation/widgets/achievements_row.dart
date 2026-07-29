@@ -3,84 +3,193 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/achievement.dart';
 
-/// Горизонтальный ряд бейджей-ачивок в профиле.
+/// Блок ачивок в профиле.
 ///
-/// Полученные — цветные; неполученные — приглушённые, с прогрессом
-/// «237/300» под названием.
+/// Показываем ТОЛЬКО полученные ачивки (витрину выбирает пользователь на
+/// экране «Достижения») и одну строку прогресса к ближайшей цели. Порог
+/// цели (`/100`, `/150`) сознательно не показываем — только текущее число
+/// банок и полоса: как только цель взята, она уходит в витрину, а на её
+/// месте появляется следующая.
 class AchievementsRow extends StatelessWidget {
-  const AchievementsRow({super.key, required this.cansCount});
+  const AchievementsRow({
+    super.key,
+    required this.cansCount,
+    this.pinnedIds = const [],
+    this.onOpen,
+  });
 
   final int cansCount;
+  final List<String> pinnedIds;
+
+  /// Открыть экран «Достижения». `null` — кнопку не показываем.
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 92,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: kCollectionAchievements.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, i) => _Badge(
-          achievement: kCollectionAchievements[i],
-          cansCount: cansCount,
+    final theme = Theme.of(context);
+    final shown = visibleAchievements(
+      cansCount: cansCount,
+      pinnedIds: pinnedIds,
+    );
+    final next = nextAchievement(cansCount);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 12, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Достижения',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (onOpen != null)
+                TextButton.icon(
+                  onPressed: onOpen,
+                  icon: const Icon(Icons.emoji_events_outlined, size: 18),
+                  label: const Text('Все'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+            ],
+          ),
         ),
+        if (shown.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
+            child: Text(
+              'Пока ни одной — добавьте первую банку.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.onSurfaceFaint,
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 34,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: shown.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, i) => _EarnedChip(achievement: shown[i]),
+            ),
+          ),
+        if (next != null) ...[
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _NextGoal(
+              achievement: next,
+              cansCount: cansCount,
+              progress: nextAchievementProgress(cansCount),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _EarnedChip extends StatelessWidget {
+  const _EarnedChip({required this.achievement});
+
+  final Achievement achievement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(achievement.emoji, style: const TextStyle(fontSize: 15)),
+          const SizedBox(width: 6),
+          Text(
+            achievement.title,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _Badge extends StatelessWidget {
-  const _Badge({required this.achievement, required this.cansCount});
+/// Ближайшая цель: эмодзи, название и полоса прогресса. Конечное число
+/// (порог) не показываем — только текущее количество банок.
+class _NextGoal extends StatelessWidget {
+  const _NextGoal({
+    required this.achievement,
+    required this.cansCount,
+    required this.progress,
+  });
 
   final Achievement achievement;
   final int cansCount;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
-    final earned = achievement.earnedBy(cansCount);
     final theme = Theme.of(context);
-    return Container(
-      width: 86,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-      decoration: BoxDecoration(
-        color: earned ? AppColors.surface : AppColors.background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: earned ? AppColors.primary : AppColors.outline,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Opacity(
+              opacity: 0.5,
+              child: Text(
+                achievement.emoji,
+                style: const TextStyle(fontSize: 15),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Следующая: ${achievement.title}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.onSurfaceMuted,
+                ),
+              ),
+            ),
+            Text(
+              '$cansCount',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.onSurfaceMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Opacity(
-            opacity: earned ? 1 : 0.35,
-            child: Text(
-              achievement.emoji,
-              style: const TextStyle(fontSize: 22),
-            ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 5,
+            backgroundColor: AppColors.surfaceVariant,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
-          const SizedBox(height: 4),
-          Text(
-            achievement.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: earned ? AppColors.primary : AppColors.onSurfaceMuted,
-            ),
-          ),
-          Text(
-            earned
-                ? '${achievement.threshold}+'
-                : '$cansCount/${achievement.threshold}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 10,
-              color: AppColors.onSurfaceFaint,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

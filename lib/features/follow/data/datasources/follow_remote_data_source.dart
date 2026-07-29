@@ -22,6 +22,12 @@ abstract interface class FollowRemoteDataSource {
   });
 
   Future<List<String>> getFollowingIds(String followerId);
+
+  /// Live-список id тех, на кого подписан [userId].
+  Stream<List<String>> watchFollowingIds(String userId);
+
+  /// Live-список id тех, кто подписан на [userId].
+  Stream<List<String>> watchFollowerIds(String userId);
 }
 
 @LazySingleton(as: FollowRemoteDataSource)
@@ -32,6 +38,7 @@ final class FirestoreFollowRemoteDataSource implements FollowRemoteDataSource {
 
   static const String _users = 'users';
   static const String _following = 'following';
+  static const String _followers = 'followers';
 
   DocumentReference<Map<String, dynamic>> _doc(
     String followerId,
@@ -42,16 +49,33 @@ final class FirestoreFollowRemoteDataSource implements FollowRemoteDataSource {
       .collection(_following)
       .doc(targetUserId);
 
+  /// Зеркальный документ «на меня подписан X» — без него список
+  /// подписчиков потребовал бы collection group query по всем `following`.
+  DocumentReference<Map<String, dynamic>> _mirrorDoc(
+    String followerId,
+    String targetUserId,
+  ) => _firestore
+      .collection(_users)
+      .doc(targetUserId)
+      .collection(_followers)
+      .doc(followerId);
+
   @override
   Future<void> follow({
     required String followerId,
     required String targetUserId,
   }) async {
     try {
-      await _doc(
-        followerId,
-        targetUserId,
-      ).set(<String, dynamic>{'createdAt': FieldValue.serverTimestamp()});
+      final batch = _firestore.batch()
+        ..set(_doc(followerId, targetUserId), <String, dynamic>{
+          'createdAt': FieldValue.serverTimestamp(),
+          'targetUserId': targetUserId,
+        })
+        ..set(_mirrorDoc(followerId, targetUserId), <String, dynamic>{
+          'createdAt': FieldValue.serverTimestamp(),
+          'followerId': followerId,
+        });
+      await batch.commit();
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }
@@ -63,7 +87,10 @@ final class FirestoreFollowRemoteDataSource implements FollowRemoteDataSource {
     required String targetUserId,
   }) async {
     try {
-      await _doc(followerId, targetUserId).delete();
+      final batch = _firestore.batch()
+        ..delete(_doc(followerId, targetUserId))
+        ..delete(_mirrorDoc(followerId, targetUserId));
+      await batch.commit();
     } on FirebaseException catch (e) {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }
@@ -88,4 +115,20 @@ final class FirestoreFollowRemoteDataSource implements FollowRemoteDataSource {
       throw ServerException(message: e.message ?? e.code, cause: e);
     }
   }
+
+  @override
+  Stream<List<String>> watchFollowingIds(String userId) => _firestore
+      .collection(_users)
+      .doc(userId)
+      .collection(_following)
+      .snapshots()
+      .map((s) => s.docs.map((d) => d.id).toList(growable: false));
+
+  @override
+  Stream<List<String>> watchFollowerIds(String userId) => _firestore
+      .collection(_users)
+      .doc(userId)
+      .collection(_followers)
+      .snapshots()
+      .map((s) => s.docs.map((d) => d.id).toList(growable: false));
 }

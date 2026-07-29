@@ -19,6 +19,7 @@ abstract final class UserProfileDto {
   static const String fUsernameLowercase = 'usernameLowercase';
   static const String fUsernameLastChangedAt = 'usernameLastChangedAt';
   static const String fStats = 'stats';
+  static const String fPinnedAchievements = 'pinnedAchievements';
   static const String fFcmTokens = 'fcmTokens';
   static const String fCreatedAt = 'createdAt';
   static const String fUpdatedAt = 'updatedAt';
@@ -45,6 +46,10 @@ abstract final class UserProfileDto {
       usernameLowercase: (data[fUsernameLowercase] as String?) ?? '',
       usernameLastChangedAt: _timestampToDate(data[fUsernameLastChangedAt]),
       stats: _statsFromMap(data[fStats]),
+      pinnedAchievements:
+          ((data[fPinnedAchievements] as List<dynamic>?) ?? const <dynamic>[])
+              .whereType<String>()
+              .toList(growable: false),
       fcmTokens: ((data[fFcmTokens] as List<dynamic>?) ?? const <dynamic>[])
           .whereType<String>()
           .toList(growable: false),
@@ -69,6 +74,7 @@ abstract final class UserProfileDto {
           profile.usernameLastChangedAt!,
         ),
       fStats: _statsToMap(profile.stats),
+      fPinnedAchievements: profile.pinnedAchievements,
       fFcmTokens: profile.fcmTokens,
       if (profile.createdAt != null)
         fCreatedAt: Timestamp.fromDate(profile.createdAt!),

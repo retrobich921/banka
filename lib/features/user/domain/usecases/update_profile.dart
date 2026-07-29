@@ -12,15 +12,23 @@ final class UpdateProfileParams extends Equatable {
     this.displayName,
     this.bio,
     this.photoUrl,
+    this.pinnedAchievements,
   });
 
   final String userId;
   final String? displayName;
   final String? bio;
   final String? photoUrl;
+  final List<String>? pinnedAchievements;
 
   @override
-  List<Object?> get props => [userId, displayName, bio, photoUrl];
+  List<Object?> get props => [
+    userId,
+    displayName,
+    bio,
+    photoUrl,
+    pinnedAchievements,
+  ];
 }
 
 @lazySingleton
@@ -36,5 +44,6 @@ class UpdateProfile implements UseCase<void, UpdateProfileParams> {
         displayName: params.displayName,
         bio: params.bio,
         photoUrl: params.photoUrl,
+        pinnedAchievements: params.pinnedAchievements,
       );
 }

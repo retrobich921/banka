@@ -43,6 +43,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     );
     on<ProfileUsernameValidationRequested>(_onUsernameValidationRequested);
     on<ProfileSaveRequested>(_onSaveRequested);
+    on<ProfilePinnedAchievementsChanged>(_onPinnedAchievementsChanged);
   }
 
   final EnsureUserDocument _ensureUserDocument;
@@ -130,6 +131,40 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           );
         }
       },
+    );
+  }
+
+  /// Выбор витрины ачивок. Оптимистично обновляем локальный профиль —
+  /// стрим `users/{uid}` подтвердит запись; при ошибке показываем сообщение
+  /// (следующий снапшот вернёт фактическое значение).
+  Future<void> _onPinnedAchievementsChanged(
+    ProfilePinnedAchievementsChanged event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final userId = _currentUserId;
+    final profile = state.profile;
+    if (userId == null || profile == null) return;
+
+    emit(
+      state.copyWith(
+        profile: profile.copyWith(pinnedAchievements: event.achievementIds),
+      ),
+    );
+
+    final result = await _updateProfile(
+      UpdateProfileParams(
+        userId: userId,
+        pinnedAchievements: event.achievementIds,
+      ),
+    );
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: ProfileStatus.error,
+          errorMessage: failure.message ?? 'Не удалось сохранить ачивки',
+        ),
+      ),
+      (_) {},
     );
   }
 

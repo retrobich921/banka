@@ -14,6 +14,9 @@ abstract interface class UserRemoteDataSource {
   /// Топ коллекционеров по `stats.cansCount` (desc).
   Future<List<UserProfile>> topCollectors({int limit});
 
+  /// Профили по списку id (для экранов подписок/подписчиков).
+  Future<List<UserProfile>> getUsersByIds(List<String> ids);
+
   Stream<UserProfile?> watchUser(String userId);
   Future<UserProfile> ensureUserDocument({
     required String userId,
@@ -26,6 +29,7 @@ abstract interface class UserRemoteDataSource {
     String? displayName,
     String? bio,
     String? photoUrl,
+    List<String>? pinnedAchievements,
   });
 
   // ========== Username-specific methods ==========
@@ -87,6 +91,27 @@ final class FirestoreUserRemoteDataSource implements UserRemoteDataSource {
   }
 
   @override
+  Future<List<UserProfile>> getUsersByIds(List<String> ids) async {
+    if (ids.isEmpty) return const [];
+    try {
+      // `whereIn` ограничен 30 значениями — читаем пачками.
+      final profiles = <UserProfile>[];
+      for (var i = 0; i < ids.length; i += 30) {
+        final chunk = ids.sublist(i, i + 30 > ids.length ? ids.length : i + 30);
+        final snap = await _users
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+        profiles.addAll(
+          snap.docs.map((d) => UserProfileDto.fromMap(d.id, d.data())),
+        );
+      }
+      return profiles;
+    } on FirebaseException catch (e) {
+      throw ServerException(message: e.message ?? e.code, cause: e);
+    }
+  }
+
+  @override
   Stream<UserProfile?> watchUser(String userId) {
     return _users.doc(userId).snapshots().map(UserProfileDto.fromSnapshot);
   }
@@ -126,11 +151,15 @@ final class FirestoreUserRemoteDataSource implements UserRemoteDataSource {
     String? displayName,
     String? bio,
     String? photoUrl,
+    List<String>? pinnedAchievements,
   }) async {
     final updates = <String, dynamic>{};
     if (displayName != null) updates[UserProfileDto.fDisplayName] = displayName;
     if (bio != null) updates[UserProfileDto.fBio] = bio;
     if (photoUrl != null) updates[UserProfileDto.fPhotoUrl] = photoUrl;
+    if (pinnedAchievements != null) {
+      updates[UserProfileDto.fPinnedAchievements] = pinnedAchievements;
+    }
 
     if (updates.isEmpty) return;
     updates[UserProfileDto.fUpdatedAt] = Timestamp.fromDate(DateTime.now());

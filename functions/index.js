@@ -17,12 +17,8 @@ const { initializeApp } = require('firebase-admin/app');
 const { getStorage } = require('firebase-admin/storage');
 const { getFirestore } = require('firebase-admin/firestore');
 const { onObjectFinalized } = require('firebase-functions/v2/storage');
-const {
-  onDocumentCreated,
-  onDocumentDeleted,
-} = require('firebase-functions/v2/firestore');
+const { onDocumentDeleted } = require('firebase-functions/v2/firestore');
 const { onRequest } = require('firebase-functions/v2/https');
-const { FieldValue } = require('firebase-admin/firestore');
 const { logger } = require('firebase-functions');
 const sharp = require('sharp');
 
@@ -144,111 +140,17 @@ exports.onPostImageUploaded = onObjectFinalized(
   },
 );
 
-// Sprint 10: счётчик `likesCount` обновляется только сервером.
-// Клиент пишет / удаляет `posts/{postId}/likes/{userId}`,
-// функции реагируют атомарным `FieldValue.increment(±1)`.
-
-exports.onLikeCreated = onDocumentCreated(
-  { document: 'posts/{postId}/likes/{userId}', region: 'europe-west3' },
-  async (event) => {
-    const { postId } = event.params;
-    try {
-      await getFirestore()
-        .collection('posts')
-        .doc(postId)
-        .update({ likesCount: FieldValue.increment(1) });
-    } catch (err) {
-      logger.error('onLikeCreated failed', { postId, err });
-    }
-  },
-);
-
-exports.onLikeDeleted = onDocumentDeleted(
-  { document: 'posts/{postId}/likes/{userId}', region: 'europe-west3' },
-  async (event) => {
-    const { postId } = event.params;
-    try {
-      await getFirestore()
-        .collection('posts')
-        .doc(postId)
-        .update({ likesCount: FieldValue.increment(-1) });
-    } catch (err) {
-      logger.error('onLikeDeleted failed', { postId, err });
-    }
-  },
-);
-
-// Sprint 11: счётчик `commentsCount` обновляется только сервером.
-// Клиент пишет / удаляет `posts/{postId}/comments/{commentId}`,
-// функции реагируют атомарным `FieldValue.increment(±1)`.
-
-exports.onCommentCreated = onDocumentCreated(
-  { document: 'posts/{postId}/comments/{commentId}', region: 'europe-west3' },
-  async (event) => {
-    const { postId } = event.params;
-    try {
-      await getFirestore()
-        .collection('posts')
-        .doc(postId)
-        .update({ commentsCount: FieldValue.increment(1) });
-    } catch (err) {
-      logger.error('onCommentCreated failed', { postId, err });
-    }
-  },
-);
-
-exports.onCommentDeleted = onDocumentDeleted(
-  { document: 'posts/{postId}/comments/{commentId}', region: 'europe-west3' },
-  async (event) => {
-    const { postId } = event.params;
-    try {
-      await getFirestore()
-        .collection('posts')
-        .doc(postId)
-        .update({ commentsCount: FieldValue.increment(-1) });
-    } catch (err) {
-      logger.error('onCommentDeleted failed', { postId, err });
-    }
-  },
-);
-
-// Sprint 13: счётчик `brands/{brandId}.postsCount` обновляется только сервером.
-// Клиент пишет / удаляет `posts/{postId}` с заполненным полем `brandId`,
-// функции реагируют атомарным `FieldValue.increment(±1)`.
-
-exports.onPostCreatedUpdateBrandStats = onDocumentCreated(
-  { document: 'posts/{postId}', region: 'europe-west3' },
-  async (event) => {
-    const data = event.data?.data();
-    const brandId = data?.brandId;
-    if (!brandId) return;
-    try {
-      await getFirestore()
-        .collection('brands')
-        .doc(brandId)
-        .update({ postsCount: FieldValue.increment(1) });
-    } catch (err) {
-      logger.error('onPostCreatedUpdateBrandStats failed', { brandId, err });
-    }
-  },
-);
-
-exports.onPostDeletedUpdateBrandStats = onDocumentDeleted(
-  { document: 'posts/{postId}', region: 'europe-west3' },
-  async (event) => {
-    const data = event.data?.data();
-    const brandId = data?.brandId;
-    if (!brandId) return;
-    try {
-      await getFirestore()
-        .collection('brands')
-        .doc(brandId)
-        .update({ postsCount: FieldValue.increment(-1) });
-    } catch (err) {
-      logger.error('onPostDeletedUpdateBrandStats failed', { brandId, err });
-    }
-  },
-);
+// Счётчики `likesCount` / `commentsCount` / `brands.postsCount` СЧИТАЕТ
+// КЛИЕНТ — батчем вместе с записью лайка/коммента/поста: проект живёт на
+// Spark-плане, где Cloud Functions не выполняются (см. CLAUDE.md).
+//
+// Раньше здесь лежали дублирующие триггеры onLikeCreated / onLikeDeleted /
+// onCommentCreated / onCommentDeleted / onPostCreatedUpdateBrandStats /
+// onPostDeletedUpdateBrandStats. Удалены сознательно: их деплой при
+// переходе на Blaze начал бы считать каждый лайк, коммент и пост ДВАЖДЫ
+// (клиент + функция). Если счёт когда-нибудь переедет на сервер — сначала
+// убрать инкременты из data-source-ов клиента, только потом возвращать
+// триггеры.
 
 // Каскадное удаление группы: удаляет все subcollections (members, join_requests)
 // и опционально отвязывает посты от группы

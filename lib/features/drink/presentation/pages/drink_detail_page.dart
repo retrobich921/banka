@@ -7,6 +7,7 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../post/domain/entities/drink_spec.dart';
 import '../../../post/domain/entities/post.dart';
 import '../../../post/presentation/widgets/post_card.dart';
 import '../../../post/presentation/widgets/rating_widgets.dart';
@@ -208,6 +209,34 @@ class _DrinkHeader extends StatelessWidget {
                     color: AppColors.onSurfaceFaint,
                   ),
                 ),
+                // Характеристики: есть только у напитков, где их указывают
+                // (пиво) — берутся из последнего такого поста.
+                if (drink.spec != null && drink.spec!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final label in _specLabels(drink.spec!))
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            label,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.onSurfaceMuted,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -216,6 +245,15 @@ class _DrinkHeader extends StatelessWidget {
     );
   }
 }
+
+/// Подписи характеристик напитка для чипов в шапке карточки.
+List<String> _specLabels(DrinkSpec spec) => [
+  if (spec.abv != null) spec.shortLabel.split(' · ').first,
+  if (spec.style != null) spec.style!.label,
+  if (spec.container != null) spec.container!.label,
+  if (spec.volumeMl != null) '${spec.volumeMl} мл',
+  if (spec.ibu != null) 'IBU ${spec.ibu}',
+];
 
 /// «Где покупают»: полоски с процентами по магазинам.
 class _StoresBlock extends StatelessWidget {

@@ -5,6 +5,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/typedefs.dart';
 import '../../domain/entities/drink_rating.dart';
+import '../../domain/entities/drink_spec.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/entities/post_ranking.dart';
@@ -32,6 +33,7 @@ final class PostRepositoryImpl implements PostRepository {
     required List<PostPhoto> photos,
     required DateTime foundDate,
     DrinkRating? rating,
+    DrinkSpec? spec,
     DrinkType drinkType = DrinkType.energy,
     String description = '',
     List<String> tags = const <String>[],
@@ -53,6 +55,7 @@ final class PostRepositoryImpl implements PostRepository {
         photos: photos,
         foundDate: foundDate,
         rating: rating,
+        spec: spec,
         drinkType: drinkType,
         description: description,
         tags: tags,

@@ -32,7 +32,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(DrinkType.energy);
-    registerFallbackValue(const DrinkRating());
+    registerFallbackValue(const DrinkRating.classic());
   });
 
   setUp(() {

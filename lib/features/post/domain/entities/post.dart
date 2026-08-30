@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'drink_rating.dart';
+import 'drink_spec.dart';
 import 'drink_type.dart';
 
 part 'post.freezed.dart';
@@ -43,7 +44,11 @@ sealed class Post with _$Post {
     /// Составная оценка (РЗТ-стиль). `null` — пользователь не оценивал.
     DrinkRating? rating,
 
-    /// Категория напитка (энергетик / газировка / сок / …).
+    /// Характеристики напитка: крепость, стиль, тара, объём.
+    /// Заполняются для пива; у остальных типов null.
+    DrinkSpec? spec,
+
+    /// Категория напитка (энергетик / газировка / пиво / сок / …).
     @Default(DrinkType.energy) DrinkType drinkType,
     @Default('') String description,
     @Default(<String>[]) List<String> tags,

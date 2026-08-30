@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../post/domain/entities/drink_spec.dart';
+
 part 'drink.freezed.dart';
 
 /// Карточка напитка (`drinks/{drinkId}`) — агрегат по всем постам об одном
@@ -27,6 +29,10 @@ sealed class Drink with _$Drink {
     /// Сумма и число указанных цен (для средней).
     @Default(0.0) double pricesSum,
     @Default(0) int pricesCount,
+
+    /// Характеристики напитка (крепость, стиль, тара) — берутся из
+    /// последнего поста, который их указал.
+    DrinkSpec? spec,
 
     /// Магазин → сколько раз там покупали (для «80% в Пятёрочке»).
     @Default(<String, int>{}) Map<String, int> stores,

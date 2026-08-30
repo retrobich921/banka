@@ -59,8 +59,12 @@ class RatingScoreBadge extends StatelessWidget {
   }
 }
 
-/// Редактор составной оценки: тумблер «Оценить» + 5 критериев (1–10) и
-/// «Вайб» (множитель) + живой итоговый балл.
+/// Редактор составной оценки: тумблер «Оценить» + пять критериев профиля
+/// (1–10) и «Вайб» (множитель) + живой итоговый балл.
+///
+/// Критерии редактор не знает — берёт их из самой оценки
+/// (`DrinkRating.criteria`), поэтому пивной профиль рисуется тем же кодом,
+/// что и классический.
 class RatingEditor extends StatelessWidget {
   const RatingEditor({
     super.key,
@@ -97,35 +101,16 @@ class RatingEditor extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          _CriterionSlider(
-            label: 'Вкус',
-            value: rating.taste,
-            onChanged: (v) => onChanged(rating.copyWith(taste: v)),
-          ),
-          _CriterionSlider(
-            label: 'Баланс',
-            value: rating.balance,
-            onChanged: (v) => onChanged(rating.copyWith(balance: v)),
-          ),
-          _CriterionSlider(
-            label: 'Текстура / газация',
-            value: rating.texture,
-            onChanged: (v) => onChanged(rating.copyWith(texture: v)),
-          ),
-          _CriterionSlider(
-            label: 'Послевкусие',
-            value: rating.aftertaste,
-            onChanged: (v) => onChanged(rating.copyWith(aftertaste: v)),
-          ),
-          _CriterionSlider(
-            label: 'Дизайн банки',
-            value: rating.design,
-            onChanged: (v) => onChanged(rating.copyWith(design: v)),
-          ),
+          for (final criterion in rating.criteria)
+            _CriterionSlider(
+              label: criterion.label,
+              value: criterion.value,
+              onChanged: (v) => onChanged(criterion.apply(v)),
+            ),
           _CriterionSlider(
             label: 'Вайб (множитель)',
             value: rating.vibe,
-            onChanged: (v) => onChanged(rating.copyWith(vibe: v)),
+            onChanged: (v) => onChanged(rating.withVibe(v)),
           ),
         ],
       ],

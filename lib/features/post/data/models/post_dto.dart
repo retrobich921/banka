@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../domain/entities/drink_rating.dart';
+import '../../domain/entities/drink_spec.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import 'post_photo_dto.dart';
@@ -28,6 +29,7 @@ abstract final class PostDto {
   static const String fRating = 'rating';
   static const String fRatingScore = 'ratingScore';
   static const String fDrinkType = 'drinkType';
+  static const String fSpec = 'spec';
   static const String fDescription = 'description';
   static const String fTags = 'tags';
   static const String fLikesCount = 'likesCount';
@@ -63,6 +65,7 @@ abstract final class PostDto {
       foundDate: _timestampToDate(data[fFoundDate]),
       rating: _ratingFromMap(data[fRating]),
       drinkType: DrinkType.fromKey(data[fDrinkType] as String?),
+      spec: _specFromMap(data[fSpec]),
       description: (data[fDescription] as String?) ?? '',
       tags: _stringList(data[fTags]),
       likesCount: (data[fLikesCount] as num?)?.toInt() ?? 0,
@@ -97,6 +100,8 @@ abstract final class PostDto {
       if (post.rating != null) fRating: _ratingToMap(post.rating!),
       if (post.rating != null) fRatingScore: post.rating!.score,
       fDrinkType: post.drinkType.storageKey,
+      if (post.spec != null && post.spec!.isNotEmpty)
+        fSpec: specToMap(post.spec!),
       fDescription: post.description,
       fTags: post.tags,
       fLikesCount: post.likesCount,
@@ -128,11 +133,23 @@ abstract final class PostDto {
     return tokens.toList(growable: false);
   }
 
+  /// Оценка. Ключ `kind` появился вместе с пивным профилем — документы
+  /// без него писались классическим профилем, читаем их как classic.
   static DrinkRating? _ratingFromMap(Object? raw) {
     if (raw is! Map) return null;
     final map = Map<String, dynamic>.from(raw);
     int v(String k) => (map[k] as num?)?.toInt().clamp(1, 10) ?? 5;
-    return DrinkRating(
+    if (map['kind'] == 'beer') {
+      return DrinkRating.beer(
+        taste: v('taste'),
+        aroma: v('aroma'),
+        body: v('body'),
+        bitterness: v('bitterness'),
+        drinkability: v('drinkability'),
+        vibe: v('vibe'),
+      );
+    }
+    return DrinkRating.classic(
       taste: v('taste'),
       balance: v('balance'),
       texture: v('texture'),
@@ -142,13 +159,47 @@ abstract final class PostDto {
     );
   }
 
-  static Map<String, dynamic> _ratingToMap(DrinkRating r) => <String, dynamic>{
-    'taste': r.taste,
-    'balance': r.balance,
-    'texture': r.texture,
-    'aftertaste': r.aftertaste,
-    'design': r.design,
-    'vibe': r.vibe,
+  static Map<String, dynamic> _ratingToMap(DrinkRating r) => switch (r) {
+    final ClassicDrinkRating c => <String, dynamic>{
+      'kind': r.kind,
+      'taste': c.taste,
+      'balance': c.balance,
+      'texture': c.texture,
+      'aftertaste': c.aftertaste,
+      'design': c.design,
+      'vibe': c.vibe,
+    },
+    final BeerDrinkRating b => <String, dynamic>{
+      'kind': r.kind,
+      'taste': b.taste,
+      'aroma': b.aroma,
+      'body': b.body,
+      'bitterness': b.bitterness,
+      'drinkability': b.drinkability,
+      'vibe': b.vibe,
+    },
+  };
+
+  static DrinkSpec? _specFromMap(Object? raw) {
+    if (raw is! Map) return null;
+    final map = Map<String, dynamic>.from(raw);
+    final spec = DrinkSpec(
+      abv: (map['abv'] as num?)?.toDouble(),
+      style: BeerStyle.fromKey(map['style'] as String?),
+      container: DrinkContainer.fromKey(map['container'] as String?),
+      volumeMl: (map['volumeMl'] as num?)?.toInt(),
+      ibu: (map['ibu'] as num?)?.toInt(),
+    );
+    return spec.isEmpty ? null : spec;
+  }
+
+  /// Публичный: тем же форматом характеристики пишутся в карточку напитка.
+  static Map<String, dynamic> specToMap(DrinkSpec spec) => <String, dynamic>{
+    if (spec.abv != null) 'abv': spec.abv,
+    if (spec.style != null) 'style': spec.style!.storageKey,
+    if (spec.container != null) 'container': spec.container!.storageKey,
+    if (spec.volumeMl != null) 'volumeMl': spec.volumeMl,
+    if (spec.ibu != null) 'ibu': spec.ibu,
   };
 
   static List<PostPhoto> _photoList(Object? raw) {

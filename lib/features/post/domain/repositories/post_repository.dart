@@ -1,5 +1,6 @@
 import '../../../../core/utils/typedefs.dart';
 import '../entities/drink_rating.dart';
+import '../entities/drink_spec.dart';
 import '../entities/drink_type.dart';
 import '../entities/post.dart';
 import '../entities/post_ranking.dart';
@@ -24,6 +25,7 @@ abstract interface class PostRepository {
     required List<PostPhoto> photos,
     required DateTime foundDate,
     DrinkRating? rating,
+    DrinkSpec? spec,
     DrinkType drinkType = DrinkType.energy,
     String description = '',
     List<String> tags = const <String>[],

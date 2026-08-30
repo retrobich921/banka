@@ -231,7 +231,10 @@ final class UserRepositoryImpl implements UserRepository {
     try {
       // Валидация перед обновлением
       final validationResult = await validateUsername(newUsername, userId);
-      return validationResult.fold(Left.new, (result) async {
+      // await обязателен: без него исключение из `_remote.updateUsername`
+      // улетало бы мимо catch-блоков ниже — Future возвращался раньше, чем
+      // падал.
+      return await validationResult.fold(Left.new, (result) async {
         // Проверяем результат валидации
         return result.when(
           valid: () async {

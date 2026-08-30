@@ -24,6 +24,7 @@ import '../../../group/domain/entities/group.dart';
 import '../../../group/domain/usecases/watch_my_groups.dart';
 import '../../domain/entities/drink_type.dart';
 import '../bloc/create_post_bloc.dart';
+import '../widgets/drink_spec_editor.dart';
 import '../widgets/rating_widgets.dart';
 import 'square_camera_page.dart';
 
@@ -371,6 +372,24 @@ class _CreatePostViewState extends State<_CreatePostView> {
                       enabled: !isBusy,
                     ),
                     const SizedBox(height: 24),
+                    _DrinkTypeSelector(
+                      value: state.drinkType,
+                      onChanged: (t) => context.read<CreatePostBloc>().add(
+                        CreatePostDrinkTypeChanged(t),
+                      ),
+                    ),
+                    // Характеристики показываем только для алкоголя: у
+                    // газировки нет ни крепости, ни стиля.
+                    if (state.drinkType.isAlcohol) ...[
+                      const SizedBox(height: 20),
+                      DrinkSpecEditor(
+                        spec: state.specDraft,
+                        onChanged: (s) => context.read<CreatePostBloc>().add(
+                          CreatePostSpecChanged(s),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
                     RatingEditor(
                       enabled: state.isRated,
                       rating: state.ratingDraft,
@@ -379,13 +398,6 @@ class _CreatePostViewState extends State<_CreatePostView> {
                           .add(CreatePostRatingEnabled(v)),
                       onChanged: (r) => context.read<CreatePostBloc>().add(
                         CreatePostRatingChanged(r),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _DrinkTypeSelector(
-                      value: state.drinkType,
-                      onChanged: (t) => context.read<CreatePostBloc>().add(
-                        CreatePostDrinkTypeChanged(t),
                       ),
                     ),
                     const SizedBox(height: 24),

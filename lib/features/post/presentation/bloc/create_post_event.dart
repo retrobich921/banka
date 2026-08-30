@@ -136,6 +136,15 @@ final class CreatePostRatingChanged extends CreatePostEvent {
   List<Object?> get props => [rating];
 }
 
+/// Изменение характеристик напитка (крепость, стиль, тара, объём, IBU).
+final class CreatePostSpecChanged extends CreatePostEvent {
+  const CreatePostSpecChanged(this.spec);
+  final DrinkSpec spec;
+
+  @override
+  List<Object?> get props => [spec];
+}
+
 /// Категория напитка.
 final class CreatePostDrinkTypeChanged extends CreatePostEvent {
   const CreatePostDrinkTypeChanged(this.value);

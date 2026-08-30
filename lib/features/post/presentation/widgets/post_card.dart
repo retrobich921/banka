@@ -140,6 +140,10 @@ class _PostCardState extends State<PostCard> {
                       icon: Icons.local_drink_outlined,
                       label: post.drinkType.label,
                     ),
+                    // Крепость и стиль — только у напитков с
+                    // характеристиками (пиво).
+                    if (post.spec != null && post.spec!.isNotEmpty)
+                      _Pill(icon: Icons.percent, label: post.spec!.shortLabel),
                     if (post.brandName != null && post.brandName!.isNotEmpty)
                       _Pill(
                         icon: Icons.local_bar_outlined,

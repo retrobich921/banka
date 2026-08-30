@@ -13,6 +13,7 @@
 enum DrinkType {
   energy('energy', 'Энергетик'),
   soda('soda', 'Газировка'),
+  beer('beer', 'Пиво'),
   juice('juice', 'Сок'),
   water('water', 'Вода'),
   teaCoffee('tea_coffee', 'Чай / кофе'),
@@ -22,6 +23,10 @@ enum DrinkType {
 
   final String storageKey;
   final String label;
+
+  /// Алкоголь: у таких напитков свой профиль оценки и блок характеристик
+  /// (крепость, стиль, тара) в форме создания поста.
+  bool get isAlcohol => this == DrinkType.beer;
 
   /// Разбор значения из Firestore. Неизвестный/`null` ключ → `energy`.
   static DrinkType fromKey(String? key) {

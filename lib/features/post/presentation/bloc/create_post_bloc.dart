@@ -9,6 +9,7 @@ import '../../../../core/usecases/usecase.dart';
 import '../../../barcode/domain/usecases/save_barcode.dart';
 import '../../../group/domain/usecases/watch_my_groups.dart';
 import '../../domain/entities/drink_rating.dart';
+import '../../domain/entities/drink_spec.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/capture_photo_with_crop.dart';
@@ -66,6 +67,7 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     on<CreatePostRatingEnabled>(_onRatingEnabled);
     on<CreatePostRatingChanged>(_onRatingChanged);
     on<CreatePostDrinkTypeChanged>(_onDrinkTypeChanged);
+    on<CreatePostSpecChanged>(_onSpecChanged);
     on<CreatePostTagsChanged>(_onTagsChanged);
     on<CreatePostDescriptionChanged>(_onDescriptionChanged);
     on<CreatePostStoreChanged>(_onStoreChanged);
@@ -294,10 +296,29 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
     Emitter<CreatePostState> emit,
   ) => emit(state.copyWith(ratingDraft: event.rating, isRated: true));
 
+  /// Тип напитка определяет профиль оценки: у пива свои критерии
+  /// (аромат, тело, горечь, питкость) вместо «баланса» и «дизайна банки».
+  /// Черновик оценки пересобираем, если профиль сменился, а характеристики
+  /// сбрасываем при уходе с алкоголя — они бессмысленны для газировки.
   void _onDrinkTypeChanged(
     CreatePostDrinkTypeChanged event,
     Emitter<CreatePostState> emit,
-  ) => emit(state.copyWith(drinkType: event.value));
+  ) {
+    final profile = DrinkRating.forType(event.value);
+    final keepDraft = profile.kind == state.ratingDraft.kind;
+    emit(
+      state.copyWith(
+        drinkType: event.value,
+        ratingDraft: keepDraft ? state.ratingDraft : profile,
+        specDraft: event.value.isAlcohol ? state.specDraft : const DrinkSpec(),
+      ),
+    );
+  }
+
+  void _onSpecChanged(
+    CreatePostSpecChanged event,
+    Emitter<CreatePostState> emit,
+  ) => emit(state.copyWith(specDraft: event.spec));
 
   void _onTagsChanged(
     CreatePostTagsChanged event,
@@ -427,6 +448,7 @@ class CreatePostBloc extends Bloc<CreatePostEvent, CreatePostState> {
         photos: uploaded,
         foundDate: state.foundDate ?? DateTime.now(),
         rating: state.isRated ? state.ratingDraft : null,
+        spec: state.specDraft.isEmpty ? null : state.specDraft,
         drinkType: state.drinkType,
         description: state.description.trim(),
         tags: state.tags,

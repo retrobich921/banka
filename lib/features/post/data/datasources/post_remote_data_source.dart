@@ -5,6 +5,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../drink/data/models/drink_dto.dart';
 import '../../../drink/domain/entities/drink.dart';
 import '../../domain/entities/drink_rating.dart';
+import '../../domain/entities/drink_spec.dart';
 import '../../domain/entities/drink_type.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/entities/post_ranking.dart';
@@ -27,6 +28,7 @@ abstract interface class PostRemoteDataSource {
     required List<PostPhoto> photos,
     required DateTime foundDate,
     DrinkRating? rating,
+    DrinkSpec? spec,
     DrinkType drinkType,
     required String description,
     required List<String> tags,
@@ -140,6 +142,7 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
     required List<PostPhoto> photos,
     required DateTime foundDate,
     DrinkRating? rating,
+    DrinkSpec? spec,
     DrinkType drinkType = DrinkType.energy,
     required String description,
     required List<String> tags,
@@ -168,6 +171,7 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
         photos: photos,
         foundDate: foundDate,
         rating: rating,
+        spec: spec,
         drinkType: drinkType,
         description: description,
         tags: tags,
@@ -226,6 +230,10 @@ final class FirestorePostRemoteDataSource implements PostRemoteDataSource {
             },
             if (cleanStore != null)
               DrinkDto.fStores: {cleanStore: FieldValue.increment(1)},
+            // Характеристики (крепость, стиль, тара) — как и обложка,
+            // перезаписываются последним постом, который их указал.
+            if (spec != null && spec.isNotEmpty)
+              DrinkDto.fSpec: PostDto.specToMap(spec),
             DrinkDto.fUpdatedAt: Timestamp.fromDate(now),
           },
           SetOptions(merge: true),

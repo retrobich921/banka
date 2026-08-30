@@ -389,6 +389,23 @@ class _PostBody extends StatelessWidget {
               icon: Icons.local_drink_outlined,
               label: post.drinkType.label,
             ),
+            // Характеристики напитка: крепость, стиль, тара, объём, IBU.
+            if (post.spec?.abv != null)
+              _Chip(icon: Icons.percent, label: post.spec!.shortLabel),
+            if (post.spec?.style != null && post.spec?.abv == null)
+              _Chip(
+                icon: Icons.local_drink_outlined,
+                label: post.spec!.style!.label,
+              ),
+            if (post.spec?.container != null)
+              _Chip(
+                icon: Icons.inventory_2_outlined,
+                label: post.spec!.container!.label,
+              ),
+            if (post.spec?.volumeMl != null)
+              _Chip(icon: Icons.straighten, label: '${post.spec!.volumeMl} мл'),
+            if (post.spec?.ibu != null)
+              _Chip(icon: Icons.grass_outlined, label: 'IBU ${post.spec!.ibu}'),
             if (post.brandName != null && post.brandName!.isNotEmpty)
               _Chip(icon: Icons.local_bar_outlined, label: post.brandName!),
             if (post.groupName != null)
@@ -481,12 +498,9 @@ class _RatingBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Набор критериев зависит от профиля оценки (классика / пиво).
     final items = <(String, int)>[
-      ('Вкус', rating.taste),
-      ('Баланс', rating.balance),
-      ('Текстура', rating.texture),
-      ('Послевкусие', rating.aftertaste),
-      ('Дизайн', rating.design),
+      for (final c in rating.criteria) (c.label, c.value),
       ('Вайб', rating.vibe),
     ];
     final theme = Theme.of(context);
